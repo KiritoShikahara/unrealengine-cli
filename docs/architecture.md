@@ -1,7 +1,7 @@
 # Architecture
 
 ```text
-unreal-cli (Rust)                         Unreal Editor + UnrealCliBridge
+unrealengine-cli (Rust)                         Unreal Editor + UnrealCliBridge
   cli.rs / commands/*  --TCP 127.0.0.1-->  BridgeServer (thread per connection)
   transport/frame.rs     u32 BE length       -> game thread (AsyncTask)
   transport/client.rs    + UTF-8 JSON        -> ToolRegistry::Dispatch

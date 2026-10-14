@@ -13,7 +13,7 @@ use crate::core::error::CliError;
 use crate::core::paths;
 
 pub static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/skills");
-const MARKER: &str = ".unreal-cli-skills.json";
+const MARKER: &str = ".unrealengine-cli-skills.json";
 
 /// Bundled skills as (name, SKILL.md text).
 pub fn bundled() -> Vec<(String, String)> {
@@ -137,7 +137,7 @@ fn field(front: &str, key: &str) -> Option<String> {
 }
 
 static CLI_REF: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"unreal-cli ([a-z][a-z-]*)").unwrap());
+    LazyLock::new(|| Regex::new(r"unrealengine-cli ([a-z][a-z-]*)").unwrap());
 static LINK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\]\(([^)#:]+)\)").unwrap());
 static ABS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b[a-z]:[\\/](users|develop|program files)|/users/[a-z]|/home/[a-z]").unwrap()
@@ -252,7 +252,7 @@ pub fn lint_skills(
                     dir,
                     "unknown-command",
                     "error",
-                    format!("'unreal-cli {}' is not a command", &c[1]),
+                    format!("'unrealengine-cli {}' is not a command", &c[1]),
                 ));
             }
         }

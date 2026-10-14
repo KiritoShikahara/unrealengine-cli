@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use clap::Parser;
 use clap::error::ErrorKind;
-use unreal_cli::cli::{Cli, OutputFormat, run};
-use unreal_cli::core::envelope::Envelope;
-use unreal_cli::core::error::CliError;
+use unrealengine_cli::cli::{Cli, OutputFormat, run};
+use unrealengine_cli::core::envelope::Envelope;
+use unrealengine_cli::core::error::CliError;
 
 fn wants_json(args: &[String]) -> bool {
     args.windows(2)
@@ -13,7 +13,7 @@ fn wants_json(args: &[String]) -> bool {
 }
 
 fn main() {
-    let args = unreal_cli::core::msys::fix_args(std::env::args().collect());
+    let args = unrealengine_cli::core::msys::fix_args(std::env::args().collect());
     let cli = match Cli::try_parse_from(&args) {
         Ok(cli) => cli,
         Err(e)
@@ -31,7 +31,7 @@ fn main() {
                 .trim_start_matches("error: ")
                 .to_string();
             let err = CliError::usage("args.parse", first)
-                .with_hint("see: unreal-cli <command> --help")
+                .with_hint("see: unrealengine-cli <command> --help")
                 .with_details(serde_json::json!(msg));
             let env = Envelope::from_result("parse", Err(err), Duration::ZERO);
             env.print(OutputFormat::Json);

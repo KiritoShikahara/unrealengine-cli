@@ -173,5 +173,5 @@ fn tool_list_and_find_work_offline_from_bundled_catalog() {
 #[test]
 fn clap_definition_is_consistent() {
     use clap::CommandFactory;
-    unreal_cli::cli::Cli::command().debug_assert();
+    unrealengine_cli::cli::Cli::command().debug_assert();
 }

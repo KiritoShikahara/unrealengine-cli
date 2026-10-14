@@ -106,7 +106,7 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 					}
 					else if (Now - S->RequestedAt > 60.0)
 					{
-						S->Call->Fail(TEXT("pie.start_failed"), TEXT("the play session did not start within 60 s"), TEXT("check the log: unreal-cli logs --severity warning"));
+						S->Call->Fail(TEXT("pie.start_failed"), TEXT("the play session did not start within 60 s"), TEXT("check the log: unrealengine-cli logs --severity warning"));
 						return false;
 					}
 					return true;

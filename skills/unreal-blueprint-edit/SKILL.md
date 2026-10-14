@@ -13,11 +13,11 @@ Use when creating or changing Blueprint graphs: events, function calls, variable
 
 ## Steps
 
-1. `unreal-cli blueprint create /Game/Blueprints/BP_Name --parent Actor`.
-2. Find nodes: `unreal-cli blueprint search-nodes PrintString`.
-3. Add nodes: `unreal-cli blueprint add-node <path> --type Event --member BeginPlay` (ids come back as N<k>).
-4. Wire: `unreal-cli blueprint connect <path> N1.then N2.execute`; literals: `unreal-cli blueprint set-pin <path> N2 InString Hello`.
-5. `unreal-cli blueprint compile <path>`, then `unreal-cli blueprint save <path>`.
+1. `unrealengine-cli blueprint create /Game/Blueprints/BP_Name --parent Actor`.
+2. Find nodes: `unrealengine-cli blueprint search-nodes PrintString`.
+3. Add nodes: `unrealengine-cli blueprint add-node <path> --type Event --member BeginPlay` (ids come back as N<k>).
+4. Wire: `unrealengine-cli blueprint connect <path> N1.then N2.execute`; literals: `unrealengine-cli blueprint set-pin <path> N2 InString Hello`.
+5. `unrealengine-cli blueprint compile <path>`, then `unrealengine-cli blueprint save <path>`.
 
 ## Verify
 

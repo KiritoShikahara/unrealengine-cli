@@ -1,16 +1,16 @@
-# 実装計画: unreal-cli
+# 実装計画: unrealengine-cli
 
 **Branch**: `001-unreal-cli` | **Date**: 2026-10-14 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
-Rust 製の単一バイナリ `unreal-cli` と、UE エディタに入れる C++ Editor プラグイン `UnrealCliBridge` を作る。両者は 127.0.0.1 上の TCP で、長さプレフィックス付き JSON をやり取りする。ツールはプラグイン側で登録し、スキーマを CLI へ公開する。CLI はそのスキーマから、型付きサブコマンド、`tool call`、MCP ツールを生成する。スキルはバイナリに同梱し、オフラインで導入できるようにする。
+Rust 製の単一バイナリ `unrealengine-cli` と、UE エディタに入れる C++ Editor プラグイン `UnrealCliBridge` を作る。両者は 127.0.0.1 上の TCP で、長さプレフィックス付き JSON をやり取りする。ツールはプラグイン側で登録し、スキーマを CLI へ公開する。CLI はそのスキーマから、型付きサブコマンド、`tool call`、MCP ツールを生成する。スキルはバイナリに同梱し、オフラインで導入できるようにする。
 
 ## Technical Context
 
 **Language/Version**: Rust 1.85+(edition 2024)、C++20(UE 5.5〜5.8 の Editor モジュール)
 **Primary Dependencies**: clap、tokio、serde / serde_json、schemars、rmcp(MCP)、reqwest(更新)、sha2。UE 側は Sockets、Json、UnrealEd、BlueprintGraph、Kismet、PythonScriptPlugin、LiveCoding
-**Storage**: ファイルのみ(`%LOCALAPPDATA%/unreal-cli/` に設定、インスタンス登録、キャッシュ)
+**Storage**: ファイルのみ(`%LOCALAPPDATA%/unrealengine-cli/` に設定、インスタンス登録、キャッシュ)
 **Testing**: cargo test(ユニット、統合。統合テストではモック Bridge を使う)、insta(出力スナップショット)、UE Automation Spec(プラグイン)、E2E スクリプト(実エディタ)
 **Target Platform**: Windows x64 が本命。macOS(arm64/x64)と Linux x64 は CLI 単体の動作だけ
 **Project Type**: CLI とエディタプラグイン

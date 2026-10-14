@@ -3,9 +3,9 @@
   "Version": 1,
   "VersionName": "0.1.0",
   "FriendlyName": "Unreal CLI Bridge",
-  "Description": "Lets unreal-cli drive the editor over a loopback TCP connection.",
+  "Description": "Lets unrealengine-cli drive the editor over a loopback TCP connection.",
   "Category": "Editor",
-  "CreatedBy": "unreal-cli",
+  "CreatedBy": "unrealengine-cli",
   "CanContainContent": true,
   "IsBetaVersion": true,
   "Modules": [

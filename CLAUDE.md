@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-`unreal-cli` 開発ガイド。仕様は `specs/001-unreal-cli/`、原則は `.specify/memory/constitution.md`。
+`unrealengine-cli` 開発ガイド。仕様は `specs/001-unreal-cli/`、原則は `.specify/memory/constitution.md`。
 
 ## 構成
 
 - `src/`: Rust CLI(`cli.rs` がコマンド定義、`commands/` が実装、`transport/` がブリッジ通信)
 - `Plugin/UnrealCliBridge/`: エディタプラグイン。C++ ツールは `Source/.../Private/Tools/`、Python ツールは `Content/Python/unreal_cli_bridge/tools/`
-- `skills/`: 同梱スキルの正本(Skill Contract v1、`unreal-cli skills lint` で検証)
+- `skills/`: 同梱スキルの正本(Skill Contract v1、`unrealengine-cli skills lint` で検証)
 - `tools/catalog.json`: オフライン用ツールカタログ(`scripts/gen-catalog.sh` で再生成)
 - `TestProject/`: E2E 用 UE プロジェクト(`Plugins/UnrealCliBridge` はリポジトリの `Plugin/` へのジャンクション)
 

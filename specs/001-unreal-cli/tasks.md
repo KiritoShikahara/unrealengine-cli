@@ -1,4 +1,4 @@
-# Tasks: unreal-cli
+# Tasks: unrealengine-cli
 
 **Input**: `specs/001-unreal-cli/` 配下の spec.md / plan.md / research.md / data-model.md / contracts/
 **Tests**: 必須(FR-050、憲章 III)。各ストーリーでは、テストを先に書いて失敗を確認してから実装する。
@@ -10,7 +10,7 @@
 
 ## Phase 1: Setup
 
-- [x] T001 `Cargo.toml` と `src/main.rs` を作成する(crate 名 `unreal-cli`、edition 2024)
+- [x] T001 `Cargo.toml` と `src/main.rs` を作成する(crate 名 `unrealengine-cli`、edition 2024)
 - [x] T002 [P] `rustfmt.toml`、`clippy.toml`、`.gitignore` を作成する
 - [x] T003 [P] `.github/workflows/ci.yml` を作成する(fmt / clippy -D warnings / test。OS は windows・macos・ubuntu)
 - [x] T004 [P] `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` と `Source/UnrealCliBridge/UnrealCliBridge.Build.cs` を作成する
@@ -28,7 +28,7 @@
 - [x] T013 `Private/Server/BridgeServer.cpp` を実装する(127.0.0.1 で待ち受け、トークン認証、ゲームスレッドへの転送)
 - [x] T014 `Private/Server/ToolRegistry.cpp` を実装する(登録、`tools_list`、引数のスキーマ検証)
 - [x] T015 `Private/Server/JobManager.cpp` を実装し、jobs_* ツールを公開する
-- [x] T016 `Private/Server/InstanceFile.cpp` を実装する(`%LOCALAPPDATA%/unreal-cli/instances/<pid>.json` の書き込みと削除)
+- [x] T016 `Private/Server/InstanceFile.cpp` を実装する(`%LOCALAPPDATA%/unrealengine-cli/instances/<pid>.json` の書き込みと削除)
 - [x] T017 [P] `Private/Compat/EngineCompat.h` に 5.5〜5.8 の分岐の置き場を作る
 
 ## Phase 3: US1 - 接続と状態確認 (P1) 🎯 MVP
@@ -107,7 +107,7 @@
 
 - [x] T062 [P] [US9] チェックサム不一致のテストを `tests/us9_install.rs` に書く
 - [x] T063 [US9] `scripts/install.ps1` と `scripts/install.sh` を作成する
-- [x] T064 [US9] `src/update/mod.rs` を実装する(`self update`、`UNREAL_CLI_NO_AUTO_UPDATE`)
+- [x] T064 [US9] `src/update/mod.rs` を実装する(`self update`、`UNREALENGINE_CLI_NO_AUTO_UPDATE`)
 - [x] T065 [US9] `.github/workflows/release.yml` を作成する(4 ターゲット、SHA256SUMS)。winget と Homebrew の定義も用意する
 
 ## Phase 12: Polish

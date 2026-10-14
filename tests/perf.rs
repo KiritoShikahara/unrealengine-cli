@@ -21,8 +21,8 @@ fn single_call_p95_under_300ms_including_process_start() {
     let mut times = Vec::new();
     for _ in 0..30 {
         let t = Instant::now();
-        let out = std::process::Command::new(env!("CARGO_BIN_EXE_unreal-cli"))
-            .env("UNREAL_CLI_HOME", home.path())
+        let out = std::process::Command::new(env!("CARGO_BIN_EXE_unrealengine-cli"))
+            .env("UNREALENGINE_CLI_HOME", home.path())
             .current_dir(home.path())
             .args(["--output", "json", "ping"])
             .output()
@@ -40,7 +40,7 @@ fn startup_is_fast() {
     let mut times = Vec::new();
     for _ in 0..20 {
         let t = Instant::now();
-        std::process::Command::new(env!("CARGO_BIN_EXE_unreal-cli"))
+        std::process::Command::new(env!("CARGO_BIN_EXE_unrealengine-cli"))
             .arg("version")
             .output()
             .unwrap();

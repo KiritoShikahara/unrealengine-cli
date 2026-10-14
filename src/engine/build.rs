@@ -170,9 +170,9 @@ pub fn build_editor(engine: &Engine, uproject: &Path) -> Result<Value, CliError>
         let hint = if text.contains("Live Coding")
             || text.contains("Unable to build while Live Coding is active")
         {
-            "close the editor first: unreal-cli editor close"
+            "close the editor first: unrealengine-cli editor close"
         } else {
-            "fix the first error and rebuild: unreal-cli editor build"
+            "fix the first error and rebuild: unrealengine-cli editor build"
         };
         Err(CliError::new(
             ExitCode::Build,

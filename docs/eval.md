@@ -1,6 +1,6 @@
 # Agent evaluation (SC-005)
 
-Ten representative tasks for an agent using only the bundled skills and `unreal-cli`:
+Ten representative tasks for an agent using only the bundled skills and `unrealengine-cli`:
 
 1. Create a Blueprint that prints "Hello" on BeginPlay and compiles cleanly.
 2. Build a level with three lights at given positions and save it.

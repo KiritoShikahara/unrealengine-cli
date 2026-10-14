@@ -302,7 +302,7 @@ void FToolRegistry::Dispatch(const FToolCallRef& Call)
 			Call->Fail(TEXT("editor.not_ready"), FString::Printf(TEXT("'%s' is not registered yet: the editor's Python is still starting"), *Call->Tool), TEXT("retry in a few seconds"));
 			return;
 		}
-		Call->Fail(TEXT("tool.unknown"), FString::Printf(TEXT("unknown tool '%s'"), *Call->Tool), TEXT("list tools: unreal-cli tool list"));
+		Call->Fail(TEXT("tool.unknown"), FString::Printf(TEXT("unknown tool '%s'"), *Call->Tool), TEXT("list tools: unrealengine-cli tool list"));
 		return;
 	}
 	if (!Call->Args.IsValid())
@@ -312,7 +312,7 @@ void FToolRegistry::Dispatch(const FToolCallRef& Call)
 	FString Error;
 	if (!Validate(Def->InputSchema, Call->Args, Error))
 	{
-		Call->Fail(TEXT("args.invalid"), Error, FString::Printf(TEXT("see the schema: unreal-cli tool describe %s"), *Def->Name));
+		Call->Fail(TEXT("args.invalid"), Error, FString::Printf(TEXT("see the schema: unrealengine-cli tool describe %s"), *Def->Name));
 		return;
 	}
 	if (Def->IsMutating() && Call->bDryRun)
@@ -339,7 +339,7 @@ void FToolRegistry::Dispatch(const FToolCallRef& Call)
 	}
 	if (Def->IsUndoable())
 	{
-		FScopedTransaction Transaction(FText::FromString(FString::Printf(TEXT("unreal-cli: %s"), *Def->Name)));
+		FScopedTransaction Transaction(FText::FromString(FString::Printf(TEXT("unrealengine-cli: %s"), *Def->Name)));
 		Def->Handler(Call);
 	}
 	else

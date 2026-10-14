@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use serde_json::json;
 use support::mock_bridge::MockBuilder;
-use unreal_cli::transport::client::BridgeClient;
-use unreal_cli::transport::frame::{MAX_FRAME, read_frame, write_frame};
+use unrealengine_cli::transport::client::BridgeClient;
+use unrealengine_cli::transport::frame::{MAX_FRAME, read_frame, write_frame};
 
 const T: Duration = Duration::from_secs(5);
 

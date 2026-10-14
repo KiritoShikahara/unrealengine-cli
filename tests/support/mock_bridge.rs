@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use serde_json::{Value, json};
-use unreal_cli::transport::frame::{read_frame, write_frame};
+use unrealengine_cli::transport::frame::{read_frame, write_frame};
 
 pub type Handler = Arc<dyn Fn(&Value) -> Result<Value, Value> + Send + Sync>;
 

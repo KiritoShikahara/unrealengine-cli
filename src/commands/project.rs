@@ -50,7 +50,9 @@ pub fn build_cmd(ctx: &mut Ctx) -> Result<Value, CliError> {
             "build.editor_running",
             format!("the editor (pid {}) has this project open", i.pid),
         )
-        .with_hint("close it first: unreal-cli editor close (or use: unreal-cli code apply)"));
+        .with_hint(
+            "close it first: unrealengine-cli editor close (or use: unrealengine-cli code apply)",
+        ));
     }
     let engine = locate::resolve(&up)?;
     if ctx.global.dry_run {
@@ -147,7 +149,7 @@ pub fn tool_describe(ctx: &mut Ctx, name: &str) -> Result<Value, CliError> {
             .map(|t| t["name"].clone())
             .collect();
         CliError::usage("tool.unknown", format!("unknown tool '{name}'"))
-            .with_hint("search: unreal-cli tool find <words>")
+            .with_hint("search: unrealengine-cli tool find <words>")
             .with_details(json!({ "suggestions": close }))
     })
 }

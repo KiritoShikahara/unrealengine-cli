@@ -13,11 +13,11 @@ Use when building or changing a level: creating maps, spawning, moving, attachin
 
 ## Steps
 
-1. `unreal-cli level new /Game/Maps/L_Name` or `unreal-cli level open <path>`.
-2. `unreal-cli level actor spawn PointLight --location 0,0,300 --label Key`.
-3. `unreal-cli level actor transform Key --rotation 0,90,0`.
-4. `unreal-cli level actor list --name Key` to check.
-5. `unreal-cli level save`.
+1. `unrealengine-cli level new /Game/Maps/L_Name` or `unrealengine-cli level open <path>`.
+2. `unrealengine-cli level actor spawn PointLight --location 0,0,300 --label Key`.
+3. `unrealengine-cli level actor transform Key --rotation 0,90,0`.
+4. `unrealengine-cli level actor list --name Key` to check.
+5. `unrealengine-cli level save`.
 
 ## Verify
 
@@ -25,4 +25,4 @@ Use when building or changing a level: creating maps, spawning, moving, attachin
 
 ## On failure
 
-`actor.not_found` suggests close labels. Undo a wrong change with `unreal-cli tool call editor_undo`.
+`actor.not_found` suggests close labels. Undo a wrong change with `unrealengine-cli tool call editor_undo`.

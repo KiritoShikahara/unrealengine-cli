@@ -8,8 +8,8 @@ use support::mock_bridge::MockBuilder;
 use support::write_instance;
 
 fn session(home: &std::path::Path, lines: &[Value]) -> Vec<Value> {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_unreal-cli"))
-        .env("UNREAL_CLI_HOME", home)
+    let mut child = Command::new(env!("CARGO_BIN_EXE_unrealengine-cli"))
+        .env("UNREALENGINE_CLI_HOME", home)
         .current_dir(home)
         .args(["mcp", "serve"])
         .stdin(Stdio::piped())
@@ -50,7 +50,10 @@ fn initialize_list_and_call() {
         ],
     );
     assert_eq!(replies.len(), 6, "notifications get no reply: {replies:?}");
-    assert_eq!(replies[0]["result"]["serverInfo"]["name"], "unreal-cli");
+    assert_eq!(
+        replies[0]["result"]["serverInfo"]["name"],
+        "unrealengine-cli"
+    );
     assert_eq!(replies[1]["result"]["tools"].as_array().unwrap().len(), 4);
     assert_eq!(replies[2]["result"]["isError"], false);
     let body: Value =
@@ -79,7 +82,7 @@ fn configure_merges_client_config() {
             .unwrap();
     assert_eq!(cfg["mcpServers"]["other"]["command"], "x");
     assert_eq!(
-        cfg["mcpServers"]["unreal-cli"]["args"],
+        cfg["mcpServers"]["unrealengine-cli"]["args"],
         json!(["mcp", "serve"])
     );
     let (_, v) = support::run_json(

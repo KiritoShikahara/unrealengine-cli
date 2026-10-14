@@ -127,7 +127,7 @@ def asset_import(files, destination, replace=False):
     unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
     imported = [str(p) for t in tasks for p in t.get_editor_property("imported_object_paths")]
     if not imported:
-        raise ToolError("asset.import_failed", "nothing was imported", hint="check the log: unreal-cli logs --severity warning")
+        raise ToolError("asset.import_failed", "nothing was imported", hint="check the log: unrealengine-cli logs --severity warning")
     return {"imported": imported}
 
 

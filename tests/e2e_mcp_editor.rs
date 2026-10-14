@@ -1,4 +1,4 @@
-//! MCP server against a running TestProject editor (UNREAL_CLI_E2E=1, see scripts/e2e.sh).
+//! MCP server against a running TestProject editor (UNREALENGINE_CLI_E2E=1, see scripts/e2e.sh).
 
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -7,11 +7,11 @@ use serde_json::{Value, json};
 
 #[test]
 fn mcp_calls_reach_the_editor() {
-    if std::env::var("UNREAL_CLI_E2E").as_deref() != Ok("1") {
-        eprintln!("skipped: set UNREAL_CLI_E2E=1 with the TestProject editor running");
+    if std::env::var("UNREALENGINE_CLI_E2E").as_deref() != Ok("1") {
+        eprintln!("skipped: set UNREALENGINE_CLI_E2E=1 with the TestProject editor running");
         return;
     }
-    let mut child = Command::new(env!("CARGO_BIN_EXE_unreal-cli"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_unrealengine-cli"))
         .current_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/TestProject"))
         .args(["mcp", "serve"])
         .stdin(Stdio::piped())

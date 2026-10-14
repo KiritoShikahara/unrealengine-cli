@@ -1,4 +1,4 @@
-# 機能仕様: Unreal Engine 用エージェント操作 CLI(unreal-cli)
+# 機能仕様: Unreal Engine 用エージェント操作 CLI(unrealengine-cli)
 
 **Feature Branch**: `001-unreal-cli`
 
@@ -12,7 +12,7 @@
 
 ### Session 2026-10-14
 
-- Q: CLI の名前は? → A: `unreal-cli`
+- Q: CLI の名前は? → A: `unrealengine-cli`
 - Q: 対応する UE バージョンは? → A: 5.5〜5.8
 - Q: 実装言語と通信方式は? → A: Rust 製 CLI と、ローカル TCP 上の JSON
 - Q: 主な対応 OS は? → A: Windows を本命とし、macOS / Linux は CLI 単体の動作だけを保証する

@@ -34,7 +34,7 @@ fn io_error(e: io::Error) -> CliError {
             "the editor may be busy (shader compile, modal dialog); retry or raise --timeout-ms",
         ),
         _ => CliError::connect("connect.io", e.to_string())
-            .with_hint("check that the editor is still running: unreal-cli instances list"),
+            .with_hint("check that the editor is still running: unrealengine-cli instances list"),
     }
 }
 
@@ -73,7 +73,7 @@ impl BridgeClient {
                 "connect.refused",
                 format!("cannot reach the editor at {addr}: {e}"),
             )
-            .with_hint("start the editor: unreal-cli editor open")
+            .with_hint("start the editor: unrealengine-cli editor open")
         })?;
         stream.set_read_timeout(Some(timeout)).map_err(io_error)?;
         stream.set_write_timeout(Some(timeout)).map_err(io_error)?;
@@ -82,7 +82,7 @@ impl BridgeClient {
             "type": "hello",
             "token": token,
             "protocol": PROTOCOL_VERSION,
-            "client": concat!("unreal-cli/", env!("CARGO_PKG_VERSION")),
+            "client": concat!("unrealengine-cli/", env!("CARGO_PKG_VERSION")),
         });
         write_frame(&mut stream, &hello).map_err(io_error)?;
         let reply = read_frame(&mut stream).map_err(io_error)?;
@@ -94,7 +94,7 @@ impl BridgeClient {
                         "connect.protocol_mismatch",
                         format!("bridge speaks protocol {protocol}, CLI speaks {PROTOCOL_VERSION}"),
                     )
-                    .with_hint("update the plugin: unreal-cli setup"));
+                    .with_hint("update the plugin: unrealengine-cli setup"));
                 }
                 let s = |k: &str| reply[k].as_str().unwrap_or_default().to_string();
                 Ok(Self {

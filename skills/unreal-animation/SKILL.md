@@ -13,10 +13,10 @@ Use when creating Animation Blueprints, state machines, states, transitions, mon
 
 ## Steps
 
-1. `unreal-cli tool call animbp_create --args '{"path":"/Game/Anim/ABP_Hero","skeleton":"<skeleton path>"}'`.
+1. `unrealengine-cli tool call animbp_create --args '{"path":"/Game/Anim/ABP_Hero","skeleton":"<skeleton path>"}'`.
 2. `statemachine_add` (name), then `state_add` per state with an optional `sequence`.
 3. `transition_add` from/to (automatic=true for time-based).
-4. `unreal-cli blueprint compile /Game/Anim/ABP_Hero`.
+4. `unrealengine-cli blueprint compile /Game/Anim/ABP_Hero`.
 
 ## Verify
 
@@ -24,4 +24,4 @@ Compile reports `errors: 0`.
 
 ## On failure
 
-`anim.machine_not_found` or `anim.state_not_found`: list graphs with `unreal-cli blueprint get <path>`.
+`anim.machine_not_found` or `anim.state_not_found`: list graphs with `unrealengine-cli blueprint get <path>`.

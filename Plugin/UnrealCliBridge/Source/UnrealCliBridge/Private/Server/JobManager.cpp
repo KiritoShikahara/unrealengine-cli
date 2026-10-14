@@ -180,7 +180,7 @@ void FJobManager::RegisterTools(FToolRegistry& R)
 			TSharedPtr<FBridgeJob> J = FJobManager::Get().Find(Call->GetString(TEXT("jobId")));
 			if (!J)
 			{
-				Call->Fail(TEXT("jobs.not_found"), TEXT("no such job"), TEXT("list jobs: unreal-cli jobs list"));
+				Call->Fail(TEXT("jobs.not_found"), TEXT("no such job"), TEXT("list jobs: unrealengine-cli jobs list"));
 				return;
 			}
 			Call->Succeed(ToJson(*J, false));

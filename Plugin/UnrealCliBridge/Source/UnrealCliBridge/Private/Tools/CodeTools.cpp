@@ -19,7 +19,7 @@ void UCli::RegisterCodeTools(FToolRegistry& R)
 			ILiveCodingModule* LC = FModuleManager::LoadModulePtr<ILiveCodingModule>(LIVE_CODING_MODULE_NAME);
 			if (!LC)
 			{
-				Call->Fail(TEXT("code.live_coding_unavailable"), TEXT("the Live Coding module is not loaded"), TEXT("rebuild instead: unreal-cli code apply --force"));
+				Call->Fail(TEXT("code.live_coding_unavailable"), TEXT("the Live Coding module is not loaded"), TEXT("rebuild instead: unrealengine-cli code apply --force"));
 				return;
 			}
 			if (!LC->IsEnabledForSession())
@@ -28,7 +28,7 @@ void UCli::RegisterCodeTools(FToolRegistry& R)
 			}
 			if (!LC->IsEnabledForSession())
 			{
-				Call->Fail(TEXT("code.live_coding_unavailable"), LC->GetEnableErrorText().ToString(), TEXT("rebuild instead: unreal-cli code apply --force"));
+				Call->Fail(TEXT("code.live_coding_unavailable"), LC->GetEnableErrorText().ToString(), TEXT("rebuild instead: unrealengine-cli code apply --force"));
 				return;
 			}
 			ELiveCodingCompileResult Result = ELiveCodingCompileResult::NotStarted;
@@ -47,14 +47,14 @@ void UCli::RegisterCodeTools(FToolRegistry& R)
 			}
 			if (Result != ELiveCodingCompileResult::Success && Result != ELiveCodingCompileResult::NoChanges)
 			{
-				Call->Fail(TEXT("code.compile_failed"), FString::Printf(TEXT("Live Coding result: %s"), Name), TEXT("see compiler output: unreal-cli logs --category LogLiveCoding"));
+				Call->Fail(TEXT("code.compile_failed"), FString::Printf(TEXT("Live Coding result: %s"), Name), TEXT("see compiler output: unrealengine-cli logs --category LogLiveCoding"));
 				return;
 			}
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 			O->SetStringField(TEXT("result"), Name);
 			Call->Succeed(O);
 #else
-			Call->Fail(TEXT("code.live_coding_unavailable"), TEXT("Live Coding is only available on Windows"), TEXT("rebuild instead: unreal-cli code apply --force"));
+			Call->Fail(TEXT("code.live_coding_unavailable"), TEXT("Live Coding is only available on Windows"), TEXT("rebuild instead: unrealengine-cli code apply --force"));
 #endif
 		});
 }

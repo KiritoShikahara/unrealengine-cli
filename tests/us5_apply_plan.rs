@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-use unreal_cli::commands::code::{changed_files, decide};
-use unreal_cli::engine::editor::WindowMode;
+use unrealengine_cli::commands::code::{changed_files, decide};
+use unrealengine_cli::engine::editor::WindowMode;
 
 #[test]
 fn rebuild_reopens_in_the_recorded_mode() {

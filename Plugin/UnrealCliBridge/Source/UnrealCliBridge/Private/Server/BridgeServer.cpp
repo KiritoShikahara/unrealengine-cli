@@ -154,7 +154,7 @@ namespace UCli
 			Hello->TryGetNumberField(TEXT("protocol"), Protocol);
 			if (Type != TEXT("hello") || GivenToken != Token)
 			{
-				Reject(ErrorObject(TEXT("connect.unauthorized"), TEXT("invalid session token"), TEXT("the instance file may be stale: unreal-cli instances list")));
+				Reject(ErrorObject(TEXT("connect.unauthorized"), TEXT("invalid session token"), TEXT("the instance file may be stale: unrealengine-cli instances list")));
 				return;
 			}
 			TSharedPtr<FJsonObject> Welcome = MakeShared<FJsonObject>();
@@ -255,7 +255,7 @@ bool FBridgeServer::Start()
 	}
 	TSharedRef<FInternetAddr> Addr = Subsystem->CreateInternetAddr();
 	Addr->SetLoopbackAddress();
-	const FString PortEnv = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREAL_CLI_PORT"));
+	const FString PortEnv = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREALENGINE_CLI_PORT"));
 	Addr->SetPort(PortEnv.IsEmpty() ? 0 : FCString::Atoi(*PortEnv));
 	if (!Listener->Bind(*Addr) || !Listener->Listen(16))
 	{

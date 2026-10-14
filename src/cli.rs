@@ -38,7 +38,7 @@ pub struct GlobalOpts {
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "unreal-cli",
+    name = "unrealengine-cli",
     version,
     about = "Drive Unreal Editor from AI agents"
 )]

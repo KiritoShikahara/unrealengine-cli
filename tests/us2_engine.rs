@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use unreal_cli::engine::locate::{
+use unrealengine_cli::engine::locate::{
     Engine, parse_launcher_installed, parse_reg_query, resolve_association,
 };
 

@@ -45,7 +45,7 @@ pub fn looks_like_msys_root(root: &Path) -> bool {
 
 /// Applies [`unmangle`] to every argument when running under Git Bash on Windows.
 pub fn fix_args(args: Vec<String>) -> Vec<String> {
-    if !cfg!(windows) || std::env::var_os("UNREAL_CLI_KEEP_ARGS").is_some() {
+    if !cfg!(windows) || std::env::var_os("UNREALENGINE_CLI_KEEP_ARGS").is_some() {
         return args;
     }
     args.into_iter()

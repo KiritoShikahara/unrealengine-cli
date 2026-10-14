@@ -89,7 +89,7 @@ def actor_spawn(actorClass, location=None, rotation=None, label=None):
     if _null_rhi() and (actorClass.startswith("/") or short not in _NULL_RHI_SAFE):
         raise ToolError("actor.unsafe_without_renderer",
                         "spawning '%s' in an editor started with -nullrhi crashes the engine" % actorClass,
-                        hint="reopen the editor with rendering: unreal-cli editor close && unreal-cli editor open --headless")
+                        hint="reopen the editor with rendering: unrealengine-cli editor close && unrealengine-cli editor open --headless")
     loc, r = vec(location), rot(rotation)
     actor = None
     if actorClass.startswith("/"):

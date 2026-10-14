@@ -166,7 +166,7 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 			const bool bOk = UEditorLoadingAndSavingUtils::SavePackages(Dirty, true);
 			if (!bOk)
 			{
-				Call->Fail(TEXT("editor.save_failed"), TEXT("some packages could not be saved"), TEXT("check the log: unreal-cli logs --severity warning"), Arr(StrArray(Names)));
+				Call->Fail(TEXT("editor.save_failed"), TEXT("some packages could not be saved"), TEXT("check the log: unrealengine-cli logs --severity warning"), Arr(StrArray(Names)));
 				return;
 			}
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
@@ -271,7 +271,7 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 			Call->Succeed(O);
 			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float)
 			{
-				FPlatformMisc::RequestExit(false, TEXT("unreal-cli editor_quit"));
+				FPlatformMisc::RequestExit(false, TEXT("unrealengine-cli editor_quit"));
 				return false;
 			}), 0.5f);
 		});

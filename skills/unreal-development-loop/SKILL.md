@@ -14,10 +14,10 @@ Use when iterating on a feature: edit, compile, run in PIE, read logs, repeat un
 ## Steps
 
 1. Make the change (Blueprint, level or C++).
-2. Compile: `unreal-cli blueprint compile <path>` or `unreal-cli code apply`.
-3. Run: `unreal-cli pie run --seconds 10 --stop-on-log <marker>`.
-4. Read problems: `unreal-cli logs --severity warning --since <nextSince>`.
-5. Save: `unreal-cli tool call editor_save_all`.
+2. Compile: `unrealengine-cli blueprint compile <path>` or `unrealengine-cli code apply`.
+3. Run: `unrealengine-cli pie run --seconds 10 --stop-on-log <marker>`.
+4. Read problems: `unrealengine-cli logs --severity warning --since <nextSince>`.
+5. Save: `unrealengine-cli tool call editor_save_all`.
 
 ## Verify
 

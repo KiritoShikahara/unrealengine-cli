@@ -5,7 +5,7 @@ use std::path::Path;
 
 use clap::CommandFactory;
 use regex::Regex;
-use unreal_cli::cli::Cli;
+use unrealengine_cli::cli::Cli;
 
 #[test]
 fn documented_commands_exist() {
@@ -14,7 +14,7 @@ fn documented_commands_exist() {
         .get_subcommands()
         .map(|c| c.get_name().to_string())
         .collect();
-    let re = Regex::new(r"unreal-cli ([a-z][a-z-]*)(?: ([a-z][a-z-]*))?").unwrap();
+    let re = Regex::new(r"unrealengine-cli ([a-z][a-z-]*)(?: ([a-z][a-z-]*))?").unwrap();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut bad = Vec::new();
     for f in [
@@ -48,7 +48,7 @@ fn documented_commands_exist() {
         for c in re.captures_iter(&code) {
             let first = &c[1];
             if !top.contains(first) {
-                bad.push(format!("{f}: unreal-cli {first}"));
+                bad.push(format!("{f}: unrealengine-cli {first}"));
                 continue;
             }
             let sub = cmd.find_subcommand(first).unwrap();
@@ -56,7 +56,7 @@ fn documented_commands_exist() {
                 && sub.has_subcommands()
                 && sub.find_subcommand(second).is_none()
             {
-                bad.push(format!("{f}: unreal-cli {first} {second}"));
+                bad.push(format!("{f}: unrealengine-cli {first} {second}"));
             }
         }
     }

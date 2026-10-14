@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "unreal-cli envelope",
+  "title": "unrealengine-cli envelope",
   "type": "object",
   "required": ["ok", "command", "warnings", "meta"],
   "properties": {

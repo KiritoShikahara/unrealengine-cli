@@ -96,7 +96,7 @@ pub fn open(
         ),
     )
     .with_hint(
-        "first launches compile shaders; retry with a larger --wait, or check: unreal-cli doctor",
+        "first launches compile shaders; retry with a larger --wait, or check: unrealengine-cli doctor",
     ))
 }
 

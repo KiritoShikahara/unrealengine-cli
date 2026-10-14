@@ -15,20 +15,20 @@ namespace UCli::InstanceFile
 {
 	FString DataDir()
 	{
-		const FString Override = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREAL_CLI_HOME"));
+		const FString Override = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREALENGINE_CLI_HOME"));
 		if (!Override.IsEmpty())
 		{
 			return Override;
 		}
 #if PLATFORM_WINDOWS
-		return FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA")), TEXT("unreal-cli"));
+		return FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA")), TEXT("unrealengine-cli"));
 #elif PLATFORM_MAC
-		return FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("HOME")), TEXT("Library/Application Support/unreal-cli"));
+		return FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("HOME")), TEXT("Library/Application Support/unrealengine-cli"));
 #else
 		const FString Xdg = FPlatformMisc::GetEnvironmentVariable(TEXT("XDG_DATA_HOME"));
 		return Xdg.IsEmpty()
-			? FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("HOME")), TEXT(".local/share/unreal-cli"))
-			: FPaths::Combine(Xdg, TEXT("unreal-cli"));
+			? FPaths::Combine(FPlatformMisc::GetEnvironmentVariable(TEXT("HOME")), TEXT(".local/share/unrealengine-cli"))
+			: FPaths::Combine(Xdg, TEXT("unrealengine-cli"));
 #endif
 	}
 

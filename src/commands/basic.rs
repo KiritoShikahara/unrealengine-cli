@@ -86,7 +86,7 @@ pub fn instances_use(pid: u32) -> Result<Value, CliError> {
             "instances.not_found",
             format!("no running editor with pid {pid}"),
         )
-        .with_hint("list editors: unreal-cli instances list"));
+        .with_hint("list editors: unrealengine-cli instances list"));
     }
     instances::set_default(pid)?;
     Ok(json!({ "default": pid }))

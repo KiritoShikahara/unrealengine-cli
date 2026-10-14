@@ -14,7 +14,7 @@ Use when creating Niagara systems, adding emitters and modules, and setting modu
 ## Steps
 
 1. `niagara_system_create` path.
-2. Find templates: `unreal-cli asset search Fountain --path /Niagara`.
+2. Find templates: `unrealengine-cli asset search Fountain --path /Niagara`.
 3. `emitter_add` system/emitter.
 4. `niagara_module_add` stage + module script; keep the returned `module` name.
 5. `niagara_input_set` stage, module, input, value (number, bool, or [x,y,z(,w)]).

@@ -125,5 +125,5 @@ fn doctor_reports_checks_without_failing() {
     let checks = v["data"]["checks"].as_array().unwrap();
     let plugin = checks.iter().find(|c| c["name"] == "plugin").unwrap();
     assert_eq!(plugin["ok"], false);
-    assert_eq!(plugin["hint"], "unreal-cli setup");
+    assert_eq!(plugin["hint"], "unrealengine-cli setup");
 }

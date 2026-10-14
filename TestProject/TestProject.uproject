@@ -2,7 +2,7 @@
   "FileVersion": 3,
   "EngineAssociation": "5.7",
   "Category": "",
-  "Description": "E2E project for unreal-cli",
+  "Description": "E2E project for unrealengine-cli",
   "Modules": [
     { "Name": "TestProject", "Type": "Runtime", "LoadingPhase": "Default" }
   ],

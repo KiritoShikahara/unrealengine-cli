@@ -13,7 +13,7 @@ Use when no dedicated tool exists and the editor's Python API can do the job.
 
 ## Steps
 
-1. `unreal-cli python exec "import unreal; print(...)"` or `unreal-cli python exec @script.py`.
+1. `unrealengine-cli python exec "import unreal; print(...)"` or `unrealengine-cli python exec @script.py`.
 2. Keep scripts short; print the values you need.
 
 ## Verify

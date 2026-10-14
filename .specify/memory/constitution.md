@@ -1,9 +1,9 @@
-# unreal-cli Constitution
+# unrealengine-cli Constitution
 
 ## Core Principles
 
 ### I. 独立性
-unreal-cli は単独で成立する。他のリポジトリ(unity-cli、ue-cli など)のコード、パッケージ、成果物、設定を参照・コピー・依存してはならない。
+unrealengine-cli は単独で成立する。他のリポジトリ(unity-cli、ue-cli など)のコード、パッケージ、成果物、設定を参照・コピー・依存してはならない。
 
 ### II. CLI ファーストと機械可読な出力
 すべての機能は CLI コマンドとして公開する。出力はテキストと共通 JSON エンベロープの両方に対応し、終了コードで失敗の種類を区別する。失敗には必ずエラーコードと次の手順を付ける。
@@ -25,7 +25,7 @@ CLI とエディタプラグインの間のプロトコル、ツールスキー�
 - `cargo fmt --all -- --check`
 - `cargo clippy --all-targets -- -D warnings`
 - `cargo test --all-targets`
-- `unreal-cli skills lint --severity error`
+- `unrealengine-cli skills lint --severity error`
 - エディタ E2E(Windows、UE 5.5〜5.8)はリリース前に必須
 
 ## Governance

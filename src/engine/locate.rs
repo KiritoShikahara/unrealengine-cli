@@ -166,9 +166,9 @@ pub fn list_engines() -> Vec<Engine> {
     all
 }
 
-/// Resolves the engine for a project: `UNREAL_CLI_ENGINE_DIR`, then the association.
+/// Resolves the engine for a project: `UNREALENGINE_CLI_ENGINE_DIR`, then the association.
 pub fn resolve(uproject: &Path) -> Result<Engine, CliError> {
-    if let Some(dir) = std::env::var_os("UNREAL_CLI_ENGINE_DIR").filter(|v| !v.is_empty()) {
+    if let Some(dir) = std::env::var_os("UNREALENGINE_CLI_ENGINE_DIR").filter(|v| !v.is_empty()) {
         return Ok(Engine {
             id: "override".into(),
             root: PathBuf::from(dir),
@@ -183,7 +183,7 @@ pub fn resolve(uproject: &Path) -> Result<Engine, CliError> {
                 uproject.display()
             ),
         )
-        .with_hint("install it from the Epic Games Launcher, or set UNREAL_CLI_ENGINE_DIR")
+        .with_hint("install it from the Epic Games Launcher, or set UNREALENGINE_CLI_ENGINE_DIR")
     })
 }
 

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use serde_json::{Value, json};
-use unreal_cli::core::envelope::Envelope;
-use unreal_cli::core::error::CliError;
+use unrealengine_cli::core::envelope::Envelope;
+use unrealengine_cli::core::error::CliError;
 
 fn validator() -> jsonschema::Validator {
     let schema: Value = serde_json::from_str(include_str!(
@@ -26,12 +26,12 @@ fn success_envelope_matches_schema() {
 
 #[test]
 fn failure_envelope_matches_schema_and_maps_exit_code() {
-    let err =
-        CliError::connect("connect.no_instance", "no editor").with_hint("unreal-cli editor open");
+    let err = CliError::connect("connect.no_instance", "no editor")
+        .with_hint("unrealengine-cli editor open");
     let e = Envelope::from_result("ping", Err(err), Duration::ZERO);
     let v = as_value(&e);
     assert!(validator().is_valid(&v), "{v}");
-    assert_eq!(v["error"]["hint"], "unreal-cli editor open");
+    assert_eq!(v["error"]["hint"], "unrealengine-cli editor open");
     assert_eq!(e.exit_code(), 3);
 }
 

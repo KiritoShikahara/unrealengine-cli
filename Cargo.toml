@@ -1,16 +1,16 @@
 [package]
-name = "unreal-cli"
+name = "unrealengine-cli"
 version = "0.1.0"
 edition = "2024"
 description = "Rust CLI that lets AI agents drive Unreal Editor"
 license = "MIT"
 
 [lib]
-name = "unreal_cli"
+name = "unrealengine_cli"
 path = "src/lib.rs"
 
 [[bin]]
-name = "unreal-cli"
+name = "unrealengine-cli"
 path = "src/main.rs"
 
 [dependencies]

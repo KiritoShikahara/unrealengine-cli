@@ -13,11 +13,11 @@ Use when searching, creating, moving, importing or deleting assets and checking 
 
 ## Steps
 
-1. Find: `unreal-cli asset search <name> --class Material`.
-2. Create: `unreal-cli asset create /Game/Path/Name --class MaterialInstanceConstant`.
-3. Import: `unreal-cli asset import /Game/Imported <file.fbx>`.
-4. Before deleting: `unreal-cli asset refs <path>`.
-5. Save: `unreal-cli asset save --folder /Game/Path`.
+1. Find: `unrealengine-cli asset search <name> --class Material`.
+2. Create: `unrealengine-cli asset create /Game/Path/Name --class MaterialInstanceConstant`.
+3. Import: `unrealengine-cli asset import /Game/Imported <file.fbx>`.
+4. Before deleting: `unrealengine-cli asset refs <path>`.
+5. Save: `unrealengine-cli asset save --folder /Game/Path`.
 
 ## Verify
 

@@ -2,7 +2,7 @@
 
 116 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
-Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema with `unreal-cli tool describe <name>`.
+Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
 ## anim
 

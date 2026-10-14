@@ -1,4 +1,4 @@
-//! `unreal-cli test`: Automation tests in the running editor (job) or a headless editor process.
+//! `unrealengine-cli test`: Automation tests in the running editor (job) or a headless editor process.
 
 use std::path::Path;
 use std::process::Command;
@@ -108,7 +108,10 @@ pub fn summarize_report(text: &str) -> Result<Value, CliError> {
 
 fn standalone_run(up: &Path, filter: &str, timeout: Duration) -> Result<Value, CliError> {
     let engine = locate::resolve(up)?;
-    let report = std::env::temp_dir().join(format!("unreal-cli-automation-{}", std::process::id()));
+    let report = std::env::temp_dir().join(format!(
+        "unrealengine-cli-automation-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&report);
     std::fs::create_dir_all(&report).map_err(|e| CliError::internal("io.write", e.to_string()))?;
     let mut child = Command::new(engine.editor_cmd_exe())
@@ -146,7 +149,7 @@ fn standalone_run(up: &Path, filter: &str, timeout: Duration) -> Result<Value, C
     }
     let text = std::fs::read_to_string(report.join("index.json")).map_err(|_| {
         CliError::editor("automation.no_report", "the editor wrote no test report")
-            .with_hint("check that the project builds: unreal-cli editor build")
+            .with_hint("check that the project builds: unrealengine-cli editor build")
     })?;
     let mut summary = summarize_report(&text)?;
     summary["mode"] = json!("standalone");

@@ -13,8 +13,8 @@ Use when verifying behaviour by playing in the editor or running Automation test
 
 ## Steps
 
-1. `unreal-cli pie run --seconds 15 --stop-on-log <expected log text>`.
-2. `unreal-cli test list <filter>` and `unreal-cli test run <filter>`.
+1. `unrealengine-cli pie run --seconds 15 --stop-on-log <expected log text>`.
+2. `unrealengine-cli test list <filter>` and `unrealengine-cli test run <filter>`.
 3. Without a running editor `test run` uses a headless editor process.
 
 ## Verify
@@ -23,4 +23,4 @@ Use when verifying behaviour by playing in the editor or running Automation test
 
 ## On failure
 
-Quote failing test names and their first error. `pie.already_running`: `unreal-cli pie stop`.
+Quote failing test names and their first error. `pie.already_running`: `unrealengine-cli pie stop`.

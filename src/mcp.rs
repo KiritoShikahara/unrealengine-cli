@@ -57,7 +57,7 @@ pub fn handle(global: &GlobalOpts, msg: &Value) -> Option<Value> {
         "initialize" => Ok(json!({
             "protocolVersion": msg["params"]["protocolVersion"].as_str().unwrap_or("2025-06-18"),
             "capabilities": { "tools": {} },
-            "serverInfo": { "name": "unreal-cli", "version": env!("CARGO_PKG_VERSION") }
+            "serverInfo": { "name": "unrealengine-cli", "version": env!("CARGO_PKG_VERSION") }
         })),
         "ping" => Ok(json!({})),
         "tools/list" => Ok(json!({ "tools": tool_defs() })),
@@ -106,7 +106,7 @@ pub fn serve(global: &GlobalOpts) -> Result<Value, CliError> {
 
 /// Writes the MCP server entry into a client's config file (merging with existing content).
 pub fn configure(client: &str, cwd: &Path, dry_run: bool) -> Result<Value, CliError> {
-    let entry = json!({ "command": "unreal-cli", "args": ["mcp", "serve"] });
+    let entry = json!({ "command": "unrealengine-cli", "args": ["mcp", "serve"] });
     let (path, key) = match client {
         "claude-code" => (cwd.join(".mcp.json"), "mcpServers"),
         "cursor" => (cwd.join(".cursor/mcp.json"), "mcpServers"),
@@ -114,11 +114,11 @@ pub fn configure(client: &str, cwd: &Path, dry_run: bool) -> Result<Value, CliEr
         "codex" => {
             let path = crate::core::paths::home().join(".codex/config.toml");
             let text = std::fs::read_to_string(&path).unwrap_or_default();
-            if text.contains("[mcp_servers.unreal-cli]") {
+            if text.contains("[mcp_servers.unrealengine-cli]") {
                 return Ok(json!({ "client": client, "file": path, "changed": false }));
             }
             if !dry_run {
-                let add = "\n[mcp_servers.unreal-cli]\ncommand = \"unreal-cli\"\nargs = [\"mcp\", \"serve\"]\n";
+                let add = "\n[mcp_servers.unrealengine-cli]\ncommand = \"unrealengine-cli\"\nargs = [\"mcp\", \"serve\"]\n";
                 std::fs::create_dir_all(path.parent().unwrap())
                     .and_then(|_| std::fs::write(&path, text + add))
                     .map_err(|e| CliError::internal("io.write", e.to_string()))?;
@@ -144,8 +144,8 @@ pub fn configure(client: &str, cwd: &Path, dry_run: bool) -> Result<Value, CliEr
         .ok_or_else(|| CliError::usage("mcp.bad_config", "config must be a JSON object"))?
         .entry(key)
         .or_insert_with(|| json!({}));
-    let changed = servers.get("unreal-cli") != Some(&entry);
-    servers["unreal-cli"] = entry;
+    let changed = servers.get("unrealengine-cli") != Some(&entry);
+    servers["unrealengine-cli"] = entry;
     if changed && !dry_run {
         std::fs::create_dir_all(path.parent().unwrap())
             .and_then(|_| std::fs::write(&path, serde_json::to_string_pretty(&v).unwrap() + "\n"))

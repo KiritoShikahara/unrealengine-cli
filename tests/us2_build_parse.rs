@@ -1,4 +1,4 @@
-use unreal_cli::engine::build::{editor_target, parse_diagnostics};
+use unrealengine_cli::engine::build::{editor_target, parse_diagnostics};
 
 #[test]
 fn msvc_errors_and_warnings() {

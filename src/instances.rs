@@ -89,7 +89,7 @@ pub fn select(pid: Option<u32>, project: Option<&Path>, cwd: &Path) -> Result<In
                 "connect.no_instance",
                 format!("no running editor with pid {pid}"),
             )
-            .with_hint("list editors: unreal-cli instances list")
+            .with_hint("list editors: unrealengine-cli instances list")
         });
     }
     if all.is_empty() {
@@ -111,7 +111,7 @@ pub fn select(pid: Option<u32>, project: Option<&Path>, cwd: &Path) -> Result<In
                 "connect.no_instance",
                 format!("no running editor has {} open", w.display()),
             )
-            .with_hint("start it: unreal-cli editor open"));
+            .with_hint("start it: unrealengine-cli editor open"));
         }
     }
     if let Some(d) = default_pid()
@@ -138,5 +138,7 @@ pub fn no_instance() -> CliError {
         "connect.no_instance",
         "no running Unreal Editor with UnrealCliBridge was found",
     )
-    .with_hint("start the editor: unreal-cli editor open (first time: unreal-cli setup)")
+    .with_hint(
+        "start the editor: unrealengine-cli editor open (first time: unrealengine-cli setup)",
+    )
 }

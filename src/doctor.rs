@@ -96,7 +96,7 @@ pub fn run(uproject: Option<&Path>) -> Value {
                 .unwrap_or("up to date")
                 .to_string()
         },
-        "unreal-cli self update",
+        "unrealengine-cli self update",
     ));
     let Some(up) = uproject else {
         checks.push(check(
@@ -137,12 +137,12 @@ pub fn run(uproject: Option<&Path>) -> Value {
         .and_then(|v| v["VersionName"].as_str().map(str::to_string));
     let bundled = setup::bundled_plugin_version();
     checks.push(match &installed {
-        None => check("plugin", false, "not installed", "unreal-cli setup"),
+        None => check("plugin", false, "not installed", "unrealengine-cli setup"),
         Some(v) if *v != bundled => check(
             "plugin",
             false,
             format!("{v} installed, {bundled} bundled"),
-            "update: unreal-cli setup --build",
+            "update: unrealengine-cli setup --build",
         ),
         Some(v) => check("plugin", true, v.clone(), ""),
     });
@@ -159,7 +159,7 @@ pub fn run(uproject: Option<&Path>) -> Value {
         } else {
             "not enabled"
         },
-        "unreal-cli setup",
+        "unrealengine-cli setup",
     ));
     match editor::running_for(up) {
         Some(i) => {
@@ -176,7 +176,7 @@ pub fn run(uproject: Option<&Path>) -> Value {
             "editor",
             false,
             "not running",
-            "unreal-cli editor open",
+            "unrealengine-cli editor open",
         )),
     }
     let healthy = checks

@@ -9,7 +9,7 @@ groups = collections.defaultdict(list)
 for t in tools:
     groups[t["group"]].append(t)
 out = ["# Tool catalog", "", f"{len(tools)} tools. Generated from tools/catalog.json by scripts/gen-docs.sh.", "",
-       "Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema with `unreal-cli tool describe <name>`.", ""]
+       "Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.", ""]
 for g in sorted(groups):
     out += [f"## {g}", "", "| Tool | Changes | Summary |", "|---|---|---|"]
     for t in sorted(groups[g], key=lambda t: t["name"]):

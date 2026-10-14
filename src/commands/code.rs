@@ -219,7 +219,7 @@ fn class_create(
             .map(|e| e.file_name().to_string_lossy().to_string())
             .ok_or_else(|| {
                 CliError::usage("code.no_module", "no C++ module under Source/")
-                    .with_hint("unreal-cli setup --add-code-module")
+                    .with_hint("unrealengine-cli setup --add-code-module")
             })?,
     };
     let (prefix, parent_header) = match parent {
@@ -271,7 +271,7 @@ fn class_create(
         "header": rel(&dir, &header),
         "source": rel(&dir, &source),
         "dryRun": ctx.global.dry_run,
-        "next": "unreal-cli code apply (new headers need a rebuild)",
+        "next": "unrealengine-cli code apply (new headers need a rebuild)",
     }))
 }
 
@@ -367,7 +367,7 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool) -> Result<Value, CliError> {
         editor::close(inst, force, ctx.timeout()).map_err(|e| {
             if e.code == "editor.unsaved_changes" {
                 e.with_hint(
-                    "save first (unreal-cli tool call editor_save_all) or rerun with --force",
+                    "save first (unrealengine-cli tool call editor_save_all) or rerun with --force",
                 )
             } else {
                 e

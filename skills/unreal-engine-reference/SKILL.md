@@ -13,8 +13,8 @@ Use when you need to check an engine C++ or Python API signature before using it
 
 ## Steps
 
-1. `unreal-cli reference search <Symbol>` searches engine headers.
-2. `unreal-cli reference search <name> --scope python` searches the Python stub in Intermediate/PythonStub.
+1. `unrealengine-cli reference search <Symbol>` searches engine headers.
+2. `unrealengine-cli reference search <name> --scope python` searches the Python stub in Intermediate/PythonStub.
 
 ## Verify
 

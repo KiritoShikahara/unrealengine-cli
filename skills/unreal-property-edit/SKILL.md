@@ -13,10 +13,10 @@ Use when reading or changing reflected properties of actors, components, assets 
 
 ## Steps
 
-1. List: `unreal-cli prop get <Label or /Game/Asset> --filter speed`.
-2. Read one: `unreal-cli prop get Lamp.LightComponent0 Intensity`.
-3. Set: `unreal-cli prop set Lamp.LightComponent0 Intensity 5000` (vectors as [x,y,z]).
-4. Arrays: `unreal-cli prop array Lamp Tags append --value Enemy`.
+1. List: `unrealengine-cli prop get <Label or /Game/Asset> --filter speed`.
+2. Read one: `unrealengine-cli prop get Lamp.LightComponent0 Intensity`.
+3. Set: `unrealengine-cli prop set Lamp.LightComponent0 Intensity 5000` (vectors as [x,y,z]).
+4. Arrays: `unrealengine-cli prop array Lamp Tags append --value Enemy`.
 
 ## Verify
 

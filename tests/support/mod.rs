@@ -19,12 +19,12 @@ pub fn write_instance(home: &Path, bridge: &mock_bridge::MockBridge, project: &s
     std::fs::write(dir.join(format!("{pid}.json")), body.to_string()).unwrap();
 }
 
-/// `unreal-cli --output json ...` with an isolated data dir; returns (exit code, envelope).
+/// `unrealengine-cli --output json ...` with an isolated data dir; returns (exit code, envelope).
 pub fn run_json(home: &Path, cwd: &Path, args: &[&str]) -> (i32, Value) {
-    let out = Command::cargo_bin("unreal-cli")
+    let out = Command::cargo_bin("unrealengine-cli")
         .unwrap()
-        .env("UNREAL_CLI_HOME", home)
-        .env("UNREAL_CLI_NO_AUTO_UPDATE", "1")
+        .env("UNREALENGINE_CLI_HOME", home)
+        .env("UNREALENGINE_CLI_NO_AUTO_UPDATE", "1")
         .current_dir(cwd)
         .arg("--output")
         .arg("json")

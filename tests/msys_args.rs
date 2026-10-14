@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use unreal_cli::core::msys::unmangle;
+use unrealengine_cli::core::msys::unmangle;
 
 fn git_root(p: &Path) -> bool {
     p == Path::new("C:/Program Files/Git")

@@ -4,7 +4,7 @@ use super::error::CliError;
 
 /// Per-user data directory shared with the editor plugin (instance files, config, caches).
 pub fn data_dir() -> PathBuf {
-    if let Some(p) = std::env::var_os("UNREAL_CLI_HOME").filter(|v| !v.is_empty()) {
+    if let Some(p) = std::env::var_os("UNREALENGINE_CLI_HOME").filter(|v| !v.is_empty()) {
         return PathBuf::from(p);
     }
     #[cfg(windows)]
@@ -12,17 +12,17 @@ pub fn data_dir() -> PathBuf {
         let base = std::env::var_os("LOCALAPPDATA")
             .map(PathBuf::from)
             .unwrap_or_default();
-        base.join("unreal-cli")
+        base.join("unrealengine-cli")
     }
     #[cfg(target_os = "macos")]
     {
-        home().join("Library/Application Support/unreal-cli")
+        home().join("Library/Application Support/unrealengine-cli")
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         match std::env::var_os("XDG_DATA_HOME").filter(|v| !v.is_empty()) {
-            Some(x) => PathBuf::from(x).join("unreal-cli"),
-            None => home().join(".local/share/unreal-cli"),
+            Some(x) => PathBuf::from(x).join("unrealengine-cli"),
+            None => home().join(".local/share/unrealengine-cli"),
         }
     }
 }

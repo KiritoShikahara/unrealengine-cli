@@ -3,7 +3,7 @@ mod support;
 use std::collections::HashSet;
 
 use support::run_json;
-use unreal_cli::skills::lint_skills;
+use unrealengine_cli::skills::lint_skills;
 
 #[test]
 fn bundled_skills_pass_lint() {
@@ -33,7 +33,7 @@ fn install_refresh_uninstall_for_every_client() {
         assert!(
             proj.path()
                 .join(dir)
-                .join("unreal-cli-usage/SKILL.md")
+                .join("unrealengine-cli-usage/SKILL.md")
                 .is_file(),
             "{client}"
         );
@@ -56,7 +56,12 @@ fn install_refresh_uninstall_for_every_client() {
         &["skills", "uninstall", "cursor", "--local"],
     );
     assert_eq!(code, 0);
-    assert!(!proj.path().join(".cursor/skills/unreal-cli-usage").exists());
+    assert!(
+        !proj
+            .path()
+            .join(".cursor/skills/unrealengine-cli-usage")
+            .exists()
+    );
     let (code, v) = run_json(
         home.path(),
         proj.path(),
@@ -86,7 +91,7 @@ fn skill(name: &str, body: &str) -> (String, String) {
 fn lint_rules_catch_contract_violations() {
     let tools: HashSet<String> = ["bp_create".to_string()].into();
     let cmds: HashSet<String> = ["blueprint".to_string()].into();
-    let good = "---\nname: s\ndescription: Use when testing.\nversion: 1\ntools: [bp_create]\n---\n## When to use\nx\n## Steps\n`unreal-cli blueprint create`\n## Verify\nx\n## On failure\nx\n";
+    let good = "---\nname: s\ndescription: Use when testing.\nversion: 1\ntools: [bp_create]\n---\n## When to use\nx\n## Steps\n`unrealengine-cli blueprint create`\n## Verify\nx\n## On failure\nx\n";
     assert!(lint_skills(&[skill("s", good)], &tools, &cmds, None).is_empty());
     let rules = |text: &str, dir: &str| -> Vec<String> {
         lint_skills(&[skill(dir, text)], &tools, &cmds, None)

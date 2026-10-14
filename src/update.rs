@@ -13,13 +13,13 @@ pub const DEFAULT_REPO: &str = "KiritoShikahara/unrealengine-cli";
 /// Release asset name for this platform.
 pub fn asset_name() -> &'static str {
     if cfg!(all(windows, target_arch = "x86_64")) {
-        "unreal-cli-x86_64-pc-windows-msvc.zip"
+        "unrealengine-cli-x86_64-pc-windows-msvc.zip"
     } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        "unreal-cli-aarch64-apple-darwin.tar.gz"
+        "unrealengine-cli-aarch64-apple-darwin.tar.gz"
     } else if cfg!(target_os = "macos") {
-        "unreal-cli-x86_64-apple-darwin.tar.gz"
+        "unrealengine-cli-x86_64-apple-darwin.tar.gz"
     } else {
-        "unreal-cli-x86_64-unknown-linux-gnu.tar.gz"
+        "unrealengine-cli-x86_64-unknown-linux-gnu.tar.gz"
     }
 }
 
@@ -92,7 +92,7 @@ fn extract(archive: &Path, dest: &Path) -> Result<(), CliError> {
 
 /// Tag of the latest release (from the `releases/latest` redirect), or None when offline.
 pub fn latest_tag() -> Option<String> {
-    let repo = std::env::var("UNREAL_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
+    let repo = std::env::var("UNREALENGINE_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
     let out = Command::new("curl")
         .args([
             "-fsSI",
@@ -129,10 +129,10 @@ pub fn is_newer(tag: &str) -> bool {
     parse(tag) > parse(env!("CARGO_PKG_VERSION"))
 }
 
-/// Update check honouring UNREAL_CLI_NO_AUTO_UPDATE.
+/// Update check honouring UNREALENGINE_CLI_NO_AUTO_UPDATE.
 pub fn check() -> Value {
-    if std::env::var_os("UNREAL_CLI_NO_AUTO_UPDATE").is_some() {
-        return json!({ "checked": false, "reason": "UNREAL_CLI_NO_AUTO_UPDATE is set" });
+    if std::env::var_os("UNREALENGINE_CLI_NO_AUTO_UPDATE").is_some() {
+        return json!({ "checked": false, "reason": "UNREALENGINE_CLI_NO_AUTO_UPDATE is set" });
     }
     match latest_tag() {
         Some(t) => {
@@ -145,7 +145,7 @@ pub fn check() -> Value {
 }
 
 pub fn self_update(version: Option<&str>, dry_run: bool) -> Result<Value, CliError> {
-    let repo = std::env::var("UNREAL_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
+    let repo = std::env::var("UNREALENGINE_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
     let base = match version {
         Some(v) => format!("https://github.com/{repo}/releases/download/{v}"),
         None => format!("https://github.com/{repo}/releases/latest/download"),
@@ -157,15 +157,15 @@ pub fn self_update(version: Option<&str>, dry_run: bool) -> Result<Value, CliErr
     let sums = String::from_utf8_lossy(&fetch(&format!("{base}/SHA256SUMS"))?).to_string();
     let bytes = fetch(&format!("{base}/{asset}"))?;
     verify(&bytes, &sums, asset)?;
-    let tmp = std::env::temp_dir().join(format!("unreal-cli-update-{}", std::process::id()));
+    let tmp = std::env::temp_dir().join(format!("unrealengine-cli-update-{}", std::process::id()));
     std::fs::create_dir_all(&tmp).map_err(|e| CliError::internal("io.write", e.to_string()))?;
     let archive = tmp.join(asset);
     std::fs::write(&archive, &bytes).map_err(|e| CliError::internal("io.write", e.to_string()))?;
     extract(&archive, &tmp)?;
     let exe_name = if cfg!(windows) {
-        "unreal-cli.exe"
+        "unrealengine-cli.exe"
     } else {
-        "unreal-cli"
+        "unrealengine-cli"
     };
     let new_exe = tmp.join(exe_name);
     let current =

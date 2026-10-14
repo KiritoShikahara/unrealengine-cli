@@ -9,7 +9,7 @@ system 2, code 1, python 1, audio 1).
 
 Differences from the planned list:
 
-* `class_create` is a CLI command (`unreal-cli code class-create`), not an editor tool.
+* `class_create` is a CLI command (`unrealengine-cli code class-create`), not an editor tool.
 * Added: `editor_quit`, `level_info`, `asset_list`, `material_recompile`, `niagara_emitters_list`, `landscape_info`,
   `package_status`.
 * `cook_content` is a BuildCookRun cook only.

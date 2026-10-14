@@ -23,13 +23,13 @@ jobs:
       - name: package
         shell: bash
         run: |
-          name=unreal-cli-${{ matrix.target }}
+          name=unrealengine-cli-${{ matrix.target }}
           cd target/${{ matrix.target }}/release
-          if [ "${{ matrix.archive }}" = zip ]; then 7z a ../../../$name.zip unreal-cli.exe; else tar -czf ../../../$name.tar.gz unreal-cli; fi
+          if [ "${{ matrix.archive }}" = zip ]; then 7z a ../../../$name.zip unrealengine-cli.exe; else tar -czf ../../../$name.tar.gz unrealengine-cli; fi
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
-          path: unreal-cli-*
+          path: unrealengine-cli-*
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -37,9 +37,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - run: sha256sum unreal-cli-* > SHA256SUMS
+      - run: sha256sum unrealengine-cli-* > SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            unreal-cli-*
+            unrealengine-cli-*
             SHA256SUMS

@@ -13,10 +13,10 @@ Use when changing C++ code in the project and applying it to the running editor.
 
 ## Steps
 
-1. Find code: `unreal-cli code search <text>`; read: `unreal-cli code read Source/Mod/File.cpp --start 1 --end 80`.
-2. Edit: `unreal-cli code edit <file> --old '<exact text>' --new '<text>'`.
-3. New class: `unreal-cli code class-create Enemy --parent Actor`.
-4. Apply: `unreal-cli code apply --plan`, then `unreal-cli code apply` (Live Coding for .cpp, rebuild for headers).
+1. Find code: `unrealengine-cli code search <text>`; read: `unrealengine-cli code read Source/Mod/File.cpp --start 1 --end 80`.
+2. Edit: `unrealengine-cli code edit <file> --old '<exact text>' --new '<text>'`.
+3. New class: `unrealengine-cli code class-create Enemy --parent Actor`.
+4. Apply: `unrealengine-cli code apply --plan`, then `unrealengine-cli code apply` (Live Coding for .cpp, rebuild for headers).
 
 ## Verify
 

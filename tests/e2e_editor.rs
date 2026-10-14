@@ -1,5 +1,5 @@
 //! End-to-end tests against a running TestProject editor.
-//! Run with `scripts/e2e.sh` (sets UNREAL_CLI_E2E=1, opens the editor, runs single-threaded).
+//! Run with `scripts/e2e.sh` (sets UNREALENGINE_CLI_E2E=1, opens the editor, runs single-threaded).
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -8,10 +8,12 @@ use assert_cmd::Command;
 use serde_json::{Value, json};
 
 fn enabled() -> bool {
-    if std::env::var("UNREAL_CLI_E2E").as_deref() == Ok("1") {
+    if std::env::var("UNREALENGINE_CLI_E2E").as_deref() == Ok("1") {
         return true;
     }
-    eprintln!("skipped: set UNREAL_CLI_E2E=1 with the TestProject editor running (scripts/e2e.sh)");
+    eprintln!(
+        "skipped: set UNREALENGINE_CLI_E2E=1 with the TestProject editor running (scripts/e2e.sh)"
+    );
     false
 }
 
@@ -35,10 +37,10 @@ fn root(name: &str) -> String {
 }
 
 fn cli(args: &[&str]) -> (i32, Value) {
-    let out = Command::cargo_bin("unreal-cli")
+    let out = Command::cargo_bin("unrealengine-cli")
         .unwrap()
         .current_dir(project())
-        .env("UNREAL_CLI_KEEP_ARGS", "1")
+        .env("UNREALENGINE_CLI_KEEP_ARGS", "1")
         .args(["--output", "json", "--timeout-ms", "120000"])
         .args(args)
         .output()
@@ -542,7 +544,7 @@ fn e2e_09_blueprint_pie_and_tests() {
     // Spawning Blueprint actors under -nullrhi would crash the engine; the tool refuses instead.
     let (code, err) = fails("actor_spawn", json!({"actorClass": bp}));
     assert_eq!((code, err.as_str()), (4, "actor.unsafe_without_renderer"));
-    if std::env::var("UNREAL_CLI_E2E_RENDER").as_deref() == Ok("1") {
+    if std::env::var("UNREALENGINE_CLI_E2E_RENDER").as_deref() == Ok("1") {
         let pie = ok(&[
             "pie",
             "run",
@@ -556,7 +558,7 @@ fn e2e_09_blueprint_pie_and_tests() {
         assert_eq!(ok(&["pie", "status"])["playing"], false);
     } else {
         eprintln!(
-            "PIE skipped: needs a rendering editor (UNREAL_CLI_E2E_RENDER=1); -nullrhi crashes on play"
+            "PIE skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1); -nullrhi crashes on play"
         );
     }
 

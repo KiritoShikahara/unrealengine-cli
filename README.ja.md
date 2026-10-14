@@ -1,14 +1,14 @@
-# unreal-cli
+# unrealengine-cli
 
 [English](README.md)
 
-`unreal-cli` は、AI エージェント(Claude Code、Codex、Cursor など)から Unreal Editor 5.5〜5.8 を操作するための Rust 製 CLI です。
+`unrealengine-cli` は、AI エージェント(Claude Code、Codex、Cursor など)から Unreal Editor 5.5〜5.8 を操作するための Rust 製 CLI です。
 エディタ側プラグイン **UnrealCliBridge** とループバック TCP で通信し、113 個のエディタツールを公開します。
 対象は Blueprint、レベルとアクター、アセット、リフレクションによるプロパティ操作、C++(Live Coding / 再ビルド)、PIE、Automation テスト、
 アニメーション、UMG、マテリアル、Niagara、ランドスケープ、Enhanced Input、データアセット、Sequencer、オーディオ、パッケージングです。
 
 ```text
-エージェント -> スキル(必要時に読み込み) -> unreal-cli -> TCP 127.0.0.1 -> UnrealCliBridge(Unreal Editor)
+エージェント -> スキル(必要時に読み込み) -> unrealengine-cli -> TCP 127.0.0.1 -> UnrealCliBridge(Unreal Editor)
 ```
 
 ## はじめ方
@@ -19,36 +19,36 @@ curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/ma
 irm https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.ps1 | iex       # Windows
 
 # 2. プロジェクトのフォルダで実行
-unreal-cli doctor                 # エンジン、ビルドツール、プラグイン、エディタの状態
-unreal-cli setup --dry-run        # 追加するファイルを表示
-unreal-cli setup --build          # プラグインを導入してエディタターゲットをビルド
-unreal-cli editor open --headless # エディタを起動し、ブリッジの応答を待つ
-unreal-cli ping
+unrealengine-cli doctor                 # エンジン、ビルドツール、プラグイン、エディタの状態
+unrealengine-cli setup --dry-run        # 追加するファイルを表示
+unrealengine-cli setup --build          # プラグインを導入してエディタターゲットをビルド
+unrealengine-cli editor open --headless # エディタを起動し、ブリッジの応答を待つ
+unrealengine-cli ping
 
 # 3. エージェント用スキル(エディタ不要)
-unreal-cli skills install claude-code --local
+unrealengine-cli skills install claude-code --local
 ```
 
-Blueprint のみのプロジェクトでは、プラグインのコンパイルに C++ ターゲットが必要です: `unreal-cli setup --add-code-module --build`。
+Blueprint のみのプロジェクトでは、プラグインのコンパイルに C++ ターゲットが必要です: `unrealengine-cli setup --add-code-module --build`。
 
 ## 使い方
 
 ```bash
-unreal-cli tool find blueprint connect          # ツール検索
-unreal-cli tool describe bp_connect             # 入力スキーマ
-unreal-cli blueprint create /Game/BP_Hello
-unreal-cli blueprint add-node /Game/BP_Hello --type Event --member BeginPlay
-unreal-cli blueprint add-node /Game/BP_Hello --type CallFunction --member PrintString
-unreal-cli blueprint connect /Game/BP_Hello N1.then N2.execute
-unreal-cli blueprint compile /Game/BP_Hello
-unreal-cli pie run --seconds 10 --stop-on-log Hello
+unrealengine-cli tool find blueprint connect          # ツール検索
+unrealengine-cli tool describe bp_connect             # 入力スキーマ
+unrealengine-cli blueprint create /Game/BP_Hello
+unrealengine-cli blueprint add-node /Game/BP_Hello --type Event --member BeginPlay
+unrealengine-cli blueprint add-node /Game/BP_Hello --type CallFunction --member PrintString
+unrealengine-cli blueprint connect /Game/BP_Hello N1.then N2.execute
+unrealengine-cli blueprint compile /Game/BP_Hello
+unrealengine-cli pie run --seconds 10 --stop-on-log Hello
 ```
 
 * すべてのコマンドが `--output json` に対応します: `{ ok, command, data | error { code, message, hint }, warnings, meta }`。
 * 終了コード: 0 成功、2 入力、3 接続、4 エディタ、5 タイムアウト、6 ビルド、1 内部エラー。
 * `--dry-run` で変更をプレビューできます。エディタ上の変更は取り消せます(`tool call editor_undo`)。
-* MCP: `unreal-cli mcp configure claude-code` で `unreal-cli mcp serve` を登録します。
-* Windows の Git Bash は `/Game/...` を書き換えますが、unreal-cli が元に戻します。
+* MCP: `unrealengine-cli mcp configure claude-code` で `unrealengine-cli mcp serve` を登録します。
+* Windows の Git Bash は `/Game/...` を書き換えますが、unrealengine-cli が元に戻します。
 
 ## エディタの起動モード
 

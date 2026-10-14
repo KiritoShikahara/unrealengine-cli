@@ -18,8 +18,8 @@ try:
     d = json.load(open(sys.argv[1], encoding="utf-8-sig"))
 except Exception as e:
     print("no report:", e); sys.exit(1)
-failed = [t for t in d["tests"] if t["state"] != "Success"]
-print("succeeded=%d failed=%d notRun=%d" % (d["succeeded"], d["failed"], d.get("notRun", 0)))
+failed = [t for t in d["tests"] if t["state"] not in ("Success", "SuccessWithWarnings")]
+print("total=%d succeeded=%d withWarnings=%d failed=%d notRun=%d" % (len(d["tests"]), d["succeeded"], d.get("succeededWithWarnings", 0), d["failed"], d.get("notRun", 0)))
 for t in failed:
     print("FAIL", t["fullTestPath"])
     for e in t["entries"]:

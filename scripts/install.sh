@@ -2,7 +2,7 @@
 # Installs unreal-cli from GitHub Releases after verifying SHA256SUMS.
 # UNREAL_CLI_VERSION=v0.1.0 pins a release; UNREAL_CLI_REPO overrides owner/name.
 set -eu
-REPO="${UNREAL_CLI_REPO:-KiritoShikahara/unreal-cli}"
+REPO="${UNREAL_CLI_REPO:-KiritoShikahara/unrealengine-cli}"
 VERSION="${UNREAL_CLI_VERSION:-latest}"
 case "$(uname -s)-$(uname -m)" in
   Darwin-arm64) ASSET=unreal-cli-aarch64-apple-darwin.tar.gz ;;

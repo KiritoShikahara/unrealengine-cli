@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use crate::core::error::CliError;
 
-pub const DEFAULT_REPO: &str = "KiritoShikahara/unreal-cli";
+pub const DEFAULT_REPO: &str = "KiritoShikahara/unrealengine-cli";
 
 /// Release asset name for this platform.
 pub fn asset_name() -> &'static str {

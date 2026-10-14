@@ -11,7 +11,7 @@ Installers:
     NestedInstallerType: portable
     NestedInstallerFiles:
       - RelativeFilePath: unreal-cli.exe
-    InstallerUrl: https://github.com/KiritoShikahara/unreal-cli/releases/download/v0.1.0/unreal-cli-x86_64-pc-windows-msvc.zip
+    InstallerUrl: https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.1.0/unreal-cli-x86_64-pc-windows-msvc.zip
     InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
 ManifestType: singleton
 ManifestVersion: 1.6.0

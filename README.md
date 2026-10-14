@@ -16,8 +16,8 @@ Agent -> skills (loaded on demand) -> unreal-cli -> TCP 127.0.0.1 -> UnrealCliBr
 ```bash
 # 1. Install (verifies SHA256SUMS before installing; needs a published release —
 #    until then: cargo install --path . from a clone)
-curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unreal-cli/main/scripts/install.sh | sh   # macOS / Linux
-irm https://raw.githubusercontent.com/KiritoShikahara/unreal-cli/main/scripts/install.ps1 | iex       # Windows
+curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.sh | sh   # macOS / Linux
+irm https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.ps1 | iex       # Windows
 
 # 2. In your project folder
 unreal-cli doctor                 # engine, build tools, plugin, editor

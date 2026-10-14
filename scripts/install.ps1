@@ -1,7 +1,7 @@
 # Installs unreal-cli from GitHub Releases after verifying SHA256SUMS.
 # $env:UNREAL_CLI_VERSION = 'v0.1.0' pins a release; $env:UNREAL_CLI_REPO overrides owner/name.
 $ErrorActionPreference = 'Stop'
-$repo = if ($env:UNREAL_CLI_REPO) { $env:UNREAL_CLI_REPO } else { 'KiritoShikahara/unreal-cli' }
+$repo = if ($env:UNREAL_CLI_REPO) { $env:UNREAL_CLI_REPO } else { 'KiritoShikahara/unrealengine-cli' }
 $version = if ($env:UNREAL_CLI_VERSION) { $env:UNREAL_CLI_VERSION } else { 'latest' }
 $asset = 'unreal-cli-x86_64-pc-windows-msvc.zip'
 $base = if ($version -eq 'latest') { "https://github.com/$repo/releases/latest/download" } else { "https://github.com/$repo/releases/download/$version" }

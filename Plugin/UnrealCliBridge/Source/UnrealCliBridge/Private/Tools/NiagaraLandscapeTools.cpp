@@ -4,6 +4,12 @@
 #include "LandscapeInfo.h"
 #include "LandscapeProxy.h"
 #include "NiagaraEditorUtilities.h"
+#include "NiagaraGraph.h"
+#include "NiagaraNodeFunctionCall.h"
+#include "NiagaraNodeOutput.h"
+#include "NiagaraScript.h"
+#include "NiagaraScriptSource.h"
+#include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraSystem.h"
 #include "Server/JsonUtil.h"
@@ -73,6 +79,51 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 			S->RequestCompile(false);
 			S->MarkPackageDirty();
 			Call->Succeed(EmittersJson(S));
+		});
+
+	R.Add(TEXT("niagara_module_add"), TEXT("niagara"), TEXT("Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn | EmitterUpdate | ParticleSpawn | ParticleUpdate."),
+		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"stage":{"type":"string","enum":["EmitterSpawn","EmitterUpdate","ParticleSpawn","ParticleUpdate"]},"module":{"type":"string"}},"required":["system","emitter","stage","module"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UNiagaraSystem* S = RequireSystem(Call);
+			if (!S) return;
+			const FString EmitterName = Call->GetString(TEXT("emitter"));
+			FNiagaraEmitterHandle* Handle = S->GetEmitterHandles().FindByPredicate([&EmitterName](const FNiagaraEmitterHandle& H) { return H.GetName().ToString() == EmitterName; });
+			FVersionedNiagaraEmitterData* Data = Handle ? Handle->GetEmitterData() : nullptr;
+			UNiagaraScriptSource* Source = Data ? Cast<UNiagaraScriptSource>(Data->GraphSource) : nullptr;
+			if (!Source || !Source->NodeGraph)
+			{
+				Call->Fail(TEXT("niagara.emitter_not_found"), FString::Printf(TEXT("system has no emitter '%s'"), *EmitterName), TEXT("list: niagara_emitters_list"));
+				return;
+			}
+			const FString Stage = Call->GetString(TEXT("stage"));
+			const ENiagaraScriptUsage Usage = Stage == TEXT("EmitterSpawn") ? ENiagaraScriptUsage::EmitterSpawnScript
+				: Stage == TEXT("EmitterUpdate") ? ENiagaraScriptUsage::EmitterUpdateScript
+				: Stage == TEXT("ParticleSpawn") ? ENiagaraScriptUsage::ParticleSpawnScript
+				: ENiagaraScriptUsage::ParticleUpdateScript;
+			UNiagaraNodeOutput* Output = Source->NodeGraph->FindEquivalentOutputNode(Usage);
+			UNiagaraScript* Module = LoadObject<UNiagaraScript>(nullptr, *BP::ObjectPath(Call->GetString(TEXT("module"))), nullptr, LOAD_NoWarn | LOAD_Quiet);
+			if (!Output || !Module)
+			{
+				Call->Fail(TEXT("niagara.module_not_found"), FString::Printf(TEXT("no module script at '%s' (or no %s stage)"), *Call->GetString(TEXT("module")), *Stage), TEXT("search: asset_search class=NiagaraScript pathPrefix=/Niagara/Modules"));
+				return;
+			}
+			S->Modify();
+			Source->NodeGraph->Modify();
+			UNiagaraNodeFunctionCall* Node = FNiagaraStackGraphUtilities::AddScriptModuleToStack(Module, *Output);
+			if (!Node)
+			{
+				Call->Fail(TEXT("niagara.module_add_failed"), TEXT("the module could not be added to the stage"));
+				return;
+			}
+			S->RequestCompile(false);
+			S->MarkPackageDirty();
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("emitter"), EmitterName);
+			O->SetStringField(TEXT("stage"), Stage);
+			O->SetStringField(TEXT("module"), Node->GetFunctionName());
+			Call->Succeed(O);
 		});
 
 	R.Add(TEXT("niagara_emitters_list"), TEXT("niagara"), TEXT("Emitters of a Niagara System."),

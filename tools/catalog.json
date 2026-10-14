@@ -1939,6 +1939,44 @@
   "minEngine": "5.5"
  },
  {
+  "name": "niagara_module_add",
+  "group": "niagara",
+  "summary": "Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn | EmitterUpdate | ParticleSpawn | ParticleUpdate.",
+  "description": "Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn | EmitterUpdate | ParticleSpawn | ParticleUpdate.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    },
+    "stage": {
+     "type": "string",
+     "enum": [
+      "EmitterSpawn",
+      "EmitterUpdate",
+      "ParticleSpawn",
+      "ParticleUpdate"
+     ]
+    },
+    "module": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "system",
+    "emitter",
+    "stage",
+    "module"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "niagara_system_create",
   "group": "niagara",
   "summary": "Create an empty Niagara System asset.",

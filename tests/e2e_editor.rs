@@ -410,6 +410,14 @@ fn e2e_08_niagara_sequencer_audio_landscape() {
         json!({"system": ns, "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain"}),
     );
     assert_eq!(e["emitters"].as_array().unwrap().len(), 1);
+    let emitter = e["emitters"][0].as_str().unwrap().to_string();
+    let module = call(
+        "niagara_module_add",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": "/Niagara/Modules/Update/Forces/Drag"}),
+    );
+    assert_eq!(module["stage"], "ParticleUpdate");
+    let (_, err) = fails("niagara_module_add", json!({"system": ns, "emitter": "Nope", "stage": "ParticleUpdate", "module": "/Niagara/Modules/Update/Forces/Drag"}));
+    assert_eq!(err, "niagara.emitter_not_found");
     let listed = call("niagara_emitters_list", json!({"system": ns}));
     assert_eq!(listed["emitters"], e["emitters"]);
 

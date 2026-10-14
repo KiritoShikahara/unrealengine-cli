@@ -1,6 +1,6 @@
 # Tool catalog
 
-112 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+113 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema with `unreal-cli tool describe <name>`.
 
@@ -149,6 +149,7 @@ Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema
 |---|---|---|
 | `emitter_add` | yes | Add an emitter asset (e.g. a template under /Niagara/DefaultAssets/Templates/Emitters) to a Niagara System. |
 | `niagara_emitters_list` |  | Emitters of a Niagara System. |
+| `niagara_module_add` | yes | Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn / EmitterUpdate / ParticleSpawn / ParticleUpdate. |
 | `niagara_system_create` | yes | Create an empty Niagara System asset. |
 
 ## packaging

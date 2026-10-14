@@ -20,7 +20,8 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
   development machine with UE 5.7.4; `bAllowUBAExecutor=false` in the project's BuildConfiguration.xml did not help.
   Live Coding's lock is per engine install: while it runs, other builds with the same engine fail.
 * Machines with an XGE / Incredibuild controller may never finish shader compilation; set
-  `r.XGEShaderCompile=0` under `[ConsoleVariables]` in the project's DefaultEngine.ini.
+  `r.ShaderCompiler.AllowDistributedCompilation=0` under `[ConsoleVariables]` in the project's DefaultEngine.ini
+  (`r.XGEShaderCompile` no longer exists in UE 5.7; `doctor` accepts either).
 
 ## Runs
 

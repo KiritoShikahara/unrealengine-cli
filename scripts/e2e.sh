@@ -9,6 +9,8 @@ cd "$ROOT"
 U="./target/debug/unrealengine-cli --project TestProject"
 cargo build -q || exit 1
 $U editor close --force >/dev/null 2>&1 || true
+# Test assets from earlier runs (possibly saved by another engine version) break loading and cooking.
+rm -rf TestProject/Content/E2E TestProject/Content/CoinGame
 bash scripts/dev-build.sh "$VER" || { echo "plugin build failed for $VER"; exit 1; }
 bash scripts/run-automation.sh "$VER" || { echo "automation tests failed for $VER"; exit 1; }
 # UNREALENGINE_CLI_E2E_RENDER=1 opens a rendering editor and also runs PIE and Blueprint actor spawning.

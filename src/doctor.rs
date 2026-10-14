@@ -16,18 +16,23 @@ fn check(name: &str, ok: bool, detail: impl Into<String>, hint: &str) -> Value {
     v
 }
 
+/// True when DefaultEngine.ini turns distributed shader compilation off: `r.ShaderCompiler.AllowDistributedCompilation=0`
+/// (UE 5.5+) or the older `r.XGEShaderCompile=0`.
+pub fn distributed_shaders_disabled(engine_ini: &str) -> bool {
+    engine_ini.lines().any(|l| {
+        let l = l.replace(' ', "");
+        l.eq_ignore_ascii_case("r.ShaderCompiler.AllowDistributedCompilation=0")
+            || l.eq_ignore_ascii_case("r.XGEShaderCompile=0")
+    })
+}
+
 fn xge_disabled(uproject: &Path) -> bool {
     let ini = uproject
         .parent()
         .unwrap_or(Path::new("."))
         .join("Config/DefaultEngine.ini");
     std::fs::read_to_string(ini)
-        .map(|t| {
-            t.lines().any(|l| {
-                l.replace(' ', "")
-                    .eq_ignore_ascii_case("r.XGEShaderCompile=0")
-            })
-        })
+        .map(|t| distributed_shaders_disabled(&t))
         .unwrap_or(false)
 }
 
@@ -118,7 +123,7 @@ pub fn run(uproject: Option<&Path>) -> Value {
             "shader_compile",
             uproject.is_some_and(xge_disabled),
             "XGE / Incredibuild is installed; the editor sends shader jobs to it",
-            "if shader compilation never finishes, add r.XGEShaderCompile=0 under [ConsoleVariables] in Config/DefaultEngine.ini",
+            "if shader compilation or cooking never finishes, add r.ShaderCompiler.AllowDistributedCompilation=0 under [ConsoleVariables] in Config/DefaultEngine.ini",
         ));
     }
     let upd = crate::update::check();

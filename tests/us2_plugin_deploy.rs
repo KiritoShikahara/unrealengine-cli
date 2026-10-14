@@ -169,3 +169,17 @@ fn doctor_report_is_markdown_for_bug_reports() {
     assert!(md.contains("| plugin | NG |"), "{md}");
     assert!(md.contains("Engine version"), "{md}");
 }
+
+#[test]
+fn distributed_shader_compile_switch_is_recognised() {
+    use unrealengine_cli::doctor::distributed_shaders_disabled;
+    assert!(distributed_shaders_disabled(
+        "[ConsoleVariables]\nr.ShaderCompiler.AllowDistributedCompilation=0\n"
+    ));
+    assert!(distributed_shaders_disabled(
+        "[ConsoleVariables]\nr.XGEShaderCompile = 0\n"
+    ));
+    assert!(!distributed_shaders_disabled(
+        "[ConsoleVariables]\nr.ShaderCompiler.AllowDistributedCompilation=1\n"
+    ));
+}

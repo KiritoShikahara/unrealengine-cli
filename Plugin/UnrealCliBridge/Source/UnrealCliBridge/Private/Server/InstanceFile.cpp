@@ -47,13 +47,17 @@ namespace UCli::InstanceFile
 		O->SetStringField(TEXT("engineVersion"), FEngineVersion::Current().ToString(EVersionComponent::Patch));
 		O->SetStringField(TEXT("pluginVersion"), PluginVersion());
 		O->SetNumberField(TEXT("protocolVersion"), ProtocolVersion);
-		O->SetStringField(TEXT("startedAt"), FDateTime::UtcNow().ToIso8601());
+		static const FString StartedAt = FDateTime::UtcNow().ToIso8601();
+		O->SetStringField(TEXT("startedAt"), StartedAt);
 		// How the editor was launched, so tools that restart it can reuse the same mode.
 		const TCHAR* Cmd = FCommandLine::Get();
 		O->SetStringField(TEXT("mode"), FParse::Param(Cmd, TEXT("nullrhi")) ? TEXT("nullrhi") : (FParse::Param(Cmd, TEXT("RenderOffscreen")) ? TEXT("headless") : TEXT("normal")));
 		const FString Path = PathForThisProcess();
 		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Path), true);
-		return FFileHelper::SaveStringToFile(ToJson(O), *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		// Write then rename, so a reader never sees a half-written file.
+		const FString Temp = Path + TEXT(".tmp");
+		return FFileHelper::SaveStringToFile(ToJson(O), *Temp, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM)
+			&& IFileManager::Get().Move(*Path, *Temp, true, true);
 	}
 
 	void Remove()

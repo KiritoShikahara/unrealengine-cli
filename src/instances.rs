@@ -35,7 +35,48 @@ impl Instance {
     }
 }
 
-/// Live instances; files whose editor no longer listens are removed.
+/// True while a process with this id exists (fast: no child process).
+pub fn process_alive(pid: u32) -> bool {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::{CloseHandle, ERROR_ACCESS_DENIED, GetLastError};
+        use windows_sys::Win32::System::Threading::{
+            GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+        const STILL_ACTIVE: u32 = 259;
+        // SAFETY: plain Win32 calls on a process id; the handle is closed before returning.
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if h.is_null() {
+                return GetLastError() == ERROR_ACCESS_DENIED;
+            }
+            let mut code = 0u32;
+            let ok = GetExitCodeProcess(h, &mut code) != 0;
+            CloseHandle(h);
+            ok && code == STILL_ACTIVE
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+}
+
+fn age(path: &Path) -> Duration {
+    std::fs::metadata(path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .unwrap_or_default()
+}
+
+/// Live instances. A file is removed only when its editor is gone: the process has exited, or the file has not
+/// been refreshed (the plugin rewrites it every 10 s) for two minutes. A busy editor that does not accept a
+/// connection right now keeps its file; files still being written are left alone.
 pub fn list() -> Vec<Instance> {
     let dir = paths::instances_dir();
     let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -51,8 +92,15 @@ pub fn list() -> Vec<Instance> {
             .and_then(|s| serde_json::from_str::<Instance>(&s).ok());
         match parsed {
             Some(i) if i.reachable() => out.push(i),
-            _ => {
-                let _ = std::fs::remove_file(&path);
+            Some(i) => {
+                if !process_alive(i.pid) || age(&path) > Duration::from_secs(120) {
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+            None => {
+                if age(&path) > Duration::from_secs(10) {
+                    let _ = std::fs::remove_file(&path);
+                }
             }
         }
     }

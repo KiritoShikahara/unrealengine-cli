@@ -52,6 +52,30 @@ fn instances_list_shows_live_and_prunes_stale() {
 }
 
 #[test]
+fn busy_live_editors_keep_their_instance_file() {
+    // An editor that is alive but does not accept a connection right now (busy) must not lose its file.
+    let home = tempfile::tempdir().unwrap();
+    let dir = home.path().join("instances");
+    std::fs::create_dir_all(&dir).unwrap();
+    let pid = std::process::id();
+    let busy = dir.join(format!("{pid}.json"));
+    std::fs::write(
+        &busy,
+        json!({"pid":pid,"port":1,"token":"x","project":"p","engineVersion":"5.7",
+        "pluginVersion":"0","protocolVersion":1,"startedAt":""})
+        .to_string(),
+    )
+    .unwrap();
+    // A file being written (not valid JSON yet) is left alone too.
+    let partial = dir.join("999999.json");
+    std::fs::write(&partial, "{\"pid\":99").unwrap();
+    let (code, _) = run_json(home.path(), home.path(), &["instances", "list"]);
+    assert_eq!(code, 0);
+    assert!(busy.exists(), "live editor's file was deleted");
+    assert!(partial.exists(), "a file being written was deleted");
+}
+
+#[test]
 fn logs_forwards_filters() {
     let home = tempfile::tempdir().unwrap();
     let m = MockBuilder::new()

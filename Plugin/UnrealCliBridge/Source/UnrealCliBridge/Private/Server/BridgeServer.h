@@ -40,4 +40,6 @@ private:
 	void Reap(bool bAll);
 	/** Drains queued tool calls on the game thread between frames (never inside a world tick). */
 	FTSTicker::FDelegateHandle DispatchTicker;
+	/** Rewrites the instance file every 10 s. */
+	FTSTicker::FDelegateHandle HeartbeatTicker;
 };

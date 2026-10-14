@@ -264,7 +264,7 @@ bool FBridgeServer::Start()
 	Addr->SetLoopbackAddress();
 	const FString PortEnv = FPlatformMisc::GetEnvironmentVariable(TEXT("UNREALENGINE_CLI_PORT"));
 	Addr->SetPort(PortEnv.IsEmpty() ? 0 : FCString::Atoi(*PortEnv));
-	if (!Listener->Bind(*Addr) || !Listener->Listen(16))
+	if (!Listener->Bind(*Addr) || !Listener->Listen(128))
 	{
 		UE_LOG(LogUnrealCliBridge, Error, TEXT("Could not listen on loopback"));
 		Subsystem->DestroySocket(Listener);
@@ -289,6 +289,16 @@ bool FBridgeServer::Start()
 		}
 		return true;
 	}));
+	// Heartbeat: refresh the instance file (its age tells the CLI the editor is alive) and recreate it if deleted.
+	HeartbeatTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Stopping = bStopping, P = Port, T = Token](float)
+	{
+		if (*Stopping)
+		{
+			return false;
+		}
+		InstanceFile::Write(P, T);
+		return true;
+	}), 10.0f);
 	Thread = FRunnableThread::Create(this, TEXT("UnrealCliBridgeServer"));
 	UE_LOG(LogUnrealCliBridge, Display, TEXT("UnrealCliBridge listening on 127.0.0.1:%d"), Port);
 	return true;
@@ -302,6 +312,7 @@ void FBridgeServer::Stop()
 	if (!IsEngineExitRequested())
 	{
 		FTSTicker::GetCoreTicker().RemoveTicker(DispatchTicker);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTicker);
 	}
 	if (Thread)
 	{

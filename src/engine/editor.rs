@@ -189,17 +189,5 @@ pub fn kill_process_tree(pid: u32) {
 
 /// True while a process with this id exists.
 pub fn process_alive(pid: u32) -> bool {
-    if cfg!(windows) {
-        std::process::Command::new("tasklist")
-            .args(["/FI", &format!("PID eq {pid}"), "/NH", "/FO", "CSV"])
-            .output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).contains(&format!("\"{pid}\"")))
-            .unwrap_or(false)
-    } else {
-        std::process::Command::new("kill")
-            .args(["-0", &pid.to_string()])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-    }
+    instances::process_alive(pid)
 }

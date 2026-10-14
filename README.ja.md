@@ -50,6 +50,17 @@ unrealengine-cli pie run --seconds 10 --stop-on-log Hello
 * MCP: `unrealengine-cli mcp configure claude-code` で `unrealengine-cli mcp serve` を登録します。
 * Windows の Git Bash は `/Game/...` を書き換えますが、unrealengine-cli が元に戻します。
 
+## 実機で検証済みのシナリオ
+
+実際のエディタ(UE 5.7 / 5.8)に対して、CLI の呼び出しだけで次を確認しています。
+
+| シナリオ | スクリプト |
+|---|---|
+| コイン集めゲーム: スコアを持つ GameMode、HUD、コイン、プレイヤーを追う敵(Behavior Tree + NavMesh)を作り、PIE で遊んで確認 | `scripts/e2e-game.py` |
+| シューティング: WASD の Modifier 付き Enhanced Input、キャラクター移動、弾、ダメージ | `scripts/e2e-game2.py` |
+| C++: UCLASS の追加、再ビルド、Blueprint から PIE で利用、.cpp の変更を反映(Live Coding または再ビルド) | `scripts/e2e-cpp.py` |
+| エディタツール全般: Blueprint、レベル、アセット、マテリアル、入力、データ、UMG、アニメーション、Niagara、ランドスケープ、AI、パッケージングのチェック | `bash scripts/e2e.sh 5.7` |
+
 ## エディタの起動モード
 
 | コマンド | ウィンドウ | 備考 |

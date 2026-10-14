@@ -52,6 +52,17 @@ unrealengine-cli tool call landscape_create --args '{"components":2}'
 * MCP clients: `unrealengine-cli mcp configure claude-code` registers `unrealengine-cli mcp serve`.
 * Git Bash on Windows rewrites `/Game/...` arguments; unrealengine-cli restores them.
 
+## Verified end to end
+
+These scenarios run against a real editor (UE 5.7 and 5.8) with CLI calls only:
+
+| Scenario | Script |
+|---|---|
+| Coin game: game mode with score, HUD, pickups, an enemy chasing the player (Behavior Tree + NavMesh), played in PIE | `scripts/e2e-game.py` |
+| Shooter: Enhanced Input with WASD modifiers, character movement, projectiles, damage | `scripts/e2e-game2.py` |
+| C++: new UCLASS, rebuild, use from a Blueprint in PIE, change the .cpp and apply it (Live Coding or rebuild) | `scripts/e2e-cpp.py` |
+| Editor tools: Blueprints, levels, assets, materials, input, data, UMG, animation, Niagara, landscape, AI, packaging checks | `bash scripts/e2e.sh 5.7` |
+
 ## Editor modes
 
 | Command | Window | Notes |

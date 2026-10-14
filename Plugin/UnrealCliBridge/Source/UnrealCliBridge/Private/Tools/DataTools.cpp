@@ -1,6 +1,11 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/UserDefinedEnum.h"
+#include "Compat/EngineCompat.h"
+#if UCLI_UE_AT_LEAST(5, 8)
+#include "StructUtils/UserDefinedStruct.h"
+#else
 #include "Engine/UserDefinedStruct.h"
+#endif
 #include "Kismet2/EnumEditorUtils.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "Misc/PackageName.h"

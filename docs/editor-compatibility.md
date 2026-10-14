@@ -4,8 +4,8 @@
 |---|---|---|---|---|
 | 5.5 | not verified (engine not installed) | - | - | 2026-10-14 |
 | 5.6 | not verified (engine not installed) | - | - | 2026-10-14 |
-| 5.7.4 | see below | see below | see below | 2026-10-14 |
-| 5.8 | see below | see below | - | 2026-10-14 |
+| 5.7.4 | PASS | 13/13 PASS | 10/10 PASS (PIE skipped: -nullrhi) | 2026-10-14 |
+| 5.8 | PASS | 8/8 PASS | 10/10 PASS (PIE skipped: -nullrhi) | 2026-10-14 |
 
 Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded at the bottom of this file.
 
@@ -18,3 +18,6 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
   `r.XGEShaderCompile=0` under `[ConsoleVariables]` in the project's DefaultEngine.ini.
 
 ## Runs
+
+* 2026-10-14 Windows 11, UE 5.7.4: build PASS, Automation 13/13, E2E 10/10.
+* 2026-10-14 Windows 11, UE 5.8: build PASS, Automation 8/8 (before the Level/Asset/Runtime specs were added), E2E 10/10.

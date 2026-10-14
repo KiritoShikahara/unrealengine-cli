@@ -221,7 +221,10 @@ bool FToolRegistry::Validate(const TSharedPtr<FJsonObject>& Schema, const TShare
 				TArray<FString> Known;
 				if (Props)
 				{
-					(*Props)->Values.GetKeys(Known);
+					for (const TPair<FString, TSharedPtr<FJsonValue>>& P : (*Props)->Values)
+					{
+						Known.Add(P.Key);
+					}
 				}
 				OutError = FString::Printf(TEXT("unknown argument '%s' (known: %s)"), *Arg.Key, *FString::Join(Known, TEXT(", ")));
 				return false;

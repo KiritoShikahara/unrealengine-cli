@@ -85,3 +85,12 @@ docs/
 ## Complexity Tracking
 
 違反なし。
+
+## 実装時の判断(2026-10-14)
+
+- 専門領域のツールの多くは、プラグイン同梱の Python パッケージ(`Content/Python/unreal_cli_bridge`)で実装した。エディタの Python API で足りるものは Python、グラフ操作など Python から届かないもの(Blueprint、AnimGraph、UMG ツリー、struct/enum、Niagara、ランドスケープ、PIE、Live Coding)は C++ にした。
+- MCP は rmcp を使わず、stdio の JSON-RPC を直接実装した(公開するのは 4 ツール: ping、find_tools、describe_tool、call)。
+- 通信は std の同期 TCP で実装した(tokio は不要だった)。
+- `editor open` は Windows でハンドルを継承しない起動(CreateProcessW、bInheritHandles=FALSE)にした。継承すると、呼び出し元のシェルがエディタの終了まで戻らない。
+- 起動モードは 3 つ: 通常、`--headless`(-RenderOffscreen)、`--null-rhi`。`--null-rhi` では、メッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。
+- Git Bash のパス変換(`/Game/...` → `C:/Program Files/Git/Game/...`)を CLI 側で元に戻す。

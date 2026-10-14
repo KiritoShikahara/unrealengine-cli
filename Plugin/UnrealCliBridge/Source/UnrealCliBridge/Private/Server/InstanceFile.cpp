@@ -4,7 +4,9 @@
 #include "HAL/FileManager.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/Parse.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Server/JsonUtil.h"
@@ -46,6 +48,9 @@ namespace UCli::InstanceFile
 		O->SetStringField(TEXT("pluginVersion"), PluginVersion());
 		O->SetNumberField(TEXT("protocolVersion"), ProtocolVersion);
 		O->SetStringField(TEXT("startedAt"), FDateTime::UtcNow().ToIso8601());
+		// How the editor was launched, so tools that restart it can reuse the same mode.
+		const TCHAR* Cmd = FCommandLine::Get();
+		O->SetStringField(TEXT("mode"), FParse::Param(Cmd, TEXT("nullrhi")) ? TEXT("nullrhi") : (FParse::Param(Cmd, TEXT("RenderOffscreen")) ? TEXT("headless") : TEXT("normal")));
 		const FString Path = PathForThisProcess();
 		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Path), true);
 		return FFileHelper::SaveStringToFile(ToJson(O), *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);

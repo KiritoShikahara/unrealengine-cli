@@ -18,6 +18,17 @@ pub fn running_for(uproject: &Path) -> Option<Instance> {
 }
 
 /// Starts the editor detached and waits until its bridge answers a ping.
+impl WindowMode {
+    /// Mode recorded in an instance file.
+    pub fn from_instance(mode: &str) -> Self {
+        match mode {
+            "headless" => Self::Headless,
+            "nullrhi" => Self::NullRhi,
+            _ => Self::Normal,
+        }
+    }
+}
+
 /// How the editor window is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowMode {

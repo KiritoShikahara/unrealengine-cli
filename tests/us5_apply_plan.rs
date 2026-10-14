@@ -2,6 +2,14 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 use unreal_cli::commands::code::{changed_files, decide};
+use unreal_cli::engine::editor::WindowMode;
+
+#[test]
+fn rebuild_reopens_in_the_recorded_mode() {
+    assert_eq!(WindowMode::from_instance("nullrhi"), WindowMode::NullRhi);
+    assert_eq!(WindowMode::from_instance("headless"), WindowMode::Headless);
+    assert_eq!(WindowMode::from_instance(""), WindowMode::Normal);
+}
 
 #[test]
 fn decision_follows_file_kinds() {

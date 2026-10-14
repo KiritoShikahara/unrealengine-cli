@@ -20,6 +20,9 @@ pub struct Instance {
     pub plugin_version: String,
     pub protocol_version: u32,
     pub started_at: String,
+    /// normal | headless | nullrhi (older plugins omit it)
+    #[serde(default)]
+    pub mode: String,
 }
 
 impl Instance {

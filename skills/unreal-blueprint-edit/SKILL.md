@@ -1,7 +1,7 @@
 ---
 name: unreal-blueprint-edit
 description: Use when creating or changing Blueprint graphs: events, function calls, variables, components, compile and save.
-version: 1.1.0
+version: 1.2.0
 tools: [bp_create, bp_add_node, bp_connect, bp_set_pin, bp_compile, bp_save, bp_search_nodes, bp_graph_get, bp_add_component, bp_add_event_dispatcher, bp_add_timeline]
 ---
 
@@ -26,6 +26,7 @@ Use when creating or changing Blueprint graphs: events, function calls, variable
    - Data: `MakeStruct` / `BreakStruct --member Vector|HitResult|...`, `SwitchEnum --member <enum>`, `Node --member K2Node_SwitchInteger|K2Node_Select|K2Node_MakeArray`.
    - Another object's variable: `VariableGet --member Health --member-parent BP_Enemy`.
 6. `unrealengine-cli blueprint compile <path>`, then `unrealengine-cli blueprint save <path>`.
+7. Level Blueprint: pass the map path (e.g. `/Game/Maps/L_Menu`) to any `blueprint` command; `blueprint save` saves the map.
 
 ## Verify
 

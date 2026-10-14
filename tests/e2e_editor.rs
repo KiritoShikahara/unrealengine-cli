@@ -1105,3 +1105,45 @@ fn e2e_15_blueprint_component_properties() {
     );
     assert_eq!(err, "package.bad_output_dir");
 }
+
+#[test]
+fn e2e_16_level_blueprint() {
+    if !enabled() {
+        return;
+    }
+    let map = root("L_LevelScript");
+    ok(&["level", "new", &map]);
+    let got = ok(&["blueprint", "get", &map]);
+    assert!(got.to_string().contains("EventGraph"), "{got}");
+    let begin = node(&map, "Event", Some("BeginPlay"), json!({}));
+    let say = node(&map, "CallFunction", Some("PrintString"), json!({}));
+    pin_link(&map, &begin, "then", &say, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        say["id"].as_str().unwrap(),
+        "InString",
+        "LEVEL_BP_MARKER",
+    ]);
+    let compiled = ok(&["blueprint", "compile", &map]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &map]);
+    ok(&["level", "open", &map]);
+    let graph = ok(&["blueprint", "graph", &map]);
+    assert!(
+        graph.to_string().contains("LEVEL_BP_MARKER"),
+        "saved with the map: {graph}"
+    );
+    if render_enabled() {
+        let pie = ok(&[
+            "pie",
+            "run",
+            "--seconds",
+            "20",
+            "--stop-on-log",
+            "LEVEL_BP_MARKER",
+        ]);
+        assert_eq!(pie["endedReason"], "log", "{pie}");
+    }
+}

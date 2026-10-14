@@ -28,6 +28,9 @@
 #include "K2Node_Timeline.h"
 #include "Curves/CurveFloat.h"
 #include "Engine/TimelineTemplate.h"
+#include "Engine/Level.h"
+#include "Engine/LevelScriptBlueprint.h"
+#include "Engine/World.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -55,7 +58,13 @@ namespace UCli::BP
 
 	UBlueprint* Load(const FString& Path)
 	{
-		return LoadObject<UBlueprint>(nullptr, *ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		if (UBlueprint* B = LoadObject<UBlueprint>(nullptr, *ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		{
+			return B;
+		}
+		// A map path means its Level Blueprint (created on first use).
+		UWorld* World = LoadObject<UWorld>(nullptr, *ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		return World && World->PersistentLevel ? static_cast<UBlueprint*>(World->PersistentLevel->GetLevelScriptBlueprint(false)) : nullptr;
 	}
 
 	UClass* ResolveClass(const FString& InName)
@@ -358,7 +367,7 @@ namespace
 		UBlueprint* B = Load(Path);
 		if (!B)
 		{
-			Call->Fail(TEXT("blueprint.not_found"), FString::Printf(TEXT("no Blueprint at '%s'"), *Path), TEXT("search: asset_search query=<name> class=Blueprint"));
+			Call->Fail(TEXT("blueprint.not_found"), FString::Printf(TEXT("no Blueprint or map at '%s'"), *Path), TEXT("search: asset_search query=<name> class=Blueprint (a map path edits its Level Blueprint)"));
 		}
 		return B;
 	}

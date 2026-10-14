@@ -129,6 +129,31 @@ fn doctor_reports_checks_without_failing() {
 }
 
 #[test]
+fn bundled_plugin_version_matches_the_cli() {
+    assert_eq!(
+        unrealengine_cli::setup::bundled_plugin_version(),
+        env!("CARGO_PKG_VERSION"),
+        "bump Plugin/UnrealCliBridge/UnrealCliBridge.uplugin VersionName with Cargo.toml"
+    );
+}
+
+#[test]
+fn outdated_running_plugin_is_warned_about() {
+    use unrealengine_cli::commands::plugin_mismatch_warning;
+    let w = plugin_mismatch_warning("0.1.0", "0.2.0").expect("warns");
+    assert!(
+        w.contains("0.1.0") && w.contains("0.2.0") && w.contains("setup"),
+        "{w}"
+    );
+    assert_eq!(plugin_mismatch_warning("0.2.0", "0.2.0"), None);
+    assert_eq!(
+        plugin_mismatch_warning("", "0.2.0"),
+        None,
+        "older plugins may not report a version"
+    );
+}
+
+#[test]
 fn doctor_report_is_markdown_for_bug_reports() {
     let home = tempfile::tempdir().unwrap();
     let proj = tempfile::tempdir().unwrap();

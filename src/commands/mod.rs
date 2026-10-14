@@ -20,6 +20,18 @@ pub struct Ctx {
     pub global: GlobalOpts,
     pub cwd: PathBuf,
     pub instance: Option<Instance>,
+    /// Added to the envelope's warnings (e.g. an outdated plugin in the running editor).
+    pub warnings: Vec<String>,
+}
+
+/// Warning when the running editor's plugin is not the version this CLI bundles.
+pub fn plugin_mismatch_warning(running: &str, bundled: &str) -> Option<String> {
+    if running.is_empty() || running == bundled {
+        return None;
+    }
+    Some(format!(
+        "the editor runs UnrealCliBridge {running} but this CLI bundles {bundled}; newer tools may be missing. Update: unrealengine-cli setup --build (close the editor first), then reopen it"
+    ))
 }
 
 impl Ctx {
@@ -28,6 +40,7 @@ impl Ctx {
             global,
             cwd: std::env::current_dir().unwrap_or_default(),
             instance: None,
+            warnings: Vec::new(),
         }
     }
 
@@ -43,6 +56,13 @@ impl Ctx {
             &self.cwd,
         )?;
         let client = BridgeClient::connect(inst.addr(), &inst.token, self.timeout())?;
+        if let Some(w) = plugin_mismatch_warning(
+            &client.welcome.plugin_version,
+            &crate::setup::bundled_plugin_version(),
+        ) && !self.warnings.contains(&w)
+        {
+            self.warnings.push(w);
+        }
         self.instance = Some(inst);
         Ok(client)
     }

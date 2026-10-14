@@ -62,3 +62,22 @@ fn documented_commands_exist() {
     }
     assert!(bad.is_empty(), "{bad:#?}");
 }
+
+#[test]
+fn readme_tool_count_matches_the_catalog() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let catalog: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(root.join("tools/catalog.json")).unwrap())
+            .unwrap();
+    let n = catalog.as_array().unwrap().len();
+    let en = std::fs::read_to_string(root.join("README.md")).unwrap();
+    let ja = std::fs::read_to_string(root.join("README.ja.md")).unwrap();
+    assert!(
+        en.contains(&format!("exposes {n} editor tools")),
+        "README.md: update the tool count to {n}"
+    );
+    assert!(
+        ja.contains(&format!("{n} 個のエディタツール")),
+        "README.ja.md: update the tool count to {n}"
+    );
+}

@@ -490,6 +490,7 @@ pub fn run(cli: Cli) -> i32 {
     let (name, result) = dispatch(&mut ctx, command);
     let mut envelope = Envelope::from_result(name, result, started.elapsed());
     envelope.meta.instance = ctx.instance.as_ref().map(|i| i.pid.to_string());
+    envelope.warnings.append(&mut ctx.warnings);
     envelope.print(format);
     envelope.exit_code()
 }

@@ -13,7 +13,7 @@ bool FUCliRuntimeStatus::RunTest(const FString&)
 	TestFalse(TEXT("not playing"), Data(S)->GetBoolField(TEXT("playing")));
 	const TSharedPtr<FJsonObject> L = Data(Call(TEXT("automation_list"), TEXT("{\"filter\":\"UnrealCliBridge.System\"}")));
 	TestTrue(TEXT("lists own tests"), L->GetNumberField(TEXT("count")) >= 3);
-	TestEqual(TEXT("no tests"), Code(Call(TEXT("automation_run"), TEXT("{\"filter\":\"No.Such.Test.Anywhere\"}"))), FString());
+	TestEqual(TEXT("no tests"), Code(Call(TEXT("automation_run"), TEXT("{\"filter\":\"No.Such.Test.Anywhere\"}"))), FString(TEXT("automation.no_tests")));
 	return true;
 }
 

@@ -64,6 +64,8 @@ struct FToolDef
 	uint32 Flags = EToolFlags::None;
 	FString MinEngine = TEXT("5.5");
 	FToolHandler Handler;
+	/** Optional synchronous check before a long-running tool becomes a job; fail the call to reject it. */
+	TFunction<bool(const FToolCallRef&)> Precheck;
 
 	bool IsMutating() const { return (Flags & EToolFlags::Mutating) != 0; }
 	bool IsLongRunning() const { return (Flags & EToolFlags::LongRunning) != 0; }

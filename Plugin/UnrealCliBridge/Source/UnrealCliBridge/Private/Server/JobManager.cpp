@@ -44,6 +44,23 @@ FString FJobManager::Start(const FToolDef& Def, const FToolCallRef& Original)
 	};
 	Job->Call = Call;
 	Jobs.Add(Job->Id, Job);
+	// Keep memory bounded: drop the oldest finished jobs beyond 200.
+	if (Jobs.Num() > 200)
+	{
+		TArray<TSharedPtr<FBridgeJob>> Finished;
+		for (const TPair<FString, TSharedPtr<FBridgeJob>>& P : Jobs)
+		{
+			if (P.Value->State != TEXT("queued") && P.Value->State != TEXT("running"))
+			{
+				Finished.Add(P.Value);
+			}
+		}
+		Finished.Sort([](const TSharedPtr<FBridgeJob>& A, const TSharedPtr<FBridgeJob>& B) { return A->StartedAt < B->StartedAt; });
+		for (int32 I = 0; I < Finished.Num() && Jobs.Num() > 200; ++I)
+		{
+			Jobs.Remove(Finished[I]->Id);
+		}
+	}
 
 	FToolHandler Handler = Def.Handler;
 	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Job, Call, Handler](float)

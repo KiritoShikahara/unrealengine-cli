@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "HAL/Runnable.h"
 
+namespace UCli { class FBridgeConnection; }
+
 class FSocket;
 class FRunnableThread;
 
@@ -22,5 +24,15 @@ private:
 	FRunnableThread* Thread = nullptr;
 	int32 Port = 0;
 	FString Token;
-	TAtomic<bool> bStopping{false};
+	/** Shared with connection threads so they never outlive the flag they poll. */
+	TSharedRef<TAtomic<bool>, ESPMode::ThreadSafe> bStopping = MakeShared<TAtomic<bool>, ESPMode::ThreadSafe>(false);
+
+	struct FConnectionThread
+	{
+		UCli::FBridgeConnection* Runnable = nullptr;
+		FRunnableThread* Thread = nullptr;
+	};
+	/** Owned by the accept thread; finished ones are reaped there, the rest in Stop. */
+	TArray<FConnectionThread> Connections;
+	void Reap(bool bAll);
 };

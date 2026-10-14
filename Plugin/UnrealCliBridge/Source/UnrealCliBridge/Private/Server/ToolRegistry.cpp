@@ -306,6 +306,10 @@ void FToolRegistry::Dispatch(const FToolCallRef& Call)
 		Call->Succeed(Plan);
 		return;
 	}
+	if (Def->Precheck && !Def->Precheck(Call))
+	{
+		return;
+	}
 	if (Def->IsLongRunning())
 	{
 		const FString JobId = FJobManager::Get().Start(*Def, Call);

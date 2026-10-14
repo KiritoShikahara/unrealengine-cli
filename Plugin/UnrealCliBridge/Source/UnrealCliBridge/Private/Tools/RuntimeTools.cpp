@@ -182,6 +182,21 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
+	auto Prechecked = [&R]()
+	{
+		if (FToolDef* Def = const_cast<FToolDef*>(R.Find(TEXT("automation_run"))))
+		{
+			Def->Precheck = [](const FToolCallRef& Call)
+			{
+				if (MatchingTests(Call->GetString(TEXT("filter"))).Num() == 0)
+				{
+					Call->Fail(TEXT("automation.no_tests"), TEXT("no test matches the filter"), TEXT("list tests: automation_list"));
+					return false;
+				}
+				return true;
+			};
+		}
+	};
 	R.Add(TEXT("automation_run"), TEXT("runtime"), TEXT("Run Automation tests matching filter as a job; the result lists each test with its errors."),
 		TEXT(R"({"type":"object","properties":{"filter":{"type":"string"}},"required":["filter"]})"), EToolFlags::LongRunning,
 		[](const FToolCallRef& Call)
@@ -282,4 +297,5 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 				return true;
 			}));
 		});
+	Prechecked();
 }

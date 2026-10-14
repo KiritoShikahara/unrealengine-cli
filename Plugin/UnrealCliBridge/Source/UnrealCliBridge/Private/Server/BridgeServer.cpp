@@ -115,20 +115,27 @@ namespace
 		TSharedPtr<FJsonObject> Reply;
 	};
 
+}
+
+namespace UCli
+{
 	/** One client connection, served on its own thread; tool calls hop to the game thread. */
 	class FBridgeConnection : public FRunnable
 	{
 	public:
-		FBridgeConnection(FSocket* InSocket, FString InToken, const TAtomic<bool>& InStop)
-			: Socket(InSocket), Token(MoveTemp(InToken)), bStop(InStop) {}
+		FBridgeConnection(FSocket* InSocket, FString InToken, TSharedRef<TAtomic<bool>, ESPMode::ThreadSafe> InStop)
+			: Socket(InSocket), Token(MoveTemp(InToken)), StopFlag(InStop), bStop(*InStop) {}
 
 		virtual uint32 Run() override
 		{
 			Serve();
 			Socket->Close();
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+			bFinished = true;
 			return 0;
 		}
+
+		TAtomic<bool> bFinished{false};
 
 		virtual void Exit() override {}
 
@@ -232,6 +239,7 @@ namespace
 
 		FSocket* Socket;
 		FString Token;
+		TSharedRef<TAtomic<bool>, ESPMode::ThreadSafe> StopFlag;
 		const TAtomic<bool>& bStop;
 	};
 }
@@ -266,7 +274,7 @@ bool FBridgeServer::Start()
 
 void FBridgeServer::Stop()
 {
-	bStopping = true;
+	*bStopping = true;
 	if (Thread)
 	{
 		Thread->WaitForCompletion();
@@ -279,13 +287,30 @@ void FBridgeServer::Stop()
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Listener);
 		Listener = nullptr;
 	}
+	Reap(true);
 	InstanceFile::Remove();
+}
+
+void FBridgeServer::Reap(bool bAll)
+{
+	for (int32 I = Connections.Num() - 1; I >= 0; --I)
+	{
+		FConnectionThread& C = Connections[I];
+		if (bAll || C.Runnable->bFinished)
+		{
+			C.Thread->WaitForCompletion();
+			delete C.Thread;
+			delete C.Runnable;
+			Connections.RemoveAtSwap(I);
+		}
+	}
 }
 
 uint32 FBridgeServer::Run()
 {
-	while (!bStopping)
+	while (!*bStopping)
 	{
+		Reap(false);
 		bool bPending = false;
 		if (!Listener->WaitForPendingConnection(bPending, FTimespan::FromMilliseconds(250)) || !bPending)
 		{
@@ -296,13 +321,14 @@ uint32 FBridgeServer::Run()
 		{
 			continue;
 		}
-		FBridgeConnection* Conn = new FBridgeConnection(Client, Token, bStopping);
+		UCli::FBridgeConnection* Conn = new UCli::FBridgeConnection(Client, Token, bStopping);
 		FRunnableThread* T = FRunnableThread::Create(Conn, TEXT("UnrealCliBridgeConnection"));
 		if (!T)
 		{
 			delete Conn;
+			continue;
 		}
-		// Connection threads end on their own when the client disconnects or the server stops.
+		Connections.Add({Conn, T});
 	}
 	return 0;
 }

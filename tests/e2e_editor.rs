@@ -541,22 +541,25 @@ fn e2e_09_blueprint_pie_and_tests() {
     assert_eq!(ok(&["blueprint", "compile", &bp])["succeeded"], true);
     ok(&["blueprint", "save", &bp]);
     ok(&["level", "new", &root("L_Pie")]);
-    // Spawning Blueprint actors under -nullrhi would crash the engine; the tool refuses instead.
-    let (code, err) = fails("actor_spawn", json!({"actorClass": bp}));
-    assert_eq!((code, err.as_str()), (4, "actor.unsafe_without_renderer"));
     if std::env::var("UNREALENGINE_CLI_E2E_RENDER").as_deref() == Ok("1") {
+        let spawned = call("actor_spawn", json!({"actorClass": bp}));
+        assert_eq!(spawned["class"], "BP_Hello_C", "{spawned}");
+        ok(&["level", "save"]);
         let pie = ok(&[
             "pie",
             "run",
             "--seconds",
-            "20",
+            "30",
             "--stop-on-log",
-            "Play in editor total start time",
+            "E2E-HELLO-MARKER",
         ]);
         assert_eq!(pie["endedReason"], "log", "{pie}");
         assert_eq!(pie["ran"], true);
         assert_eq!(ok(&["pie", "status"])["playing"], false);
     } else {
+        // Spawning Blueprint actors under -nullrhi would crash the engine; the tool refuses instead.
+        let (code, err) = fails("actor_spawn", json!({"actorClass": bp}));
+        assert_eq!((code, err.as_str()), (4, "actor.unsafe_without_renderer"));
         eprintln!(
             "PIE skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1); -nullrhi crashes on play"
         );

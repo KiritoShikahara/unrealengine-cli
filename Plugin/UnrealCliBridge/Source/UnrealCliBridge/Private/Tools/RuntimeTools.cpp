@@ -46,6 +46,10 @@ namespace
 		int32 Warnings = 0;
 		for (const FBridgeLogLine& L : FBridgeLog::Get().Read(S->LogStart, 0, ELogVerbosity::Warning, FString()))
 		{
+			if (L.Text.TrimStartAndEnd().IsEmpty())
+			{
+				continue;
+			}
 			if (L.Verbosity <= ELogVerbosity::Error)
 			{
 				Errors.Add(Str(FString::Printf(TEXT("%s: %s"), *L.Category.ToString(), *L.Text)));
@@ -61,7 +65,17 @@ namespace
 		O->SetNumberField(TEXT("playSeconds"), Played);
 		O->SetArrayField(TEXT("errors"), Errors);
 		O->SetNumberField(TEXT("warnings"), Warnings);
-		S->Call->Succeed(O);
+		// Reply once the session has really ended, so a following pie_status reports playing=false.
+		const double Deadline = FPlatformTime::Seconds() + 10.0;
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([S, O, Deadline](float)
+		{
+			if (GEditor->PlayWorld && FPlatformTime::Seconds() < Deadline)
+			{
+				return true;
+			}
+			S->Call->Succeed(O);
+			return false;
+		}), 0.05f);
 	}
 
 	struct FAutomationRun

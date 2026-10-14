@@ -148,6 +148,7 @@ void UCli::RegisterUmgTools(FToolRegistry& R)
 				if (RootClass)
 				{
 					W->WidgetTree->RootWidget = W->WidgetTree->ConstructWidget<UWidget>(RootClass, *RootClass->GetName());
+					W->OnVariableAdded(W->WidgetTree->RootWidget->GetFName());
 				}
 			}
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(W);
@@ -213,6 +214,8 @@ void UCli::RegisterUmgTools(FToolRegistry& R)
 				Call->Fail(TEXT("umg.bad_parent"), TEXT("parent is missing or is not a panel widget"));
 				return;
 			}
+			// Registers the widget's variable GUID like the designer does (the widget compiler expects one).
+			W->OnVariableAdded(New->GetFName());
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(W);
 			Call->Succeed(WidgetJson(New));
 		});
@@ -364,6 +367,7 @@ void UCli::RegisterUmgTools(FToolRegistry& R)
 				Anim->MovieScene = NewObject<UMovieScene>(Anim, AnimName, RF_Transactional);
 				Anim->MovieScene->SetDisplayRate(FFrameRate(20, 1));
 				W->Animations.Add(Anim);
+				W->OnVariableAdded(Anim->GetFName());
 			}
 			UMovieScene* Scene = Anim->MovieScene;
 			Scene->Modify();

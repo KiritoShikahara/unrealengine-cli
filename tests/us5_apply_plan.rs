@@ -7,6 +7,10 @@ use unrealengine_cli::engine::editor::WindowMode;
 #[test]
 fn rebuild_reopens_in_the_recorded_mode() {
     assert_eq!(WindowMode::from_instance("nullrhi"), WindowMode::NullRhi);
+    // Without -RenderOffscreen, -nullrhi windows hit a fatal error in GetRestoredDimensions.
+    let null_args = unrealengine_cli::engine::editor::mode_args(WindowMode::NullRhi);
+    assert!(null_args.contains(&"-nullrhi") && null_args.contains(&"-RenderOffscreen"));
+    assert!(unrealengine_cli::engine::editor::mode_args(WindowMode::Normal).is_empty());
     assert_eq!(WindowMode::from_instance("headless"), WindowMode::Headless);
     assert_eq!(WindowMode::from_instance(""), WindowMode::Normal);
 }

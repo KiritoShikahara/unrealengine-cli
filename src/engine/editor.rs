@@ -39,6 +39,16 @@ pub enum WindowMode {
     NullRhi,
 }
 
+/// Editor command-line switches for a window mode. Offscreen rendering keeps a real RHI (mesh actors
+/// need it); -nullrhi is opt-in and also needs -RenderOffscreen, or window code hits a fatal error.
+pub fn mode_args(mode: WindowMode) -> Vec<&'static str> {
+    match mode {
+        WindowMode::Normal => vec![],
+        WindowMode::Headless => vec!["-RenderOffscreen", "-nosound"],
+        WindowMode::NullRhi => vec!["-nullrhi", "-RenderOffscreen", "-nosound"],
+    }
+}
+
 pub fn open(
     engine: &Engine,
     uproject: &Path,
@@ -62,14 +72,7 @@ pub fn open(
         OsStr::new("-nosplash"),
         OsStr::new("-unattended"),
     ];
-    // Offscreen rendering keeps a real RHI (mesh actors need it); -nullrhi is opt-in.
-    match mode {
-        WindowMode::Normal => {}
-        WindowMode::Headless => {
-            args.extend([OsStr::new("-RenderOffscreen"), OsStr::new("-nosound")])
-        }
-        WindowMode::NullRhi => args.extend([OsStr::new("-nullrhi"), OsStr::new("-nosound")]),
-    }
+    args.extend(mode_args(mode).into_iter().map(OsStr::new));
     let pid = spawn::spawn_detached(&exe, &args)?;
     let started = Instant::now();
     while started.elapsed() < wait {

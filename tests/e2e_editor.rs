@@ -310,11 +310,16 @@ fn e2e_05_input_and_data() {
     let rows = call("datatable_rows_get", json!({"path": dt}));
     assert_eq!(rows["rows"], json!([]));
     let da = root("DA_Settings");
-    let d = call(
+    let (_, err) = fails(
         "data_asset_create",
         json!({"path": da, "class": "PrimaryDataAsset"}),
     );
-    assert_eq!(d["class"], "PrimaryDataAsset");
+    assert_eq!(err, "data.abstract_class");
+    let settings = root("BP_SettingsData");
+    ok(&["blueprint", "create", &settings, "--parent", "PrimaryDataAsset"]);
+    ok(&["blueprint", "save", &settings]);
+    let d = call("data_asset_create", json!({"path": da, "class": settings}));
+    assert_eq!(d["class"], "BP_SettingsData_C");
 }
 
 #[test]

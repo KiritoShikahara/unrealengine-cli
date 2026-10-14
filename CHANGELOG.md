@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Play-testing: `pie_start`, `pie_input` (keys and Enhanced Input actions), `pie_wait`, `pie_screenshot` (scene + UMG, `blank` flag),
+  `pie_actors`, `pie_get`, `pie_call`, `pie_exec`; CLI `pie start|input|wait|screenshot|actors|get|call|exec`.
+- Blueprint gameplay nodes: InputAction, ComponentEvent, SpawnActor, CreateWidget, CallDispatcher/BindDispatcher,
+  MakeStruct/BreakStruct, SwitchEnum, Timeline, any node class (`Node`); `bp_add_event_dispatcher`, `bp_add_timeline`;
+  another object's variables (`memberParent`), component variables, object/class pin values, pins resolved by direction.
+- AI: `blackboard_create`, `blackboard_add_key`, `behavior_tree_create`, `bt_add_node`, `bt_get`, `nav_bounds_add`,
+  `nav_build`, `nav_path`; `unreal-ai` skill.
+- UMG: `widget_layout` (anchors, position, size, padding, alignment) and `widget_animation_add`.
+- Game E2E (`scripts/e2e-game.py`): builds and plays a coin game with HUD and chasing AI through the CLI only.
+- Fixes: tool calls run from the core ticker (switching levels mid-tick crashed the editor); `--null-rhi` adds
+  `-RenderOffscreen`; widgets and widget animations get their variable GUIDs; `data_asset_create` refuses abstract
+  classes; `prop set` accepts short enum names and `WorldSettings`.
+
 ## 0.1.1
 
 - Command renamed to `unrealengine-cli` (environment variables `UNREALENGINE_CLI_*`).

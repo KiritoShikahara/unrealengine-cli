@@ -84,6 +84,11 @@ def datatable_rows_set(path, rows):
       undoable=False)
 def data_asset_create(path, **kw):
     cls = load_class(kw["class"])
+    try:
+        unreal.new_object(cls)
+    except Exception:
+        raise ToolError("data.abstract_class", "'%s' is abstract; data assets need a concrete class" % kw["class"],
+                        "make one: unrealengine-cli blueprint create <path> --parent %s, then pass its path" % kw["class"])
     f = unreal.DataAssetFactory()
     f.set_editor_property("data_asset_class", cls)
     a = create_asset(path, cls, f)

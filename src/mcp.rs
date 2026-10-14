@@ -23,18 +23,27 @@ fn tool_defs() -> Value {
     ])
 }
 
-fn run_tool(global: &GlobalOpts, name: &str, args: &Value) -> Result<Value, CliError> {
+/// Runs one MCP tool; also returns the warnings the CLI would print (e.g. an outdated editor plugin).
+fn run_tool(
+    global: &GlobalOpts,
+    name: &str,
+    args: &Value,
+) -> (Result<Value, CliError>, Vec<String>) {
     let mut ctx = Ctx::new(global.clone());
+    let result = dispatch(&mut ctx, name, args);
+    (result, ctx.warnings)
+}
+
+fn dispatch(ctx: &mut Ctx, name: &str, args: &Value) -> Result<Value, CliError> {
     match name {
         "unreal_ping" => ctx.call("system_ping", json!({})),
         "unreal_find_tools" => {
             let q = args["query"].as_str().unwrap_or_default();
-            crate::commands::project::tool_find(&mut ctx, q, 20)
+            crate::commands::project::tool_find(ctx, q, 20)
         }
-        "unreal_describe_tool" => crate::commands::project::tool_describe(
-            &mut ctx,
-            args["name"].as_str().unwrap_or_default(),
-        ),
+        "unreal_describe_tool" => {
+            crate::commands::project::tool_describe(ctx, args["name"].as_str().unwrap_or_default())
+        }
         "unreal_call" => {
             ctx.global.dry_run = args["dryRun"].as_bool().unwrap_or(false);
             let tool = args["tool"]
@@ -64,13 +73,18 @@ pub fn handle(global: &GlobalOpts, msg: &Value) -> Option<Value> {
         "tools/call" => {
             let name = msg["params"]["name"].as_str().unwrap_or_default();
             let args = msg["params"].get("arguments").cloned().unwrap_or(json!({}));
-            let (is_error, body) = match run_tool(global, name, &args) {
+            let (outcome, warnings) = run_tool(global, name, &args);
+            let (is_error, body) = match outcome {
                 Ok(v) => (false, v),
                 Err(e) => (true, serde_json::to_value(&e).unwrap_or_default()),
             };
-            Ok(
-                json!({ "content": [{ "type": "text", "text": body.to_string() }], "isError": is_error }),
-            )
+            let mut content = vec![json!({ "type": "text", "text": body.to_string() })];
+            content.extend(
+                warnings
+                    .iter()
+                    .map(|w| json!({ "type": "text", "text": format!("warning: {w}") })),
+            );
+            Ok(json!({ "content": content, "isError": is_error }))
         }
         _ if id.is_none() => return None,
         other => Err(json!({ "code": -32601, "message": format!("method not found: {other}") })),

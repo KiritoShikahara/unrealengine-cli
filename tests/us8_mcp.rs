@@ -59,6 +59,11 @@ fn initialize_list_and_call() {
     let body: Value =
         serde_json::from_str(replies[3]["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
     assert_eq!(body["echo"]["path"], "/Game/X");
+    // Warnings (here: the mock runs an older plugin) reach MCP clients as a second text item.
+    let warning = replies[3]["result"]["content"][1]["text"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(warning.contains("UnrealCliBridge 0.1.0"), "{}", replies[3]);
     assert_eq!(replies[4]["result"]["isError"], true);
     assert_eq!(replies[5]["error"]["code"], -32601);
 }

@@ -34,6 +34,48 @@ pub fn logs(
     ctx.call("editor_logs", args)
 }
 
+/// Polls the editor log until a line newer than "now" contains `text`.
+pub fn wait_for_log(
+    ctx: &mut Ctx,
+    text: &str,
+    severity: Option<String>,
+    category: Option<String>,
+    wait_seconds: u64,
+) -> Result<Value, CliError> {
+    let mut client = ctx.connect()?;
+    let timeout = ctx.global.timeout_ms;
+    let start = client.call("editor_logs", json!({ "limit": 1 }), false, timeout)?;
+    let mut since = start["nextSince"].as_i64().unwrap_or(0);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(wait_seconds);
+    loop {
+        let mut args = json!({ "since": since, "limit": 1000 });
+        if let Some(s) = &severity {
+            args["severity"] = json!(s);
+        }
+        if let Some(c) = &category {
+            args["category"] = json!(c);
+        }
+        let page = client.call("editor_logs", args, false, timeout)?;
+        if let Some(line) = page["lines"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|l| l["text"].as_str().is_some_and(|t| t.contains(text)))
+        {
+            return Ok(json!({ "matched": line, "nextSince": page["nextSince"] }));
+        }
+        since = page["nextSince"].as_i64().unwrap_or(since);
+        if std::time::Instant::now() >= deadline {
+            return Err(CliError::timeout(
+                "logs.wait_timeout",
+                format!("no log line contained '{text}' within {wait_seconds}s"),
+            )
+            .with_details(json!({ "nextSince": since })));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+    }
+}
+
 pub fn instances_list() -> Result<Value, CliError> {
     Ok(serde_json::to_value(instances::list()).expect("instances serialize"))
 }

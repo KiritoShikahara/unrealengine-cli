@@ -67,6 +67,12 @@ pub enum Command {
         severity: Option<String>,
         #[arg(long)]
         category: Option<String>,
+        /// Block until a new line contains this text (starts from the current end of the log)
+        #[arg(long = "wait-for")]
+        wait_for: Option<String>,
+        /// Seconds to wait with --wait-for
+        #[arg(long = "wait-seconds", default_value_t = 60)]
+        wait_seconds: u64,
     },
     /// Running editors with the bridge
     Instances {
@@ -332,10 +338,21 @@ fn dispatch(
         ),
         Command::Ping => ("ping", basic::ping(ctx)),
         Command::Logs {
+            severity,
+            category,
+            wait_for: Some(text),
+            wait_seconds,
+            ..
+        } => (
+            "logs",
+            basic::wait_for_log(ctx, &text, severity, category, wait_seconds),
+        ),
+        Command::Logs {
             since,
             limit,
             severity,
             category,
+            ..
         } => ("logs", basic::logs(ctx, since, limit, severity, category)),
         Command::Instances { action } => match action {
             InstancesCmd::List => ("instances list", basic::instances_list()),

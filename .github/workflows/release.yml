@@ -2,10 +2,16 @@ name: release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to smoke-test the install scripts against
+        required: true
 permissions:
   contents: write
 jobs:
   build:
+    if: github.event_name == 'push'
     strategy:
       matrix:
         include:
@@ -43,3 +49,23 @@ jobs:
           files: |
             unrealengine-cli-*
             SHA256SUMS
+  install-smoke:
+    needs: publish
+    if: always() && (needs.publish.result == 'success' || github.event_name == 'workflow_dispatch')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      UNREALENGINE_CLI_VERSION: ${{ inputs.version || github.ref_name }}
+      UNREALENGINE_CLI_INSTALL_DIR: ${{ github.workspace }}/smoke-bin
+      UNREALENGINE_CLI_NO_MODIFY_PATH: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - if: runner.os != 'Windows'
+        run: sh scripts/install.sh && "$UNREALENGINE_CLI_INSTALL_DIR/unrealengine-cli" --version
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Content -Raw ./scripts/install.ps1 | Invoke-Expression
+          & "$env:UNREALENGINE_CLI_INSTALL_DIR\unrealengine-cli.exe" --version

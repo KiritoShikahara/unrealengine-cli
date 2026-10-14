@@ -3,6 +3,7 @@
 #include "ScopedTransaction.h"
 #include "Server/JobManager.h"
 #include "Server/JsonUtil.h"
+#include "Tools/ToolRegistration.h"
 
 using namespace UCli;
 
@@ -275,6 +276,7 @@ bool FToolRegistry::Validate(const TSharedPtr<FJsonObject>& Schema, const TShare
 void FToolRegistry::Dispatch(const FToolCallRef& Call)
 {
 	check(IsInGameThread());
+	UCli::EnsurePythonTools(*this);
 	const FToolDef* Def = Find(Call->Tool);
 	if (!Def)
 	{

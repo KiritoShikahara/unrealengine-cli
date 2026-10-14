@@ -1,0 +1,8 @@
+Using bundled DotNet SDK version: 8.0.300
+Building TestProjectEditor...
+[1/4] Compile [x64] MyActor.cpp
+C:\Proj\Source\Game\MyActor.cpp(37,39): error C2027: use of undefined type 'FProjectDescriptor'
+C:\Proj\Source\Game\MyActor.cpp(12): warning C4996: 'Old': deprecated
+C:\Proj\Source\Game\MyActor.cpp(37,39): error C2027: use of undefined type 'FProjectDescriptor'
+ERROR: Unable to build while Live Coding is active. Exit the editor and game, or press Ctrl+Alt+F11 if iterating on code in the editor or game
+Result: Failed (OtherCompilationError)

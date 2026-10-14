@@ -100,8 +100,15 @@ namespace
 		Call->Fail(E->GetStringField(TEXT("code")), E->GetStringField(TEXT("message")), Hint, E->TryGetField(TEXT("details")));
 	}
 
+	bool GPythonToolsLoaded = false;
+
 	void RegisterCatalog(FToolRegistry& R)
 	{
+		if (GPythonToolsLoaded)
+		{
+			return;
+		}
+		GPythonToolsLoaded = true;
 		const FPyResult Res = RunPython(TEXT("import unreal_cli_bridge as _ucli\n_ucli.emit_catalog()\n"));
 		const TSharedPtr<FJsonValue> Payload = MarkerPayload(Res.Output);
 		if (!Payload.IsValid() || Payload->Type != EJson::Array)
@@ -149,17 +156,14 @@ void UCli::RegisterPythonTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
+	EnsurePythonTools(R);
+}
+
+void UCli::EnsurePythonTools(FToolRegistry& R)
+{
 	IPythonScriptPlugin* Py = IPythonScriptPlugin::Get();
-	if (!Py)
-	{
-		return;
-	}
-	if (Py->IsPythonInitialized())
+	if (!GPythonToolsLoaded && Py && Py->IsPythonInitialized())
 	{
 		RegisterCatalog(R);
-	}
-	else
-	{
-		Py->OnPythonInitialized().AddLambda([&R]() { RegisterCatalog(R); });
 	}
 }

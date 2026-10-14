@@ -1,4 +1,9 @@
 pub mod basic;
+pub mod blueprint;
+pub mod code;
+pub mod project;
+pub mod test_runner;
+pub mod typed;
 
 use std::path::PathBuf;
 use std::time::Duration;

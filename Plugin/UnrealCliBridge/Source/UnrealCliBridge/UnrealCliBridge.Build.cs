@@ -11,7 +11,8 @@ public class UnrealCliBridge : ModuleRules
             "Core", "CoreUObject", "Engine", "UnrealEd", "Sockets", "Networking",
             "Json", "JsonUtilities", "Projects", "BlueprintGraph", "Kismet", "KismetCompiler",
             "AssetRegistry", "AssetTools", "LevelEditor", "PythonScriptPlugin", "Slate", "SlateCore",
-            "EditorSubsystem", "ToolMenus"
+            "EditorSubsystem", "ToolMenus", "AnimGraph", "AnimGraphRuntime", "UMG", "UMGEditor",
+            "Niagara", "NiagaraEditor", "Landscape", "Foliage"
         });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

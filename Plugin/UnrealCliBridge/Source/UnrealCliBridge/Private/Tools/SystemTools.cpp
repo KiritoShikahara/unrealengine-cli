@@ -1,4 +1,5 @@
 #include "Compat/EngineCompat.h"
+#include "Containers/Ticker.h"
 #include "Editor.h"
 #include "EditorViewportClient.h"
 #include "Engine/Selection.h"
@@ -243,6 +244,35 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 			O->SetObjectField(TEXT("location"), VectorJson(Client->GetViewLocation()));
 			O->SetObjectField(TEXT("rotation"), VectorJson(FVector(Rot.Pitch, Rot.Yaw, Rot.Roll)));
 			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("editor_quit"), TEXT("editor"), TEXT("Quit the editor. Refused while packages are unsaved unless force=true (unsaved work is lost)."),
+		TEXT(R"({"type":"object","properties":{"force":{"type":"boolean"}}})"), EToolFlags::Mutating | EToolFlags::NoUndo,
+		[](const FToolCallRef& Call)
+		{
+			TArray<UPackage*> Dirty;
+			FEditorFileUtils::GetDirtyContentPackages(Dirty);
+			FEditorFileUtils::GetDirtyWorldPackages(Dirty);
+			TArray<FString> Names;
+			for (UPackage* P : Dirty)
+			{
+				Names.Add(P->GetName());
+			}
+			if (Names.Num() > 0 && !Call->GetBool(TEXT("force")))
+			{
+				Call->Fail(TEXT("editor.unsaved_changes"), FString::Printf(TEXT("%d unsaved package(s)"), Names.Num()),
+					TEXT("save first (editor_save_all) or pass force=true to discard"), Arr(StrArray(Names)));
+				return;
+			}
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetBoolField(TEXT("quitting"), true);
+			O->SetArrayField(TEXT("discarded"), StrArray(Names));
+			Call->Succeed(O);
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float)
+			{
+				FPlatformMisc::RequestExit(false, TEXT("unreal-cli editor_quit"));
+				return false;
+			}), 0.5f);
 		});
 
 	R.Add(TEXT("editor_screenshot"), TEXT("editor"), TEXT("Capture the active viewport to a PNG file."),

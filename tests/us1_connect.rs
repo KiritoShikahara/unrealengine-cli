@@ -143,3 +143,11 @@ fn batch_stops_at_first_failure() {
     assert_eq!(v["error"]["details"]["failedStep"], 1);
     assert_eq!(m.calls.lock().unwrap().len(), 2);
 }
+
+#[test]
+fn parse_errors_are_envelopes_in_json_mode() {
+    let home = tempfile::tempdir().unwrap();
+    let (code, v) = run_json(home.path(), home.path(), &["blueprint", "create"]);
+    assert_eq!(code, 2);
+    assert_eq!(v["error"]["code"], "args.parse");
+}

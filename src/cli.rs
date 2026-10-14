@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use crate::commands::{Ctx, basic};
+use crate::commands::{Ctx, basic, blueprint, code, project, test_runner, typed};
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
 
@@ -93,6 +93,79 @@ pub enum Command {
         /// File path, or - for stdin
         file: String,
     },
+    /// Install the UnrealCliBridge plugin into the project
+    Setup {
+        /// Build the editor target afterwards
+        #[arg(long)]
+        build: bool,
+        /// Add a minimal C++ module to a Blueprint-only project
+        #[arg(long = "add-code-module")]
+        add_code_module: bool,
+    },
+    /// Check engine, build tools, plugin and editor
+    Doctor,
+    /// Editor lifecycle: open, close, build, status
+    Editor {
+        #[command(subcommand)]
+        action: EditorCmd,
+    },
+    /// Blueprint editing
+    Blueprint {
+        #[command(subcommand)]
+        action: crate::commands::blueprint::BlueprintCmd,
+    },
+    /// Levels and actors
+    Level {
+        #[command(subcommand)]
+        action: typed::LevelCmd,
+    },
+    /// Assets: search, create, move, delete, import, references
+    Asset {
+        #[command(subcommand)]
+        action: typed::AssetCmd,
+    },
+    /// Reflected properties and components
+    Prop {
+        #[command(subcommand)]
+        action: typed::PropCmd,
+    },
+    /// Play In Editor
+    Pie {
+        #[command(subcommand)]
+        action: typed::PieCmd,
+    },
+    /// Automation tests
+    Test {
+        #[command(subcommand)]
+        action: test_runner::TestCmd,
+    },
+    /// C++ sources: search, read, edit, create classes, apply changes
+    Code {
+        #[command(subcommand)]
+        action: code::CodeCmd,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum EditorCmd {
+    /// Start the editor and wait until the bridge answers
+    Open {
+        /// Run without rendering (-nullrhi)
+        #[arg(long)]
+        headless: bool,
+        /// Seconds to wait for the bridge
+        #[arg(long, default_value_t = 600)]
+        wait: u64,
+    },
+    /// Quit the editor (refused with unsaved changes unless --force)
+    Close {
+        #[arg(long)]
+        force: bool,
+    },
+    /// Build the project's editor target (editor must be closed)
+    Build,
+    /// Engine, plugin and running state of the project
+    Status,
 }
 
 #[derive(Debug, Subcommand)]
@@ -105,6 +178,20 @@ pub enum InstancesCmd {
 
 #[derive(Debug, Subcommand)]
 pub enum ToolCmd {
+    /// List tools (live editor if reachable, else the bundled catalog)
+    List {
+        #[arg(long)]
+        group: Option<String>,
+    },
+    /// Search tools by words in name, group and summary
+    Find {
+        #[arg(required = true, num_args = 1..)]
+        words: Vec<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Full description and input schema of a tool
+    Describe { name: String },
     /// Call a tool with JSON arguments
     Call {
         name: String,
@@ -160,6 +247,12 @@ fn dispatch(
             ToolCmd::Call { name, args } => {
                 ("tool call", basic::tool_call(ctx, &name, args.as_deref()))
             }
+            ToolCmd::List { group } => ("tool list", project::tool_list(ctx, group.as_deref())),
+            ToolCmd::Find { words, limit } => (
+                "tool find",
+                project::tool_find(ctx, &words.join(" "), limit),
+            ),
+            ToolCmd::Describe { name } => ("tool describe", project::tool_describe(ctx, &name)),
         },
         Command::Python { action } => match action {
             PythonCmd::Exec { code } => ("python exec", basic::python_exec(ctx, &code)),
@@ -176,6 +269,26 @@ fn dispatch(
             ),
         },
         Command::Batch { file } => ("batch", basic::batch(ctx, &file)),
+        Command::Setup {
+            build,
+            add_code_module,
+        } => ("setup", project::setup_cmd(ctx, build, add_code_module)),
+        Command::Doctor => ("doctor", project::doctor_cmd(ctx)),
+        Command::Editor { action } => match action {
+            EditorCmd::Open { headless, wait } => {
+                ("editor open", project::open_cmd(ctx, headless, wait))
+            }
+            EditorCmd::Close { force } => ("editor close", project::close_cmd(ctx, force)),
+            EditorCmd::Build => ("editor build", project::build_cmd(ctx)),
+            EditorCmd::Status => ("editor status", project::status_cmd(ctx)),
+        },
+        Command::Blueprint { action } => ("blueprint", blueprint::run(ctx, action)),
+        Command::Level { action } => ("level", typed::level(ctx, action)),
+        Command::Asset { action } => ("asset", typed::asset(ctx, action)),
+        Command::Prop { action } => ("prop", typed::prop(ctx, action)),
+        Command::Pie { action } => ("pie", typed::pie(ctx, action)),
+        Command::Test { action } => ("test", test_runner::run(ctx, action)),
+        Command::Code { action } => ("code", code::run(ctx, action)),
     }
 }
 

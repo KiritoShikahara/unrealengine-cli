@@ -1,5 +1,9 @@
+pub mod catalog;
 pub mod cli;
 pub mod commands;
 pub mod core;
+pub mod doctor;
+pub mod engine;
 pub mod instances;
+pub mod setup;
 pub mod transport;

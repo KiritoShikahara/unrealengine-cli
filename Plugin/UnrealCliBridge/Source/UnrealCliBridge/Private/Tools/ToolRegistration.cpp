@@ -11,6 +11,12 @@ namespace UCli
 		RegisterSystemTools(Registry);
 		RegisterProjectTools(Registry);
 		RegisterBlueprintTools(Registry);
+		RegisterRuntimeTools(Registry);
+		RegisterCodeTools(Registry);
+		RegisterUmgTools(Registry);
+		RegisterDataTools(Registry);
+		RegisterAnimGraphTools(Registry);
+		RegisterNiagaraLandscapeTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

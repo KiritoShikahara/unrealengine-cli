@@ -1502,3 +1502,25 @@ fn e2e_19_save_game_round_trip() {
         assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
     }
 }
+
+#[test]
+fn e2e_20_parallel_clients() {
+    if !enabled() {
+        return;
+    }
+    // Several agents at once: every call reaches the editor and the instance file survives.
+    let handles: Vec<_> = (0..24)
+        .map(|i| {
+            std::thread::spawn(move || {
+                if i % 3 == 0 {
+                    cli(&["ping"]).0
+                } else {
+                    cli(&["tool", "call", "actor_list", "--args", "{\"limit\":2}"]).0
+                }
+            })
+        })
+        .collect();
+    let codes: Vec<i32> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    assert!(codes.iter().all(|c| *c == 0), "exit codes: {codes:?}");
+    assert_eq!(cli(&["ping"]).0, 0);
+}

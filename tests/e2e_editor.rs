@@ -1060,3 +1060,40 @@ fn e2e_14_umg_layout_and_animation() {
     assert_eq!(compiled["errors"], 0, "{compiled}");
     ok(&["blueprint", "save", &w]);
 }
+
+#[test]
+fn e2e_15_blueprint_component_properties() {
+    if !enabled() {
+        return;
+    }
+    let bp = root("BP_Crate");
+    ok(&["blueprint", "create", &bp, "--parent", "Character"]);
+    let added = call(
+        "bp_add_component",
+        json!({"path": bp, "class": "StaticMeshComponent", "name": "Body"}),
+    );
+    assert_eq!(added["name"], "Body");
+    let comp = format!("{bp}.Body");
+    let set = ok(&[
+        "prop",
+        "set",
+        &comp,
+        "StaticMesh",
+        "/Engine/BasicShapes/Cube",
+    ]);
+    assert_eq!(set["value"], "/Engine/BasicShapes/Cube.Cube", "{set}");
+    // Inherited components are reachable by name too.
+    let speed = ok(&[
+        "prop",
+        "set",
+        &format!("{bp}.CharacterMovement"),
+        "MaxWalkSpeed",
+        "900",
+    ]);
+    assert_eq!(speed["value"], 900.0, "{speed}");
+    let (_, v) = cli(&["prop", "get", &format!("{bp}.Nope"), "X"]);
+    assert_eq!(v["error"]["code"], "component.not_found", "{v}");
+    assert!(v["error"]["hint"].as_str().unwrap().contains("Body"), "{v}");
+    let compiled = ok(&["blueprint", "compile", &bp]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+}

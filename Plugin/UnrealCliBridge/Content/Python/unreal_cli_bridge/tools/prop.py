@@ -13,6 +13,11 @@ def _target(path):
     """Object for an asset path (Blueprints give class defaults), an object path, or 'Label[.Component]'."""
     if path.startswith("/"):
         obj = unreal.load_asset(path) or unreal.load_object(None, path)
+        if obj is None and "." in path.rsplit("/", 1)[-1]:
+            base, comp = path.rsplit(".", 1)
+            bp = unreal.load_asset(base)
+            if isinstance(bp, unreal.Blueprint):
+                return _bp_component(bp, comp)
         if obj is None:
             raise ToolError("asset.not_found", "no asset or object at '%s'" % path)
         if isinstance(obj, unreal.Blueprint):
@@ -67,8 +72,9 @@ def _walk(obj, dotted):
     return chain, current
 
 
-@tool("prop_get", "property", "Read reflected properties of an asset, object, Blueprint defaults or actor "
-      "('Label' or 'Label.Component'). Without property, lists readable properties.",
+@tool("prop_get", "property", "Read reflected properties of an asset, object, Blueprint defaults ('/Game/BP'), a Blueprint "
+      "component ('/Game/BP.Component'), an actor ('Label' or 'Label.Component') or 'WorldSettings'. Without property, "
+      "lists readable properties.",
       {"path": {"type": "string"}, "property": {"type": "string"}, "filter": {"type": "string"}}, ["path"])
 def prop_get(path, property=None, filter=None):  # noqa: A002 - tool argument names
     obj = _target(path)
@@ -174,3 +180,26 @@ def component_remove(label, name):
                 raise ToolError("component.remove_failed", "'%s' cannot be removed (inherited?)" % name)
             return {"label": label, "removed": name}
     raise ToolError("component.not_found", "actor '%s' has no component '%s'" % (label, name))
+
+
+def _bp_component(bp, name):
+    """Component template of a Blueprint: one added in the Blueprint (SCS) or inherited from its parent class."""
+    lib = unreal.SubobjectDataBlueprintFunctionLibrary
+    names = []
+    for h in _sds().k2_gather_subobject_data_for_blueprint(bp):
+        data = lib.get_data(h)
+        obj = lib.get_object(data)
+        var = str(lib.get_variable_name(data))
+        if obj is None or var in ("", "None"):
+            continue
+        if var == name or obj.get_name() in (name, name + "_GEN_VARIABLE"):
+            return obj
+        names.append(var)
+    cdo = unreal.get_default_object(bp.generated_class())
+    if isinstance(cdo, unreal.Actor):
+        for c in cdo.get_components_by_class(unreal.ActorComponent):
+            if c.get_name() == name:
+                return c
+            names.append(c.get_name())
+    raise ToolError("component.not_found", "Blueprint '%s' has no component '%s'" % (bp.get_name(), name),
+                    hint="components: " + ", ".join(sorted(set(names))) + " (compile after bp_add_component)")

@@ -1096,4 +1096,12 @@ fn e2e_15_blueprint_component_properties() {
     assert!(v["error"]["hint"].as_str().unwrap().contains("Body"), "{v}");
     let compiled = ok(&["blueprint", "compile", &bp]);
     assert_eq!(compiled["errors"], 0, "{compiled}");
+    // Packaging output must be given and must stay out of the engine install.
+    let (_, err) = fails("package_project", json!({"outputDir": ""}));
+    assert_eq!(err, "args.invalid");
+    let (_, err) = fails(
+        "package_project",
+        json!({"outputDir": "C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64"}),
+    );
+    assert_eq!(err, "package.bad_output_dir");
 }

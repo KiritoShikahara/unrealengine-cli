@@ -7,8 +7,30 @@ import unreal
 from .. import ToolError, tool
 
 
+def _full(path):
+    """Absolute path for an engine-relative path (the editor's working directory is the engine's Binaries)."""
+    return os.path.normpath(unreal.Paths.convert_relative_path_to_full(path))
+
+
+def _project_dir():
+    return os.path.dirname(_full(unreal.Paths.get_project_file_path()))
+
+
+def _output_dir(output_dir):
+    """Archive directory: relative paths are under the project; never empty or inside the engine install."""
+    if not output_dir or not str(output_dir).strip():
+        raise ToolError("args.invalid", "outputDir is empty", "pass a folder, e.g. Build/Windows (relative to the project)")
+    path = output_dir if os.path.isabs(output_dir) else os.path.join(_project_dir(), output_dir)
+    path = os.path.normpath(path)
+    engine = _full(unreal.Paths.engine_dir())
+    if os.path.normcase(path).startswith(os.path.normcase(os.path.dirname(engine.rstrip("\\/")))):
+        raise ToolError("package.bad_output_dir", "'%s' is inside the engine install" % path,
+                        "choose a folder outside the engine, e.g. Build/Windows (relative to the project)")
+    return path
+
+
 def _uat():
-    engine = os.path.abspath(unreal.Paths.engine_dir())
+    engine = _full(unreal.Paths.engine_dir())
     name = "RunUAT.bat" if sys.platform == "win32" else "RunUAT.sh"
     return os.path.join(engine, "Build", "BatchFiles", name)
 
@@ -18,8 +40,8 @@ def _platform():
 
 
 def _start(args, log_name):
-    project = os.path.abspath(unreal.Paths.get_project_file_path())
-    log_dir = os.path.join(os.path.abspath(unreal.Paths.project_saved_dir()), "UnrealCli")
+    project = _full(unreal.Paths.get_project_file_path())
+    log_dir = os.path.join(_full(unreal.Paths.project_saved_dir()), "UnrealCli")
     os.makedirs(log_dir, exist_ok=True)
     log = os.path.join(log_dir, log_name)
     cmd = [_uat(), "BuildCookRun", "-project=" + project, "-noP4", "-unattended", "-utf8output"] + args
@@ -28,14 +50,17 @@ def _start(args, log_name):
     return {"pid": proc.pid, "log": log, "command": " ".join(cmd)}
 
 
-@tool("package_project", "packaging", "Start BuildCookRun to package the project; returns the process id and log "
-      "file (poll with package_status).",
+@tool("package_project", "packaging", "Start BuildCookRun to package the project into outputDir (relative paths "
+      "are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
       {"outputDir": {"type": "string"}, "configuration": {"type": "string", "enum": ["Development", "Shipping", "DebugGame"]},
        "platform": {"type": "string"}}, ["outputDir"], mutating=True, undoable=False)
 def package_project(outputDir, configuration="Development", platform=None):
     plat = platform or _platform()
-    return _start(["-platform=" + plat, "-clientconfig=" + configuration, "-build", "-cook", "-stage", "-pak",
-                   "-archive", "-archivedirectory=" + os.path.abspath(outputDir)], "package.log")
+    archive = _output_dir(outputDir)
+    result = _start(["-platform=" + plat, "-clientconfig=" + configuration, "-build", "-cook", "-stage", "-pak",
+                     "-archive", "-archivedirectory=" + archive], "package.log")
+    result["outputDir"] = archive
+    return result
 
 
 @tool("cook_content", "packaging", "Start a content cook for a platform; returns the process id and log file.",

@@ -14,7 +14,7 @@
 ## はじめ方
 
 ```bash
-# 1. インストール(SHA256SUMS を検証してから導入)
+# 1. インストール(SHA256SUMS を検証してから導入。リリース公開前は、clone して cargo install --path . を使う)
 curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unreal-cli/main/scripts/install.sh | sh   # macOS / Linux
 irm https://raw.githubusercontent.com/KiritoShikahara/unreal-cli/main/scripts/install.ps1 | iex       # Windows
 

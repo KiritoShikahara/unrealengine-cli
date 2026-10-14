@@ -236,6 +236,9 @@ pub enum SelfAction {
         /// Only report whether a newer release exists
         #[arg(long)]
         check: bool,
+        /// Install the latest release only if newer (used by the daily background update)
+        #[arg(long, hide = true)]
+        auto: bool,
     },
 }
 
@@ -461,6 +464,7 @@ fn dispatch(
         },
         Command::SelfCmd { action } => match action {
             SelfAction::Update { check: true, .. } => ("self update", Ok(crate::update::check())),
+            SelfAction::Update { auto: true, .. } => ("self update", crate::update::auto_apply()),
             SelfAction::Update { version, .. } => (
                 "self update",
                 crate::update::self_update(version.as_deref(), ctx.global.dry_run),

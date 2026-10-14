@@ -144,6 +144,65 @@ pub fn check() -> Value {
     }
 }
 
+const AUTO_UPDATE_INTERVAL_SECS: u64 = 86_400;
+
+/// True when the last automatic check (unix seconds in `stamp`) is a day old, or missing.
+pub fn auto_update_due(stamp: &Path, now: u64) -> bool {
+    std::fs::read_to_string(stamp)
+        .ok()
+        .and_then(|s| s.trim().parse::<u64>().ok())
+        .is_none_or(|last| now.saturating_sub(last) >= AUTO_UPDATE_INTERVAL_SECS)
+}
+
+/// Automatic updates apply only to installed binaries (not cargo `target/` builds), not when
+/// opted out, and never while the user is already running `self update`.
+pub fn auto_update_eligible(exe: &Path, opted_out: bool, args: &[&str]) -> bool {
+    let dev_build = exe
+        .components()
+        .any(|c| c.as_os_str().eq_ignore_ascii_case("target"));
+    let self_cmd = args.get(1).is_some_and(|a| *a == "self");
+    !opted_out && !dev_build && !self_cmd
+}
+
+/// Once a day, starts `self update --auto` in a detached process; never blocks the command.
+pub fn maybe_spawn_auto_update(args: &[String]) {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let _ = std::fs::remove_file(exe.with_extension("old"));
+    let argv: Vec<&str> = args.iter().map(String::as_str).collect();
+    let opted_out = std::env::var_os("UNREALENGINE_CLI_NO_AUTO_UPDATE").is_some()
+        || std::env::var_os("CI").is_some();
+    if !auto_update_eligible(&exe, opted_out, &argv) {
+        return;
+    }
+    let stamp = crate::core::paths::data_dir().join("last-update-check");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    if !auto_update_due(&stamp, now) {
+        return;
+    }
+    if let Some(dir) = stamp.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if std::fs::write(&stamp, now.to_string()).is_err() {
+        return;
+    }
+    let a: [&std::ffi::OsStr; 3] = ["self".as_ref(), "update".as_ref(), "--auto".as_ref()];
+    let _ = crate::engine::spawn::spawn_detached(&exe, &a);
+}
+
+/// `self update --auto`: installs the latest release only when it is newer.
+pub fn auto_apply() -> Result<Value, CliError> {
+    match latest_tag() {
+        Some(t) if is_newer(&t) => self_update(Some(&t), false),
+        Some(t) => Ok(json!({ "updated": false, "latest": t })),
+        None => Ok(json!({ "updated": false, "reason": "no release information" })),
+    }
+}
+
 pub fn self_update(version: Option<&str>, dry_run: bool) -> Result<Value, CliError> {
     let repo = std::env::var("UNREALENGINE_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
     let base = match version {

@@ -1,4 +1,48 @@
-use unrealengine_cli::update::{is_newer, parse_latest_location, sha256_hex, verify};
+use std::path::Path;
+
+use unrealengine_cli::update::{
+    auto_update_due, auto_update_eligible, is_newer, parse_latest_location, sha256_hex, verify,
+};
+
+#[test]
+fn auto_update_runs_at_most_once_a_day() {
+    let dir = std::env::temp_dir().join(format!("uecli-auto-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let stamp = dir.join("last-update-check");
+    let _ = std::fs::remove_file(&stamp);
+    assert!(auto_update_due(&stamp, 1_000_000), "no stamp yet");
+    std::fs::write(&stamp, "1000000").unwrap();
+    assert!(!auto_update_due(&stamp, 1_000_000 + 3600));
+    assert!(auto_update_due(&stamp, 1_000_000 + 86_400));
+    std::fs::write(&stamp, "garbage").unwrap();
+    assert!(auto_update_due(&stamp, 5));
+}
+
+#[test]
+fn auto_update_skips_dev_builds_and_opt_out() {
+    let installed = Path::new("C:/Users/u/.local/bin/unrealengine-cli.exe");
+    let dev = Path::new("C:/src/repo/target/debug/unrealengine-cli.exe");
+    assert!(auto_update_eligible(
+        installed,
+        false,
+        &["unrealengine-cli", "ping"]
+    ));
+    assert!(!auto_update_eligible(
+        dev,
+        false,
+        &["unrealengine-cli", "ping"]
+    ));
+    assert!(!auto_update_eligible(
+        installed,
+        true,
+        &["unrealengine-cli", "ping"]
+    ));
+    assert!(!auto_update_eligible(
+        installed,
+        false,
+        &["unrealengine-cli", "self", "update"]
+    ));
+}
 
 #[test]
 fn release_redirect_and_version_compare() {

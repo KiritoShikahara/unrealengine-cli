@@ -38,5 +38,6 @@ fn main() {
             std::process::exit(env.exit_code());
         }
     };
+    unrealengine_cli::update::maybe_spawn_auto_update(&args);
     std::process::exit(run(cli));
 }

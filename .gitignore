@@ -4,5 +4,7 @@
 /TestProject/Saved
 /TestProject/DerivedDataCache
 /TestProject/Plugins/UnrealCliBridge
+/TestProject/Content/UCliTests
+/TestProject/Content/E2E
 /Plugin/UnrealCliBridge/Binaries
 /Plugin/UnrealCliBridge/Intermediate

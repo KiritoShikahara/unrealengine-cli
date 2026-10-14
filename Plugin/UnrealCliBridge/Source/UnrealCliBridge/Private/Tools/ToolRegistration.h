@@ -9,4 +9,5 @@ namespace UCli
 	void RegisterSystemTools(FToolRegistry& Registry);
 	void RegisterProjectTools(FToolRegistry& Registry);
 	void RegisterPythonTools(FToolRegistry& Registry);
+	void RegisterBlueprintTools(FToolRegistry& Registry);
 }

@@ -10,6 +10,7 @@ namespace UCli
 		FJobManager::RegisterTools(Registry);
 		RegisterSystemTools(Registry);
 		RegisterProjectTools(Registry);
+		RegisterBlueprintTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

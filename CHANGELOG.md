@@ -10,6 +10,15 @@
 - C++: Live Coding no longer blocks the editor and stops with `code.live_coding_stuck`; `code apply --rebuild`;
   `code apply --force` falls back to a rebuild; `editor close --force` ends a stuck editor and its child processes.
 - Game E2E 2 (`scripts/e2e-game2.py`): a shooter with input mapping, projectiles and damage; C++ E2E (`scripts/e2e-cpp.py`).
+- `pie_widgets` / `pie_click` (`pie widgets`, `pie click <Button>`): read and press on-screen UI in a play session.
+- Level Blueprints: pass a map path to any `blueprint` command.
+- `doctor` reports the running editor's plugin version; recommends `r.ShaderCompiler.AllowDistributedCompilation=0`
+  (the old `r.XGEShaderCompile` no longer exists in UE 5.7).
+- `code apply` reopens the level that was open after a rebuild.
+- Fixes: `package_project` with an empty outputDir archived into the engine's Binaries folder (now refused; relative
+  paths are under the project); editor exit no longer crashes in the bridge; `editor close` waits for the process
+  to exit (DLL locks) and ends an editor that hangs while shutting down; `--class` filters prefer an exact class
+  name; `e2e.sh` clears test assets from earlier runs.
 
 ## 0.2.0
 

@@ -59,6 +59,13 @@ namespace UCli::BP
 
 	UBlueprint* Load(const FString& Path)
 	{
+		// Probing a path that does not exist with LoadObject leaves an empty package behind; a Blueprint created in
+		// it later can be garbage collected with it. Only load what exists on disk or in memory.
+		const FString PackageName = FPackageName::ObjectPathToPackageName(ObjectPath(Path));
+		if (!FindPackage(nullptr, *PackageName) && !FPackageName::DoesPackageExist(PackageName))
+		{
+			return nullptr;
+		}
 		if (UBlueprint* B = LoadObject<UBlueprint>(nullptr, *ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet))
 		{
 			return B;

@@ -38,7 +38,8 @@ namespace
 	T* CreateAsset(const FToolCallRef& Call)
 	{
 		const FString Path = Call->GetString(TEXT("path"));
-		if (LoadObject<UObject>(nullptr, *BP::ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		// Existence check without LoadObject (a failed load leaves an empty package the new asset would land in).
+		if (FPackageName::DoesPackageExist(Path) || FindObject<UObject>(nullptr, *BP::ObjectPath(Path)))
 		{
 			Call->Fail(TEXT("asset.exists"), FString::Printf(TEXT("an asset already exists at %s"), *Path));
 			return nullptr;

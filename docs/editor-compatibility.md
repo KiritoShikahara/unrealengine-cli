@@ -30,7 +30,9 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
 * 2026-10-14 Windows 11, UE 5.8: build PASS, Automation 8/8 (before the Level/Asset/Runtime specs were added), E2E 10/10.
 * 2026-10-15 after the parallel-clients fix: UE 5.7.4 and 5.8, -nullrhi and rendering, E2E 20/20, MCP 1/1, both game
   E2Es PASS; one intermittent failure seen once in six -nullrhi runs (e2e_18: a just-created Blueprint Interface was
-  not found by the next call; not reproduced in 15 isolated attempts or 2 more full runs).
+  not found by the next call). Likely cause: existence checks probed missing paths with LoadObject, which leaves an
+  empty package the new asset was created in; fixed to check disk/memory without loading. 5.7.4 and 5.8 with -nullrhi
+  and rendering pass E2E 20/20 after the fix.
 * 2026-10-15 after interfaces/SaveGame/property fixes: UE 5.7.4 and 5.8, -nullrhi and rendering, Automation 14/14,
   E2E 19/19, MCP 1/1, both game E2Es PASS.
 * 2026-10-15 after UI/level-Blueprint/packaging-guard work: UE 5.7.4 and 5.8, -nullrhi and rendering, Automation 14/14,

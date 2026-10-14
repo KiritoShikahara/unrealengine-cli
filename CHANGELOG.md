@@ -23,6 +23,8 @@
 - Fix (parallel agents): a CLI under load could delete a live editor's instance file, after which no command found
   the editor. Files are now removed only when the editor process is gone or the file is stale; the plugin rewrites
   its file every 10 s (recreating it if deleted), writes it atomically and accepts more pending connections.
+- Fix: creating a Blueprint or AI asset right after a failed lookup could lose it to garbage collection (the lookup
+  left an empty package); `blueprint.not_found` carries package diagnostics.
 - Fixes: `package_project` with an empty outputDir archived into the engine's Binaries folder (now refused, as is
   any Unreal Engine install and the project's Content folder; relative paths are under the project; `check: true`
   validates without building); relative paths for `editor_screenshot` and `asset_import` resolve under the project; editor exit no longer crashes in the bridge; `editor close` waits for the process

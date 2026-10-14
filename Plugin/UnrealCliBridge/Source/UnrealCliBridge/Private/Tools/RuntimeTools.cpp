@@ -13,6 +13,10 @@ namespace
 	TArray<FAutomationTestInfo> MatchingTests(const FString& Filter)
 	{
 		TArray<FAutomationTestInfo> All;
+		// Without a requested filter the framework hides every Engine/Product/... test.
+		FAutomationTestFramework::Get().SetRequestedTestFilter(EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter
+			| EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter | EAutomationTestFlags::StressFilter
+			| EAutomationTestFlags::NegativeFilter);
 		FAutomationTestFramework::Get().GetValidTestNames(All);
 		return All.FilterByPredicate([&Filter](const FAutomationTestInfo& T)
 		{
@@ -192,15 +196,31 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Run](float)
 			{
 				FAutomationTestFramework& F = FAutomationTestFramework::Get();
-				if (Run->bRunning)
+				auto Record = [&Run](bool bOk, const TArray<FString>& Errors)
 				{
+					TSharedPtr<FJsonObject> T = MakeShared<FJsonObject>();
+					T->SetStringField(TEXT("test"), Run->Tests[Run->Index].GetFullTestPath());
+					T->SetBoolField(TEXT("passed"), bOk);
+					T->SetArrayField(TEXT("errors"), StrArray(Errors));
+					Run->Results.Add(Obj(T));
+					Run->Failed += bOk ? 0 : 1;
+					Run->bRunning = false;
+					Run->Call->Log(FString::Printf(TEXT("%s %s"), bOk ? TEXT("PASS") : TEXT("FAIL"), *Run->Tests[Run->Index].GetFullTestPath()));
+				};
+				// Finishes the current test when its latent commands are done; false = keep ticking.
+				auto TryFinish = [&F, &Record]() -> bool
+				{
+					if (!GIsAutomationTesting)
+					{
+						Record(false, {TEXT("the test ended without a result (another automation run took over?)")});
+						return true;
+					}
 					if (!F.ExecuteLatentCommands())
 					{
-						return true;
+						return false;
 					}
 					FAutomationTestExecutionInfo Info;
 					const bool bOk = F.StopTest(Info);
-					Run->bRunning = false;
 					TArray<FString> Errors;
 					for (const FAutomationExecutionEntry& E : Info.GetEntries())
 					{
@@ -209,13 +229,12 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 							Errors.Add(E.Event.Message);
 						}
 					}
-					TSharedPtr<FJsonObject> T = MakeShared<FJsonObject>();
-					T->SetStringField(TEXT("test"), Run->Tests[Run->Index].GetFullTestPath());
-					T->SetBoolField(TEXT("passed"), bOk);
-					T->SetArrayField(TEXT("errors"), StrArray(Errors));
-					Run->Results.Add(Obj(T));
-					Run->Failed += bOk ? 0 : 1;
-					Run->Call->Log(FString::Printf(TEXT("%s %s"), bOk ? TEXT("PASS") : TEXT("FAIL"), *Run->Tests[Run->Index].GetFullTestPath()));
+					Record(bOk, Errors);
+					return true;
+				};
+				if (Run->bRunning && !TryFinish())
+				{
+					return true;
 				}
 				if (Run->Call->bCancelled || ++Run->Index >= Run->Tests.Num())
 				{
@@ -239,8 +258,27 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 				{
 					Command += TEXT(" ") + Info.GetTestParameter();
 				}
+				const int64 LogStart = FBridgeLog::Get().NextSeq();
 				F.StartTestByName(Command, 0, Info.GetFullTestPath());
+				if (!GIsAutomationTesting)
+				{
+					// The framework refused to start it (unknown name, slow task or PIE); its reason is in the log.
+					TArray<FString> Reasons;
+					for (const FBridgeLogLine& L : FBridgeLog::Get().Read(LogStart, 5, ELogVerbosity::Warning, TEXT("LogAutomationTest")))
+					{
+						Reasons.Add(L.Text);
+					}
+					Reasons.Add(FString::Printf(TEXT("could not start '%s'"), *Command));
+					TSharedPtr<FJsonObject> T = MakeShared<FJsonObject>();
+					T->SetStringField(TEXT("test"), Info.GetFullTestPath());
+					T->SetBoolField(TEXT("passed"), false);
+					T->SetArrayField(TEXT("errors"), StrArray(Reasons));
+					Run->Results.Add(Obj(T));
+					++Run->Failed;
+					return true;
+				}
 				Run->bRunning = true;
+				TryFinish();
 				return true;
 			}));
 		});

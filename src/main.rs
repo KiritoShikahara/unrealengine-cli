@@ -13,7 +13,7 @@ fn wants_json(args: &[String]) -> bool {
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let args = unreal_cli::core::msys::fix_args(std::env::args().collect());
     let cli = match Cli::try_parse_from(&args) {
         Ok(cli) => cli,
         Err(e)

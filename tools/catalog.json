@@ -1,1 +1,2728 @@
-[]
+[
+ {
+  "name": "actor_attach",
+  "group": "level",
+  "summary": "Attach an actor to a parent actor (keeps world transform).",
+  "description": "Attach an actor to a parent actor (keeps world transform).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "socket": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label",
+    "parent"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_destroy",
+  "group": "level",
+  "summary": "Delete actors by label.",
+  "description": "Delete actors by label.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "labels": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "labels"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_duplicate",
+  "group": "level",
+  "summary": "Duplicate an actor with an optional offset.",
+  "description": "Duplicate an actor with an optional offset.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "offset": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "newLabel": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_find",
+  "group": "level",
+  "summary": "Get one actor by label, with its components.",
+  "description": "Get one actor by label, with its components.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_list",
+  "group": "level",
+  "summary": "List actors in the open level, filtered by class and/or label substring.",
+  "description": "List actors in the open level, filtered by class and/or label substring.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "classFilter": {
+     "type": "string"
+    },
+    "nameFilter": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_spawn",
+  "group": "level",
+  "summary": "Spawn an actor from a class name, Blueprint path or asset (mesh, etc.).",
+  "description": "Spawn an actor from a class name, Blueprint path or asset (mesh, etc.).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "actorClass": {
+     "type": "string"
+    },
+    "location": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "rotation": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "label": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "actorClass"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "actor_transform",
+  "group": "level",
+  "summary": "Set any of location / rotation [pitch,yaw,roll] / scale of an actor.",
+  "description": "Set any of location / rotation [pitch,yaw,roll] / scale of an actor.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "location": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "rotation": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "scale": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    }
+   },
+   "required": [
+    "label"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "animbp_create",
+  "group": "anim",
+  "summary": "Create an Animation Blueprint for a skeleton.",
+  "description": "Create an Animation Blueprint for a skeleton.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "skeleton": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "skeleton"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_create",
+  "group": "asset",
+  "summary": "Create an asset of a class (Material, MaterialInstanceConstant, Blueprint, WidgetBlueprint, NiagaraSystem, SoundCue, LevelSequence, InputAction, InputMappingContext, CurveFloat, World, or any UObject class creatable without a factory).",
+  "description": "Create an asset of a class (Material, MaterialInstanceConstant, Blueprint, WidgetBlueprint, NiagaraSystem, SoundCue, LevelSequence, InputAction, InputMappingContext, CurveFloat, World, or any UObject class creatable without a factory).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_delete",
+  "group": "asset",
+  "summary": "Delete an asset. Refused while other assets reference it unless force=true.",
+  "description": "Delete an asset. Refused while other assets reference it unless force=true.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "force": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_dependencies",
+  "group": "asset",
+  "summary": "Packages this asset depends on.",
+  "description": "Packages this asset depends on.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_duplicate",
+  "group": "asset",
+  "summary": "Duplicate an asset to a new path.",
+  "description": "Duplicate an asset to a new path.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "newPath": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "newPath"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_import",
+  "group": "asset",
+  "summary": "Import files (fbx, png, wav, ...) into a content folder.",
+  "description": "Import files (fbx, png, wav, ...) into a content folder.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "files": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "destination": {
+     "type": "string"
+    },
+    "replace": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "files",
+    "destination"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_list",
+  "group": "asset",
+  "summary": "List assets in a content folder.",
+  "description": "List assets in a content folder.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "folder": {
+     "type": "string"
+    },
+    "recursive": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "folder"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_references",
+  "group": "asset",
+  "summary": "Packages that reference this asset.",
+  "description": "Packages that reference this asset.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_rename",
+  "group": "asset",
+  "summary": "Rename or move an asset (references are fixed up).",
+  "description": "Rename or move an asset (references are fixed up).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "newPath": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "newPath"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_save",
+  "group": "asset",
+  "summary": "Save assets (one path, or every dirty asset under a folder).",
+  "description": "Save assets (one path, or every dirty asset under a folder).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "folder": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "asset_search",
+  "group": "asset",
+  "summary": "Search assets by name substring, optionally by class and path prefix.",
+  "description": "Search assets by name substring, optionally by class and path prefix.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    },
+    "pathPrefix": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "automation_list",
+  "group": "runtime",
+  "summary": "List Automation tests whose full path contains filter.",
+  "description": "List Automation tests whose full path contains filter.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "automation_run",
+  "group": "runtime",
+  "summary": "Run Automation tests matching filter as a job; the result lists each test with its errors.",
+  "description": "Run Automation tests matching filter as a job; the result lists each test with its errors.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "filter": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "filter"
+   ]
+  },
+  "mutating": false,
+  "longRunning": true,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "blendspace_create",
+  "group": "anim",
+  "summary": "Create a 2D Blend Space for a skeleton.",
+  "description": "Create a 2D Blend Space for a skeleton.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "skeleton": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "skeleton"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_component",
+  "group": "blueprint",
+  "summary": "Add a component to the Blueprint's construction script (optionally under a parent component).",
+  "description": "Add a component to the Blueprint's construction script (optionally under a parent component).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_function",
+  "group": "blueprint",
+  "summary": "Add a function graph with optional inputs/outputs [{name,type}].",
+  "description": "Add a function graph with optional inputs/outputs [{name,type}].",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "inputs": {
+     "type": "array"
+    },
+    "outputs": {
+     "type": "array"
+    },
+    "pure": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_node",
+  "group": "blueprint",
+  "summary": "Add a node: Event | CustomEvent | CallFunction | VariableGet | VariableSet | Branch | Sequence | Self | Cast | Macro.",
+  "description": "Add a node: Event | CustomEvent | CallFunction | VariableGet | VariableSet | Branch | Sequence | Self | Cast | Macro.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string",
+     "enum": [
+      "Event",
+      "CustomEvent",
+      "CallFunction",
+      "VariableGet",
+      "VariableSet",
+      "Branch",
+      "Sequence",
+      "Self",
+      "Cast",
+      "Macro"
+     ]
+    },
+    "memberName": {
+     "type": "string"
+    },
+    "memberParent": {
+     "type": "string"
+    },
+    "position": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    }
+   },
+   "required": [
+    "path",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_variable",
+  "group": "blueprint",
+  "summary": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [].",
+  "description": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [].",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "defaultValue": {
+     "type": "string"
+    },
+    "instanceEditable": {
+     "type": "boolean"
+    },
+    "category": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "name",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_compile",
+  "group": "blueprint",
+  "summary": "Compile and return status, error/warning counts and messages.",
+  "description": "Compile and return status, error/warning counts and messages.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_connect",
+  "group": "blueprint",
+  "summary": "Connect pins: from/to are '<node>.<pin>' (node = N<k> or guid).",
+  "description": "Connect pins: from/to are '<node>.<pin>' (node = N<k> or guid).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "from",
+    "to"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_create",
+  "group": "blueprint",
+  "summary": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path).",
+  "description": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_disconnect",
+  "group": "blueprint",
+  "summary": "Break one link (from+to) or every link of a pin (from only).",
+  "description": "Break one link (from+to) or every link of a pin (from only).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "from"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_get",
+  "group": "blueprint",
+  "summary": "Variables, graphs, components and interfaces of a Blueprint.",
+  "description": "Variables, graphs, components and interfaces of a Blueprint.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_graph_get",
+  "group": "blueprint",
+  "summary": "Nodes, pins and links of one graph. Node ids N<k> are stable until nodes are removed.",
+  "description": "Nodes, pins and links of one graph. Node ids N<k> are stable until nodes are removed.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_implement_interface",
+  "group": "blueprint",
+  "summary": "Add a Blueprint interface (class name or path) to the Blueprint.",
+  "description": "Add a Blueprint interface (class name or path) to the Blueprint.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "interface": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "interface"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_remove_node",
+  "group": "blueprint",
+  "summary": "Remove a node by N<k> id or guid.",
+  "description": "Remove a node by N<k> id or guid.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    },
+    "node": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "node"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_remove_variable",
+  "group": "blueprint",
+  "summary": "Remove a member variable and its nodes.",
+  "description": "Remove a member variable and its nodes.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_reparent",
+  "group": "blueprint",
+  "summary": "Change a Blueprint's parent class and recompile.",
+  "description": "Change a Blueprint's parent class and recompile.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "parent"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_save",
+  "group": "blueprint",
+  "summary": "Save the Blueprint package. Refused when it does not compile unless force=true.",
+  "description": "Save the Blueprint package. Refused when it does not compile unless force=true.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "force": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_search_nodes",
+  "group": "blueprint",
+  "summary": "Find callable functions / overridable events / macros by name for bp_add_node.",
+  "description": "Find callable functions / overridable events / macros by name for bp_add_node.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "forClass": {
+     "type": "string"
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "function",
+      "event",
+      "macro",
+      "all"
+     ]
+    },
+    "limit": {
+     "type": "integer"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_set_pin",
+  "group": "blueprint",
+  "summary": "Set an input pin's literal default value.",
+  "description": "Set an input pin's literal default value.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "graph": {
+     "type": "string"
+    },
+    "node": {
+     "type": "string"
+    },
+    "pin": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "node",
+    "pin",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "code_live_compile",
+  "group": "code",
+  "summary": "Compile changed .cpp files with Live Coding and patch the running editor (Windows).",
+  "description": "Compile changed .cpp files with Live Coding and patch the running editor (Windows).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "component_add",
+  "group": "property",
+  "summary": "Add a component to a level actor instance.",
+  "description": "Add a component to a level actor instance.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "component_list",
+  "group": "property",
+  "summary": "Components of a level actor.",
+  "description": "Components of a level actor.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "component_remove",
+  "group": "property",
+  "summary": "Remove a component from a level actor instance.",
+  "description": "Remove a component from a level actor instance.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "cook_content",
+  "group": "packaging",
+  "summary": "Start a content cook for a platform; returns the process id and log file.",
+  "description": "Start a content cook for a platform; returns the process id and log file.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "platform": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "data_asset_create",
+  "group": "data",
+  "summary": "Create a Data Asset of a UDataAsset subclass (class name, /Script or Blueprint path).",
+  "description": "Create a Data Asset of a UDataAsset subclass (class name, /Script or Blueprint path).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "datatable_create",
+  "group": "data",
+  "summary": "Create a Data Table for a row struct (path of a UserDefinedStruct or /Script struct).",
+  "description": "Create a Data Table for a row struct (path of a UserDefinedStruct or /Script struct).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "rowStruct": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "rowStruct"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "datatable_rows_get",
+  "group": "data",
+  "summary": "Rows of a Data Table as JSON.",
+  "description": "Rows of a Data Table as JSON.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "datatable_rows_set",
+  "group": "data",
+  "summary": "Replace a Data Table's rows from a JSON array of objects (each with Name).",
+  "description": "Replace a Data Table's rows from a JSON array of objects (each with Name).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "rows": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path",
+    "rows"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_info",
+  "group": "editor",
+  "summary": "Engine version, project, open map, PIE state, dirty package count.",
+  "description": "Engine version, project, open map, PIE state, dirty package count.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_logs",
+  "group": "editor",
+  "summary": "Tail the editor log. Pass since = previous nextSince to get only newer lines.",
+  "description": "Tail the editor log. Pass since = previous nextSince to get only newer lines.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "since": {
+     "type": "integer"
+    },
+    "limit": {
+     "type": "integer"
+    },
+    "severity": {
+     "type": "string",
+     "enum": [
+      "error",
+      "warning",
+      "display",
+      "log",
+      "verbose"
+     ]
+    },
+    "category": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_quit",
+  "group": "editor",
+  "summary": "Quit the editor. Refused while packages are unsaved unless force=true (unsaved work is lost).",
+  "description": "Quit the editor. Refused while packages are unsaved unless force=true (unsaved work is lost).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "force": {
+     "type": "boolean"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_redo",
+  "group": "editor",
+  "summary": "Redo the last undone editor transaction.",
+  "description": "Redo the last undone editor transaction.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_save_all",
+  "group": "editor",
+  "summary": "Save every dirty map and asset package.",
+  "description": "Save every dirty map and asset package.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_screenshot",
+  "group": "editor",
+  "summary": "Capture the active viewport to a PNG file.",
+  "description": "Capture the active viewport to a PNG file.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_selection_get",
+  "group": "editor",
+  "summary": "Labels and paths of the selected level actors.",
+  "description": "Labels and paths of the selected level actors.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_selection_set",
+  "group": "editor",
+  "summary": "Select level actors by label (replaces the selection).",
+  "description": "Select level actors by label (replaces the selection).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "labels": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "labels"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_undo",
+  "group": "editor",
+  "summary": "Undo the last editor transaction.",
+  "description": "Undo the last editor transaction.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "editor_viewport_camera",
+  "group": "editor",
+  "summary": "Get the active viewport camera, or move it when location/rotation are given.",
+  "description": "Get the active viewport camera, or move it when location/rotation are given.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "location": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "rotation": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "emitter_add",
+  "group": "niagara",
+  "summary": "Add an emitter asset (e.g. a template under /Niagara/DefaultAssets/Templates/Emitters) to a Niagara System.",
+  "description": "Add an emitter asset (e.g. a template under /Niagara/DefaultAssets/Templates/Emitters) to a Niagara System.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "system",
+    "emitter"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "enum_create",
+  "group": "data",
+  "summary": "Create a User Defined Enum with display names.",
+  "description": "Create a User Defined Enum with display names.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "values": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "path",
+    "values"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "input_action_create",
+  "group": "input",
+  "summary": "Create an Enhanced Input Action (valueType: Boolean|Axis1D|Axis2D|Axis3D).",
+  "description": "Create an Enhanced Input Action (valueType: Boolean|Axis1D|Axis2D|Axis3D).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "valueType": {
+     "type": "string",
+     "enum": [
+      "Boolean",
+      "Axis1D",
+      "Axis2D",
+      "Axis3D"
+     ]
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "jobs_cancel",
+  "group": "jobs",
+  "summary": "Cancel a queued or running job.",
+  "description": "Cancel a queued or running job.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "jobId": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "jobId"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "jobs_get",
+  "group": "jobs",
+  "summary": "Get a job's state and result.",
+  "description": "Get a job's state and result.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "jobId": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "jobId"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "jobs_list",
+  "group": "jobs",
+  "summary": "List jobs started in this editor session.",
+  "description": "List jobs started in this editor session.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "jobs_logs",
+  "group": "jobs",
+  "summary": "Read a job's log lines from index 'since'.",
+  "description": "Read a job's log lines from index 'since'.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "jobId": {
+     "type": "string"
+    },
+    "since": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "jobId"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "landscape_create",
+  "group": "landscape",
+  "summary": "Create a flat landscape: components x components, each 63 quads, at location with scale.",
+  "description": "Create a flat landscape: components x components, each 63 quads, at location with scale.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "components": {
+     "type": "integer"
+    },
+    "location": {
+     "type": "array"
+    },
+    "scale": {
+     "type": "array"
+    },
+    "label": {
+     "type": "string"
+    },
+    "material": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "landscape_info",
+  "group": "landscape",
+  "summary": "Landscapes in the level with size, component count and material.",
+  "description": "Landscapes in the level with size, component count and material.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "landscape_sculpt",
+  "group": "landscape",
+  "summary": "Raise (positive height, cm) or lower a circular area of a landscape with smooth falloff.",
+  "description": "Raise (positive height, cm) or lower a circular area of a landscape with smooth falloff.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "center": {
+     "type": "array"
+    },
+    "radius": {
+     "type": "number"
+    },
+    "height": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "center",
+    "radius",
+    "height"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "level_info",
+  "group": "level",
+  "summary": "Path of the open level and actor count by class.",
+  "description": "Path of the open level and actor count by class.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "level_new",
+  "group": "level",
+  "summary": "Create a new level (empty, or from a template map) and open it.",
+  "description": "Create a new level (empty, or from a template map) and open it.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "template": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "level_open",
+  "group": "level",
+  "summary": "Open a level in the editor.",
+  "description": "Open a level in the editor.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "level_save",
+  "group": "level",
+  "summary": "Save the current level (all=true saves every dirty level).",
+  "description": "Save the current level (all=true saves every dirty level).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "all": {
+     "type": "boolean"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "mapping_add",
+  "group": "input",
+  "summary": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context.",
+  "description": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "context": {
+     "type": "string"
+    },
+    "action": {
+     "type": "string"
+    },
+    "key": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "context",
+    "action",
+    "key"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "mapping_context_create",
+  "group": "input",
+  "summary": "Create an Enhanced Input Mapping Context.",
+  "description": "Create an Enhanced Input Mapping Context.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "material_connect",
+  "group": "material",
+  "summary": "Connect an expression output to another expression input, or to a material property (BaseColor, Metallic, Roughness, EmissiveColor, Normal, Opacity, ...).",
+  "description": "Connect an expression output to another expression input, or to a material property (BaseColor, Metallic, Roughness, EmissiveColor, Normal, Opacity, ...).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "fromOutput": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    },
+    "toInput": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "from"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "material_create",
+  "group": "material",
+  "summary": "Create an empty Material asset.",
+  "description": "Create an empty Material asset.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "material_node_add",
+  "group": "material",
+  "summary": "Add a material expression (e.g. Constant3Vector, ScalarParameter, Multiply) with optional properties {name: value}.",
+  "description": "Add a material expression (e.g. Constant3Vector, ScalarParameter, Multiply) with optional properties {name: value}.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "position": {
+     "type": "array"
+    },
+    "properties": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "path",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "material_recompile",
+  "group": "material",
+  "summary": "Recompile a material and report its expression count.",
+  "description": "Recompile a material and report its expression count.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "mi_create",
+  "group": "material",
+  "summary": "Create a Material Instance of a parent material.",
+  "description": "Create a Material Instance of a parent material.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "parent"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "mi_set_param",
+  "group": "material",
+  "summary": "Set a scalar, vector [r,g,b,a] or texture (asset path) parameter on a Material Instance.",
+  "description": "Set a scalar, vector [r,g,b,a] or texture (asset path) parameter on a Material Instance.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "value": {},
+    "kind": {
+     "type": "string",
+     "enum": [
+      "scalar",
+      "vector",
+      "texture"
+     ]
+    }
+   },
+   "required": [
+    "path",
+    "name",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "montage_create",
+  "group": "anim",
+  "summary": "Create an Anim Montage from an Anim Sequence.",
+  "description": "Create an Anim Montage from an Anim Sequence.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "sequence": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "sequence"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "niagara_emitters_list",
+  "group": "niagara",
+  "summary": "Emitters of a Niagara System.",
+  "description": "Emitters of a Niagara System.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "system"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "niagara_system_create",
+  "group": "niagara",
+  "summary": "Create an empty Niagara System asset.",
+  "description": "Create an empty Niagara System asset.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "package_project",
+  "group": "packaging",
+  "summary": "Start BuildCookRun to package the project; returns the process id and log file (poll with package_status).",
+  "description": "Start BuildCookRun to package the project; returns the process id and log file (poll with package_status).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "outputDir": {
+     "type": "string"
+    },
+    "configuration": {
+     "type": "string",
+     "enum": [
+      "Development",
+      "Shipping",
+      "DebugGame"
+     ]
+    },
+    "platform": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "outputDir"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "package_status",
+  "group": "packaging",
+  "summary": "State of a package/cook run from its log file (running, succeeded, failed).",
+  "description": "State of a package/cook run from its log file (running, succeeded, failed).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "log": {
+     "type": "string"
+    },
+    "tail": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "log"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_run",
+  "group": "runtime",
+  "summary": "Play In Editor for durationSeconds (or until a log line contains stopOnLog), then stop and report errors.",
+  "description": "Play In Editor for durationSeconds (or until a log line contains stopOnLog), then stop and report errors.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "durationSeconds": {
+     "type": "number"
+    },
+    "stopOnLog": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_status",
+  "group": "runtime",
+  "summary": "Whether a play session is running and its world.",
+  "description": "Whether a play session is running and its world.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_stop",
+  "group": "runtime",
+  "summary": "Stop the running play session.",
+  "description": "Stop the running play session.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "plugin_enable",
+  "group": "project",
+  "summary": "Enable or disable a plugin in the .uproject (takes effect after restart).",
+  "description": "Enable or disable a plugin in the .uproject (takes effect after restart).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "enabled": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "plugin_list",
+  "group": "project",
+  "summary": "List plugins (enabled only unless all=true).",
+  "description": "List plugins (enabled only unless all=true).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "all": {
+     "type": "boolean"
+    },
+    "filter": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "project_info",
+  "group": "project",
+  "summary": "Project name, paths and modules.",
+  "description": "Project name, paths and modules.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "project_settings_get",
+  "group": "project",
+  "summary": "Read a config value (file: Engine|Game|Input|Editor).",
+  "description": "Read a config value (file: Engine|Game|Input|Editor).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "enum": [
+      "Engine",
+      "Game",
+      "Input",
+      "Editor"
+     ]
+    },
+    "section": {
+     "type": "string"
+    },
+    "key": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "section",
+    "key"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "project_settings_set",
+  "group": "project",
+  "summary": "Write a config value and flush it to the project's Default*.ini.",
+  "description": "Write a config value and flush it to the project's Default*.ini.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "enum": [
+      "Engine",
+      "Game",
+      "Input",
+      "Editor"
+     ]
+    },
+    "section": {
+     "type": "string"
+    },
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "section",
+    "key",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "prop_array_edit",
+  "group": "property",
+  "summary": "Edit an array property: op = append | insert | remove | clear.",
+  "description": "Edit an array property: op = append | insert | remove | clear.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "op": {
+     "type": "string",
+     "enum": [
+      "append",
+      "insert",
+      "remove",
+      "clear"
+     ]
+    },
+    "index": {
+     "type": "integer"
+    },
+    "value": {}
+   },
+   "required": [
+    "path",
+    "property",
+    "op"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "prop_get",
+  "group": "property",
+  "summary": "Read reflected properties of an asset, object, Blueprint defaults or actor ('Label' or 'Label.Component'). Without property, lists readable properties.",
+  "description": "Read reflected properties of an asset, object, Blueprint defaults or actor ('Label' or 'Label.Component'). Without property, lists readable properties.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "prop_set",
+  "group": "property",
+  "summary": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names.",
+  "description": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "value": {}
+   },
+   "required": [
+    "path",
+    "property"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "python_exec",
+  "group": "python",
+  "summary": "Run Python inside the editor (import unreal). Returns printed output and log.",
+  "description": "Run Python inside the editor (import unreal). Returns printed output and log.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "code": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "code"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "sequence_create",
+  "group": "sequencer",
+  "summary": "Create a Level Sequence with a frame range.",
+  "description": "Create a Level Sequence with a frame range.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "endFrame": {
+     "type": "integer"
+    },
+    "fps": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "sequence_key_add",
+  "group": "sequencer",
+  "summary": "Add a key on a bound actor's track channel (e.g. channel 'Location.X').",
+  "description": "Add a key on a bound actor's track channel (e.g. channel 'Location.X').",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "actor": {
+     "type": "string"
+    },
+    "channel": {
+     "type": "string"
+    },
+    "frame": {
+     "type": "integer"
+    },
+    "value": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "path",
+    "actor",
+    "channel",
+    "frame",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "sequence_player_add",
+  "group": "anim",
+  "summary": "Play an animation sequence in an existing state (wired to the state result).",
+  "description": "Play an animation sequence in an existing state (wired to the state result).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "machine": {
+     "type": "string"
+    },
+    "state": {
+     "type": "string"
+    },
+    "sequence": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "machine",
+    "state",
+    "sequence"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "sequence_track_add",
+  "group": "sequencer",
+  "summary": "Bind a level actor (by label) and add a track: Transform | Visibility | Audio | Event | Fade (Fade/Audio/Event need no actor).",
+  "description": "Bind a level actor (by label) and add a track: Transform | Visibility | Audio | Event | Fade (Fade/Audio/Event need no actor).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "track": {
+     "type": "string",
+     "enum": [
+      "Transform",
+      "Visibility",
+      "Audio",
+      "Event",
+      "Fade"
+     ]
+    },
+    "actor": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "track"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "soundcue_create",
+  "group": "audio",
+  "summary": "Create a Sound Cue (optionally wrapping a Sound Wave).",
+  "description": "Create a Sound Cue (optionally wrapping a Sound Wave).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "wave": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "state_add",
+  "group": "anim",
+  "summary": "Add a state to a state machine (first state becomes the entry); optional sequence plays in it.",
+  "description": "Add a state to a state machine (first state becomes the entry); optional sequence plays in it.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "machine": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "sequence": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "machine",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statemachine_add",
+  "group": "anim",
+  "summary": "Add a state machine to an Animation Blueprint's AnimGraph and wire it to the output pose.",
+  "description": "Add a state machine to an Animation Blueprint's AnimGraph and wire it to the output pose.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "struct_create",
+  "group": "data",
+  "summary": "Create a User Defined Struct with fields [{name, type}] (types as in bp_add_variable).",
+  "description": "Create a User Defined Struct with fields [{name, type}] (types as in bp_add_variable).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "fields": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path",
+    "fields"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "system_ping",
+  "group": "system",
+  "summary": "Check the bridge answers; returns editor identity.",
+  "description": "Check the bridge answers; returns editor identity.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "tools_list",
+  "group": "system",
+  "summary": "List registered tools with their input schemas.",
+  "description": "List registered tools with their input schemas.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "group": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "transition_add",
+  "group": "anim",
+  "summary": "Add a transition between two states (automatic=true uses the time-remaining rule).",
+  "description": "Add a transition between two states (automatic=true uses the time-remaining rule).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "machine": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    },
+    "automatic": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "machine",
+    "from",
+    "to"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_add",
+  "group": "umg",
+  "summary": "Add a widget (TextBlock, Button, Image, VerticalBox, ...) under a panel (default: root).",
+  "description": "Add a widget (TextBlock, Button, Image, VerticalBox, ...) under a panel (default: root).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "isVariable": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "class",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_bind",
+  "group": "umg",
+  "summary": "Create a bound event node for a widget delegate (e.g. Button OnClicked) in the event graph.",
+  "description": "Create a bound event node for a widget delegate (e.g. Button OnClicked) in the event graph.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "widget": {
+     "type": "string"
+    },
+    "event": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "widget",
+    "event"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_create",
+  "group": "umg",
+  "summary": "Create a Widget Blueprint (UserWidget) with an optional root panel class (default CanvasPanel).",
+  "description": "Create a Widget Blueprint (UserWidget) with an optional root panel class (default CanvasPanel).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "root": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_set_prop",
+  "group": "umg",
+  "summary": "Set a widget property by reflection (UE text form); prefix 'Slot.' targets the slot (e.g. Slot.Padding).",
+  "description": "Set a widget property by reflection (UE text form); prefix 'Slot.' targets the slot (e.g. Slot.Padding).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "widget": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "widget",
+    "property",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_tree_get",
+  "group": "umg",
+  "summary": "Widgets of a Widget Blueprint with parent, slot and variable flags.",
+  "description": "Widgets of a Widget Blueprint with parent, slot and variable flags.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ }
+]

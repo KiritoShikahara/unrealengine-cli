@@ -79,9 +79,8 @@ def material_recompile(path):
       {"path": {"type": "string"}, "parent": {"type": "string"}}, ["path", "parent"], mutating=True, undoable=False)
 def mi_create(path, parent):
     p = load_asset_or_fail(parent, unreal.MaterialInterface)
-    f = unreal.MaterialInstanceConstantFactoryNew()
-    f.set_editor_property("initial_parent", p)
-    mi = create_asset(path, unreal.MaterialInstanceConstant, f)
+    mi = create_asset(path, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+    MEL.set_material_instance_parent(mi, p)
     return {"path": mi.get_path_name(), "parent": p.get_path_name()}
 
 
@@ -92,15 +91,22 @@ def mi_create(path, parent):
       mutating=True)
 def mi_set_param(path, name, value, kind=None):
     mi = load_asset_or_fail(path, unreal.MaterialInstanceConstant)
+    MEL.update_material_instance(mi)
     if kind is None:
         kind = "scalar" if isinstance(value, (int, float)) else ("texture" if isinstance(value, str) else "vector")
+    names = {"scalar": MEL.get_scalar_parameter_names, "vector": MEL.get_vector_parameter_names,
+             "texture": MEL.get_texture_parameter_names}[kind](mi)
+    if name not in [str(n) for n in names]:
+        raise ToolError("material.param_not_found", "the parent has no %s parameter '%s'" % (kind, name),
+                        hint="parameters: " + ", ".join(str(n) for n in names))
     if kind == "scalar":
-        ok = MEL.set_material_instance_scalar_parameter_value(mi, name, float(value))
+        MEL.set_material_instance_scalar_parameter_value(mi, name, float(value))
+        after = MEL.get_material_instance_scalar_parameter_value(mi, name)
     elif kind == "vector":
-        ok = MEL.set_material_instance_vector_parameter_value(mi, name, from_json(value, unreal.LinearColor()))
+        MEL.set_material_instance_vector_parameter_value(mi, name, from_json(value, unreal.LinearColor()))
+        after = MEL.get_material_instance_vector_parameter_value(mi, name)
     else:
-        ok = MEL.set_material_instance_texture_parameter_value(mi, name, load_asset_or_fail(value, unreal.Texture))
-    if not ok:
-        raise ToolError("material.param_not_found", "the parent has no %s parameter '%s'" % (kind, name))
+        MEL.set_material_instance_texture_parameter_value(mi, name, load_asset_or_fail(value, unreal.Texture))
+        after = MEL.get_material_instance_texture_parameter_value(mi, name)
     MEL.update_material_instance(mi)
-    return {"path": path, "name": name, "kind": kind, "value": to_json(value)}
+    return {"path": path, "name": name, "kind": kind, "value": to_json(after)}

@@ -61,13 +61,25 @@ pub fn build_cmd(ctx: &mut Ctx) -> Result<Value, CliError> {
     build::build_editor(&engine, &up)
 }
 
-pub fn open_cmd(ctx: &mut Ctx, headless: bool, wait_secs: u64) -> Result<Value, CliError> {
+pub fn open_cmd(
+    ctx: &mut Ctx,
+    headless: bool,
+    null_rhi: bool,
+    wait_secs: u64,
+) -> Result<Value, CliError> {
+    let mode = if null_rhi {
+        editor::WindowMode::NullRhi
+    } else if headless {
+        editor::WindowMode::Headless
+    } else {
+        editor::WindowMode::Normal
+    };
     let up = ctx.uproject()?;
     let engine = locate::resolve(&up)?;
     if ctx.global.dry_run {
         return Ok(json!({ "dryRun": true, "editor": engine.editor_exe(), "project": up }));
     }
-    editor::open(&engine, &up, headless, Duration::from_secs(wait_secs))
+    editor::open(&engine, &up, mode, Duration::from_secs(wait_secs))
 }
 
 pub fn close_cmd(ctx: &mut Ctx, force: bool) -> Result<Value, CliError> {

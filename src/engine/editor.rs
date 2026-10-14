@@ -18,10 +18,20 @@ pub fn running_for(uproject: &Path) -> Option<Instance> {
 }
 
 /// Starts the editor detached and waits until its bridge answers a ping.
+/// How the editor window is shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowMode {
+    Normal,
+    /// No window, offscreen rendering.
+    Headless,
+    /// No rendering at all (fast, but mesh actors can crash the editor).
+    NullRhi,
+}
+
 pub fn open(
     engine: &Engine,
     uproject: &Path,
-    headless: bool,
+    mode: WindowMode,
     wait: Duration,
 ) -> Result<Value, CliError> {
     if let Some(i) = running_for(uproject) {
@@ -41,8 +51,13 @@ pub fn open(
         OsStr::new("-nosplash"),
         OsStr::new("-unattended"),
     ];
-    if headless {
-        args.extend([OsStr::new("-nullrhi"), OsStr::new("-nosound")]);
+    // Offscreen rendering keeps a real RHI (mesh actors need it); -nullrhi is opt-in.
+    match mode {
+        WindowMode::Normal => {}
+        WindowMode::Headless => {
+            args.extend([OsStr::new("-RenderOffscreen"), OsStr::new("-nosound")])
+        }
+        WindowMode::NullRhi => args.extend([OsStr::new("-nullrhi"), OsStr::new("-nosound")]),
     }
     let pid = spawn::spawn_detached(&exe, &args)?;
     let started = Instant::now();

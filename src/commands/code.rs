@@ -376,7 +376,12 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool) -> Result<Value, CliError> {
     }
     let built = build::build_editor(&engine, &up)?;
     let reopened = if running.is_some() {
-        Some(editor::open(&engine, &up, false, Duration::from_secs(600))?)
+        Some(editor::open(
+            &engine,
+            &up,
+            editor::WindowMode::Normal,
+            Duration::from_secs(600),
+        )?)
     } else {
         None
     };

@@ -144,15 +144,110 @@ pub enum Command {
         #[command(subcommand)]
         action: code::CodeCmd,
     },
+    /// Agent skills: install, refresh, uninstall, list, lint (no editor needed)
+    Skills {
+        #[command(subcommand)]
+        action: SkillsCmd,
+    },
+    /// MCP server mode
+    Mcp {
+        #[command(subcommand)]
+        action: McpCmd,
+    },
+    /// Search engine headers or the Python API stub (read-only)
+    Reference {
+        #[command(subcommand)]
+        action: ReferenceCmd,
+    },
+    /// Update this binary from GitHub Releases (verified with SHA256SUMS)
+    #[command(name = "self")]
+    SelfCmd {
+        #[command(subcommand)]
+        action: SelfAction,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SkillsCmd {
+    List,
+    /// Install into a client: claude-code | codex | cursor | windsurf | vscode
+    Install {
+        client: String,
+        #[arg(long, conflicts_with = "global")]
+        local: bool,
+        #[arg(long)]
+        global: bool,
+    },
+    /// Re-install into every client directory installed before
+    Refresh {
+        #[arg(long, conflicts_with = "global")]
+        local: bool,
+        #[arg(long)]
+        global: bool,
+    },
+    Uninstall {
+        client: String,
+        #[arg(long, conflicts_with = "global")]
+        local: bool,
+        #[arg(long)]
+        global: bool,
+    },
+    /// Check bundled skills against the skill contract
+    Lint {
+        #[arg(long, default_value = "warning")]
+        severity: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum McpCmd {
+    /// Serve MCP over stdio
+    Serve,
+    /// Register the server with a client: claude-code | cursor | vscode | codex
+    Configure { client: String },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ReferenceCmd {
+    Search {
+        query: String,
+        /// cpp | python | all
+        #[arg(long, default_value = "all")]
+        scope: String,
+        #[arg(long)]
+        regex: bool,
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SelfAction {
+    Update {
+        /// Release tag (default: latest)
+        #[arg(long)]
+        version: Option<String>,
+    },
+}
+
+fn command_names() -> std::collections::HashSet<String> {
+    use clap::CommandFactory;
+    Cli::command()
+        .get_subcommands()
+        .map(|c| c.get_name().to_string())
+        .collect()
 }
 
 #[derive(Debug, Subcommand)]
 pub enum EditorCmd {
     /// Start the editor and wait until the bridge answers
     Open {
-        /// Run without rendering (-nullrhi)
+        /// No window, offscreen rendering (-RenderOffscreen)
         #[arg(long)]
         headless: bool,
+        /// No rendering at all (-nullrhi); fastest, but spawning mesh actors can crash the editor
+        #[arg(long = "null-rhi")]
+        null_rhi: bool,
         /// Seconds to wait for the bridge
         #[arg(long, default_value_t = 600)]
         wait: u64,
@@ -275,9 +370,14 @@ fn dispatch(
         } => ("setup", project::setup_cmd(ctx, build, add_code_module)),
         Command::Doctor => ("doctor", project::doctor_cmd(ctx)),
         Command::Editor { action } => match action {
-            EditorCmd::Open { headless, wait } => {
-                ("editor open", project::open_cmd(ctx, headless, wait))
-            }
+            EditorCmd::Open {
+                headless,
+                null_rhi,
+                wait,
+            } => (
+                "editor open",
+                project::open_cmd(ctx, headless, null_rhi, wait),
+            ),
             EditorCmd::Close { force } => ("editor close", project::close_cmd(ctx, force)),
             EditorCmd::Build => ("editor build", project::build_cmd(ctx)),
             EditorCmd::Status => ("editor status", project::status_cmd(ctx)),
@@ -289,6 +389,62 @@ fn dispatch(
         Command::Pie { action } => ("pie", typed::pie(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),
+        Command::Skills { action } => {
+            let cwd = ctx.cwd.clone();
+            let dry = ctx.global.dry_run;
+            let r = match action {
+                SkillsCmd::List => Ok(crate::skills::list()),
+                SkillsCmd::Install { client, global, .. } => {
+                    crate::skills::install(&client, global, &cwd, dry)
+                }
+                SkillsCmd::Refresh { global, .. } => crate::skills::refresh(global, &cwd, dry),
+                SkillsCmd::Uninstall { client, global, .. } => {
+                    crate::skills::uninstall(&client, global, &cwd, dry)
+                }
+                SkillsCmd::Lint { severity } => crate::skills::lint(&severity, &command_names()),
+            };
+            ("skills", r)
+        }
+        Command::Mcp { action } => match action {
+            McpCmd::Serve => ("mcp serve", crate::mcp::serve(&ctx.global)),
+            McpCmd::Configure { client } => (
+                "mcp configure",
+                crate::mcp::configure(&client, &ctx.cwd, ctx.global.dry_run),
+            ),
+        },
+        Command::Reference { action } => match action {
+            ReferenceCmd::Search {
+                query,
+                scope,
+                regex,
+                limit,
+            } => {
+                let up = ctx.uproject().ok();
+                let engine = up
+                    .as_deref()
+                    .and_then(|u| crate::engine::locate::resolve(u).ok());
+                let dir = up
+                    .as_deref()
+                    .and_then(|u| u.parent().map(|p| p.to_path_buf()));
+                (
+                    "reference search",
+                    crate::reference::search(
+                        engine.as_ref().map(|e| e.root.as_path()),
+                        dir.as_deref(),
+                        &query,
+                        &scope,
+                        regex,
+                        limit,
+                    ),
+                )
+            }
+        },
+        Command::SelfCmd { action } => match action {
+            SelfAction::Update { version } => (
+                "self update",
+                crate::update::self_update(version.as_deref(), ctx.global.dry_run),
+            ),
+        },
     }
 }
 

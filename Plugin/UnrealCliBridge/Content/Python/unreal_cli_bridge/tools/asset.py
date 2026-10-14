@@ -137,9 +137,11 @@ def asset_save(path=None, folder=None):
     if path:
         if not unreal.EditorAssetLibrary.save_asset(path, False):
             raise ToolError("asset.save_failed", "could not save '%s'" % path)
+        _registry().scan_paths_synchronous([path.rsplit("/", 1)[0]], True)
         return {"saved": [path]}
     if folder:
         ok = unreal.EditorAssetLibrary.save_directory(folder, True, True)
+        _registry().scan_paths_synchronous([folder], True)
         return {"saved": folder, "ok": bool(ok)}
     raise ToolError("args.invalid", "pass path or folder")
 
@@ -154,7 +156,9 @@ def _deps(package, referencers):
 
 @tool("asset_references", "asset", "Packages that reference this asset.", {"path": {"type": "string"}}, ["path"])
 def asset_references(path):
-    return {"path": path, "referencers": _deps(path.split(".")[0], True)}
+    pkg = path.split(".")[0]
+    found = {str(r) for r in unreal.EditorAssetLibrary.find_package_referencers_for_asset(pkg, True)}
+    return {"path": path, "referencers": sorted(found | set(_deps(pkg, True)))}
 
 
 @tool("asset_dependencies", "asset", "Packages this asset depends on.", {"path": {"type": "string"}}, ["path"])

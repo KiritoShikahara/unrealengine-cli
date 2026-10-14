@@ -32,6 +32,14 @@ pub fn bundled() -> Vec<(String, String)> {
     out
 }
 
+/// Claude Code's user skill directory: `$CLAUDE_CONFIG_DIR/skills` when set (non-empty), else `~/.claude/skills`.
+pub fn claude_global_dir(config_dir: Option<&std::ffi::OsStr>, home: &Path) -> PathBuf {
+    match config_dir {
+        Some(d) if !d.is_empty() => PathBuf::from(d).join("skills"),
+        _ => home.join(".claude/skills"),
+    }
+}
+
 /// Skill directory for a client: project-local or user-global.
 pub fn target_dir(client: &str, global: bool, cwd: &Path) -> Result<PathBuf, CliError> {
     let rel = match client {
@@ -51,6 +59,10 @@ pub fn target_dir(client: &str, global: bool, cwd: &Path) -> Result<PathBuf, Cli
     let base = if global {
         match client {
             "codex" => paths::home().join(".codex/skills"),
+            "claude-code" => claude_global_dir(
+                std::env::var_os("CLAUDE_CONFIG_DIR").as_deref(),
+                &paths::home(),
+            ),
             _ => paths::home().join(rel),
         }
     } else {

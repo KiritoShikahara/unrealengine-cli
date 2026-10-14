@@ -137,3 +137,20 @@ fn lint_rules_catch_contract_violations() {
     let dup = lint_skills(&[skill("s", good), skill("s", good)], &tools, &cmds, None);
     assert!(dup.iter().any(|f| f["rule"] == "duplicate-name"));
 }
+
+#[test]
+fn claude_global_dir_follows_claude_config_dir() {
+    use std::ffi::OsStr;
+    use std::path::Path;
+    use unrealengine_cli::skills::claude_global_dir;
+    let home = Path::new("/home/u");
+    assert_eq!(
+        claude_global_dir(Some(OsStr::new("/home/u/.claude-work")), home),
+        Path::new("/home/u/.claude-work/skills")
+    );
+    assert_eq!(claude_global_dir(None, home), home.join(".claude/skills"));
+    assert_eq!(
+        claude_global_dir(Some(OsStr::new("")), home),
+        home.join(".claude/skills")
+    );
+}

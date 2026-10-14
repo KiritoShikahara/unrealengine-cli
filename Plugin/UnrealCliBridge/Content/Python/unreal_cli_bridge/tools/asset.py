@@ -114,7 +114,10 @@ def asset_delete(path, force=False):
        "replace": {"type": "boolean"}}, ["files", "destination"], mutating=True, undoable=False)
 def asset_import(files, destination, replace=False):
     tasks = []
+    project = os.path.dirname(os.path.normpath(unreal.Paths.convert_relative_path_to_full(unreal.Paths.get_project_file_path())))
     for f in files:
+        # Relative paths are under the project, not the editor's working directory (the engine's Binaries).
+        f = f if os.path.isabs(f) else os.path.join(project, f)
         if not os.path.isfile(f):
             raise ToolError("args.invalid", "file not found: %s" % f)
         t = unreal.AssetImportTask()

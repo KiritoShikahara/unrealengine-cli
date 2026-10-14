@@ -286,7 +286,9 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 				Call->Fail(TEXT("editor.no_viewport"), TEXT("no active viewport to capture"));
 				return;
 			}
-			const FString Path = FPaths::ConvertRelativePathToFull(Call->GetString(TEXT("path")));
+			// Relative paths are under the project (the editor's working directory is the engine's Binaries folder).
+			const FString Requested = Call->GetString(TEXT("path"));
+			const FString Path = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(Requested) ? FPaths::ProjectDir() / Requested : Requested);
 			FScreenshotRequest::RequestScreenshot(Path, false, false);
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 			O->SetStringField(TEXT("path"), Path);

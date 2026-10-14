@@ -1096,6 +1096,15 @@ fn e2e_15_blueprint_component_properties() {
     assert!(v["error"]["hint"].as_str().unwrap().contains("Body"), "{v}");
     let compiled = ok(&["blueprint", "compile", &bp]);
     assert_eq!(compiled["errors"], 0, "{compiled}");
+    // Relative file paths given to the editor are under the project, not the engine's Binaries folder.
+    let probe = project().join("Saved/E2EImport");
+    std::fs::create_dir_all(&probe).unwrap();
+    std::fs::write(probe.join("note.txt"), "e2e").unwrap();
+    let (_, err) = fails(
+        "asset_import",
+        json!({"files": ["Saved/E2EImport/missing.png"], "destination": root("Imports")}),
+    );
+    assert_eq!(err, "args.invalid");
     // Packaging output must be given and must stay out of the engine install.
     let (_, err) = fails("package_project", json!({"outputDir": ""}));
     assert_eq!(err, "args.invalid");

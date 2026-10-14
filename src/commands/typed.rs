@@ -268,6 +268,12 @@ pub enum PieCmd {
     Exec {
         command: String,
     },
+    /// On-screen UI: user widgets with their children and texts
+    Widgets,
+    /// Click an on-screen button by widget name
+    Click {
+        widget: String,
+    },
 }
 
 pub fn level(ctx: &mut Ctx, cmd: LevelCmd) -> Result<Value, CliError> {
@@ -566,5 +572,7 @@ pub fn pie(ctx: &mut Ctx, cmd: PieCmd) -> Result<Value, CliError> {
         PieCmd::Exec { command } => {
             ctx.call("pie_exec", Args::new().put("command", command).done())
         }
+        PieCmd::Widgets => ctx.call("pie_widgets", json!({})),
+        PieCmd::Click { widget } => ctx.call("pie_click", Args::new().put("widget", widget).done()),
     }
 }

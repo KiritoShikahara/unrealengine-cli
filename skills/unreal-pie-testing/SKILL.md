@@ -2,7 +2,7 @@
 name: unreal-pie-testing
 description: Use when verifying behaviour by playing the game in the editor (input, screenshots, actor state) or running Automation tests.
 version: 1.1.0
-tools: [pie_run, pie_start, pie_input, pie_wait, pie_screenshot, pie_actors, pie_get, pie_call, pie_exec, pie_stop, automation_run, automation_list]
+tools: [pie_run, pie_start, pie_input, pie_wait, pie_screenshot, pie_actors, pie_get, pie_call, pie_exec, pie_widgets, pie_click, pie_stop, automation_run, automation_list]
 ---
 
 # unreal-pie-testing
@@ -22,7 +22,8 @@ Use when verifying behaviour by playing the game in the editor (input, screensho
    4. `unrealengine-cli pie get player` (location, velocity), `pie get <actor> Health Score`, `pie actors --class Enemy`.
    5. `unrealengine-cli pie screenshot` and view the PNG; `blank: true` means nothing visible (unlit level or wrong camera).
    6. `unrealengine-cli pie call <actor> "TakeHit 25"` to trigger functions or custom events; `pie exec "slomo 0.5"`.
-   7. `unrealengine-cli pie stop`.
+   7. UI: `unrealengine-cli pie widgets` lists on-screen widgets and texts; `pie click <ButtonName>` presses a button and returns what its handler logged.
+   8. `unrealengine-cli pie stop`.
 4. `unrealengine-cli test list <filter>` and `unrealengine-cli test run <filter>`; without a running editor `test run` uses a headless editor process.
 
 ## Verify

@@ -24,6 +24,11 @@
 #include "Tools/BlueprintHelpers.h"
 #include "Tools/ToolRegistration.h"
 #include "UnrealClient.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
+#include "UObject/UObjectIterator.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SViewport.h"
 
@@ -447,6 +452,81 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				return;
 			}
 			Call->Succeed(PlayActorJson(A));
+		});
+
+	R.Add(TEXT("pie_widgets"), TEXT("runtime"), TEXT("UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks)."),
+		TEXT(R"({"type":"object","properties":{}})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			UWorld* World = RequirePlayWorld(Call);
+			if (!World) return;
+			TArray<TSharedPtr<FJsonValue>> Items;
+			for (TObjectIterator<UUserWidget> It; It; ++It)
+			{
+				UUserWidget* W = *It;
+				if (W->GetWorld() != World || !W->IsInViewport() || !W->WidgetTree) continue;
+				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+				O->SetStringField(TEXT("name"), W->GetName());
+				O->SetStringField(TEXT("class"), W->GetClass()->GetName());
+				TArray<TSharedPtr<FJsonValue>> Children;
+				W->WidgetTree->ForEachWidget([&Children](UWidget* C)
+				{
+					TSharedPtr<FJsonObject> CO = MakeShared<FJsonObject>();
+					CO->SetStringField(TEXT("name"), C->GetName());
+					CO->SetStringField(TEXT("class"), C->GetClass()->GetName());
+					CO->SetBoolField(TEXT("visible"), C->IsVisible());
+					if (const UTextBlock* T = Cast<UTextBlock>(C)) CO->SetStringField(TEXT("text"), T->GetText().ToString());
+					if (const UButton* B = Cast<UButton>(C)) CO->SetBoolField(TEXT("enabled"), B->GetIsEnabled());
+					Children.Add(Obj(CO));
+				});
+				O->SetArrayField(TEXT("widgets"), Children);
+				Items.Add(Obj(O));
+			}
+			Call->Succeed(Arr(Items));
+		});
+
+	R.Add(TEXT("pie_click"), TEXT("runtime"), TEXT("Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets)."),
+		TEXT(R"({"type":"object","properties":{"widget":{"type":"string"}},"required":["widget"]})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			UWorld* World = RequirePlayWorld(Call);
+			if (!World) return;
+			const FString Name = Call->GetString(TEXT("widget"));
+			TArray<FString> Buttons;
+			for (TObjectIterator<UUserWidget> It; It; ++It)
+			{
+				UUserWidget* W = *It;
+				if (W->GetWorld() != World || !W->IsInViewport() || !W->WidgetTree) continue;
+				UButton* Hit = nullptr;
+				W->WidgetTree->ForEachWidget([&](UWidget* C)
+				{
+					if (UButton* B = Cast<UButton>(C))
+					{
+						if (!Hit && B->GetName() == Name) Hit = B;
+						Buttons.AddUnique(B->GetName());
+					}
+				});
+				if (Hit)
+				{
+					if (!Hit->GetIsEnabled() || !Hit->IsVisible())
+					{
+						Call->Fail(TEXT("pie.widget_disabled"), FString::Printf(TEXT("button '%s' is hidden or disabled"), *Name));
+						return;
+					}
+					// OnClicked handlers run synchronously: return what they logged.
+					const int64 LogStart = FBridgeLog::Get().NextSeq();
+					Hit->OnClicked.Broadcast();
+					TArray<FString> Lines;
+					for (const FBridgeLogLine& L : FBridgeLog::Get().Read(LogStart, 50, ELogVerbosity::Log, FString())) Lines.Add(L.Text);
+					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+					O->SetStringField(TEXT("clicked"), Name);
+					O->SetArrayField(TEXT("log"), StrArray(Lines));
+					O->SetStringField(TEXT("in"), W->GetClass()->GetName());
+					Call->Succeed(O);
+					return;
+				}
+			}
+			Call->Fail(TEXT("pie.widget_not_found"), FString::Printf(TEXT("no button '%s' on screen"), *Name), FString::Printf(TEXT("buttons: %s"), *FString::Join(Buttons, TEXT(", "))));
 		});
 
 	R.Add(TEXT("pie_exec"), TEXT("runtime"), TEXT("Run a console command in the play world (e.g. \"slomo 0.5\", \"show collision\", \"ce MyEvent\")."),

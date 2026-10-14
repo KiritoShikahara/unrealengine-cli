@@ -1,6 +1,6 @@
 # Tool catalog
 
-137 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+139 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -78,7 +78,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 
 | Tool | Changes | Summary |
 |---|---|---|
-| `code_live_compile` | yes | Compile changed .cpp files with Live Coding and patch the running editor (Windows). |
+| `code_live_compile` | yes | Compile changed .cpp files with Live Coding and patch the running editor (Windows). Fails with code.live_coding_stuck after timeoutSeconds (default 300). |
 
 ## data
 
@@ -142,7 +142,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `actor_destroy` | yes | Delete actors by label. |
 | `actor_duplicate` | yes | Duplicate an actor with an optional offset. |
 | `actor_find` |  | Get one actor by label, with its components. |
-| `actor_list` |  | List actors in the open level, filtered by class and/or label substring. |
+| `actor_list` |  | List actors in the open level, filtered by class (an exact class name wins, else substring) and/or label substring. |
 | `actor_spawn` | yes | Spawn an actor from a class name, Blueprint path or asset (mesh, etc.). |
 | `actor_transform` | yes | Set any of location / rotation [pitch,yaw,roll] / scale of an actor. |
 | `level_info` |  | Path of the open level and actor count by class. |
@@ -176,7 +176,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | Tool | Changes | Summary |
 |---|---|---|
 | `cook_content` | yes | Start a content cook for a platform; returns the process id and log file. |
-| `package_project` | yes | Start BuildCookRun to package the project; returns the process id and log file (poll with package_status). |
+| `package_project` | yes | Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status). |
 | `package_status` |  | State of a package/cook run from its log file (running, succeeded, failed). |
 
 ## project
@@ -214,6 +214,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `automation_run` |  | Run Automation tests matching filter as a job; the result lists each test with its errors. |
 | `pie_actors` |  | Actors of the play world (filter by class or label/name substring) with location, rotation and velocity; the player's pawn is flagged. |
 | `pie_call` |  | Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command="SetActorHiddenInGame true" or command="TakeHit 25". |
+| `pie_click` |  | Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets). |
 | `pie_exec` |  | Run a console command in the play world (e.g. "slomo 0.5", "show collision", "ce MyEvent"). |
 | `pie_get` |  | Read properties of a play-world actor (or one of its components): actor is a label, name or "player"; without properties returns its transform and velocity. |
 | `pie_input` |  | Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release. |
@@ -223,6 +224,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `pie_status` |  | Whether a play session is running and its world. |
 | `pie_stop` |  | Stop the running play session. |
 | `pie_wait` |  | Let the play session run for seconds, or until a log line contains untilLog (whichever comes first). |
+| `pie_widgets` |  | UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks). |
 
 ## sequencer
 

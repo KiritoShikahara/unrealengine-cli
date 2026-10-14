@@ -101,8 +101,8 @@
  {
   "name": "actor_list",
   "group": "level",
-  "summary": "List actors in the open level, filtered by class and/or label substring.",
-  "description": "List actors in the open level, filtered by class and/or label substring.",
+  "summary": "List actors in the open level, filtered by class (an exact class name wins, else substring) and/or label substring.",
+  "description": "List actors in the open level, filtered by class (an exact class name wins, else substring) and/or label substring.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -1231,11 +1231,15 @@
  {
   "name": "code_live_compile",
   "group": "code",
-  "summary": "Compile changed .cpp files with Live Coding and patch the running editor (Windows).",
-  "description": "Compile changed .cpp files with Live Coding and patch the running editor (Windows).",
+  "summary": "Compile changed .cpp files with Live Coding and patch the running editor (Windows). Fails with code.live_coding_stuck after timeoutSeconds (default 300).",
+  "description": "Compile changed .cpp files with Live Coding and patch the running editor (Windows). Fails with code.live_coding_stuck after timeoutSeconds (default 300).",
   "inputSchema": {
    "type": "object",
-   "properties": {}
+   "properties": {
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   }
   },
   "mutating": true,
   "longRunning": false,
@@ -2431,8 +2435,8 @@
  {
   "name": "package_project",
   "group": "packaging",
-  "summary": "Start BuildCookRun to package the project; returns the process id and log file (poll with package_status).",
-  "description": "Start BuildCookRun to package the project; returns the process id and log file (poll with package_status).",
+  "summary": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
+  "description": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -2523,6 +2527,26 @@
    "required": [
     "actor",
     "command"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_click",
+  "group": "runtime",
+  "summary": "Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets).",
+  "description": "Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "widget": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget"
    ]
   },
   "mutating": false,
@@ -2693,6 +2717,19 @@
      "type": "string"
     }
    }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_widgets",
+  "group": "runtime",
+  "summary": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
+  "description": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
   },
   "mutating": false,
   "longRunning": false,

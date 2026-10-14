@@ -1147,3 +1147,121 @@ fn e2e_16_level_blueprint() {
         assert_eq!(pie["endedReason"], "log", "{pie}");
     }
 }
+
+#[test]
+fn e2e_17_menu_ui_clicks_in_play() {
+    if !render_enabled() {
+        return;
+    }
+    let w = root("WBP_Title");
+    call("widget_create", json!({"path": w}));
+    call(
+        "widget_add",
+        json!({"path": w, "class": "TextBlock", "name": "Status"}),
+    );
+    call(
+        "widget_set_prop",
+        json!({"path": w, "widget": "Status", "property": "Text", "value": "Press Start"}),
+    );
+    call(
+        "widget_layout",
+        json!({"path": w, "widget": "Status", "anchor": "Center", "alignment": [0.5, 0.5], "position": [0, -60], "autoSize": true}),
+    );
+    call(
+        "widget_add",
+        json!({"path": w, "class": "Button", "name": "Start"}),
+    );
+    call(
+        "widget_layout",
+        json!({"path": w, "widget": "Start", "anchor": "Center", "alignment": [0.5, 0.5], "size": [200, 60]}),
+    );
+    call(
+        "widget_bind",
+        json!({"path": w, "widget": "Start", "event": "OnClicked"}),
+    );
+    let graph = ok(&["blueprint", "graph", &w]);
+    let clicked = graph["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["class"] == "K2Node_ComponentBoundEvent")
+        .cloned()
+        .unwrap_or_else(|| panic!("bound event missing: {graph}"));
+    let status = node(&w, "VariableGet", Some("Status"), json!({}));
+    let set_text = node(
+        &w,
+        "CallFunction",
+        Some("SetText"),
+        json!({"memberParent": "TextBlock"}),
+    );
+    pin_link(&w, &clicked, "then", &set_text, "execute");
+    pin_link(&w, &status, "Status", &set_text, "self");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &w,
+        set_text["id"].as_str().unwrap(),
+        "InText",
+        "STARTED",
+    ]);
+    let say = node(&w, "CallFunction", Some("PrintString"), json!({}));
+    pin_link(&w, &set_text, "then", &say, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &w,
+        say["id"].as_str().unwrap(),
+        "InString",
+        "MENU_STARTED",
+    ]);
+    assert_eq!(ok(&["blueprint", "compile", &w])["errors"], 0);
+    ok(&["blueprint", "save", &w]);
+
+    let map = root("L_Menu");
+    ok(&[
+        "level",
+        "new",
+        &map,
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let begin = node(&map, "Event", Some("BeginPlay"), json!({}));
+    let pc = node(&map, "CallFunction", Some("GetPlayerController"), json!({}));
+    let create = node(&map, "CreateWidget", Some(&w), json!({}));
+    pin_link(&map, &begin, "then", &create, "execute");
+    pin_link(&map, &pc, "ReturnValue", &create, "OwningPlayer");
+    let show = node(
+        &map,
+        "CallFunction",
+        Some("AddToViewport"),
+        json!({"memberParent": "UserWidget"}),
+    );
+    pin_link(&map, &create, "then", &show, "execute");
+    pin_link(&map, &create, "ReturnValue", &show, "self");
+    assert_eq!(ok(&["blueprint", "compile", &map])["errors"], 0);
+    ok(&["blueprint", "save", &map]);
+
+    call("pie_start", json!({}));
+    let text_of = |screen: &Value| -> String {
+        screen
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|u| u["widgets"].as_array().unwrap().clone())
+            .find(|c| c["name"] == "Status")
+            .map(|c| c["text"].as_str().unwrap_or("").to_string())
+            .unwrap_or_default()
+    };
+    let before = call("pie_widgets", json!({}));
+    assert_eq!(text_of(&before), "Press Start", "{before}");
+    let (_, err) = fails("pie_click", json!({"widget": "Nope"}));
+    assert_eq!(err, "pie.widget_not_found");
+    let click = call("pie_click", json!({"widget": "Start"}));
+    assert!(
+        click["log"].to_string().contains("MENU_STARTED"),
+        "handler output: {click}"
+    );
+    let after = call("pie_widgets", json!({}));
+    assert_eq!(text_of(&after), "STARTED", "{after}");
+    ok(&["pie", "stop"]);
+}

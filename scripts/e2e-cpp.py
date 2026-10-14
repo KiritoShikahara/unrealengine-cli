@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 
+sys.stdout.reconfigure(encoding="utf-8")
 CLI = ["./target/debug/unrealengine-cli", "--project", "TestProject", "--output", "json"]
 ROOT = "/Game/E2E/C%d" % int(time.time())
 CLASS = "CliScoreKeeper"

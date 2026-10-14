@@ -129,7 +129,8 @@ pub fn close(inst: &Instance, force: bool, timeout: Duration) -> Result<Value, C
     };
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(60) {
-        if !instances::list().iter().any(|i| i.pid == inst.pid) {
+        // The instance file goes away early in shutdown; the process (and its DLL locks) a little later.
+        if !instances::list().iter().any(|i| i.pid == inst.pid) && !process_alive(inst.pid) {
             return Ok(json!({ "closed": true, "pid": inst.pid, "discarded": data["discarded"] }));
         }
         std::thread::sleep(Duration::from_millis(500));

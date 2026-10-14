@@ -212,7 +212,18 @@ pub fn run(uproject: Option<&Path>) -> Value {
                 "editor",
                 ping.is_ok(),
                 format!("pid {} ({})", i.pid, i.engine_version),
-                "the bridge did not answer; restart the editor",
+                "the bridge did not answer; restart the editor (unrealengine-cli editor close --force)",
+            ));
+            // The editor keeps the plugin it started with; after `setup` it needs a restart.
+            let bundled = setup::bundled_plugin_version();
+            checks.push(check(
+                "editor_plugin",
+                i.plugin_version.is_empty() || i.plugin_version == bundled,
+                format!(
+                    "running {}, CLI bundles {bundled}",
+                    if i.plugin_version.is_empty() { "unknown" } else { &i.plugin_version }
+                ),
+                "update and restart: unrealengine-cli editor close, unrealengine-cli setup --build, unrealengine-cli editor open",
             ));
         }
         None => checks.push(check(

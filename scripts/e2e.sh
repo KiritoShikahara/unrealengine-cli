@@ -28,4 +28,8 @@ if [ "$CODE" = 0 ] && [ -z "$MODE" ]; then
   fi
 fi
 $U editor close --force >/dev/null 2>&1 || true
+# Leave the project built for its default engine (5.7) so the next `editor open` does not stop at a rebuild prompt.
+if [ "$VER" != 5.7 ]; then
+  bash scripts/dev-build.sh 5.7 >/dev/null 2>&1 || true
+fi
 exit "$CODE"

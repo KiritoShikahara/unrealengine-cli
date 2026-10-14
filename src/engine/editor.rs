@@ -106,6 +106,9 @@ pub fn open(
 /// Asks the editor to quit and waits for its instance to disappear. With `force`, an editor that does not
 /// answer (game thread stuck) or does not exit is terminated with its child processes; unsaved work is lost.
 pub fn close(inst: &Instance, force: bool, timeout: Duration) -> Result<Value, CliError> {
+    // A responsive editor answers at once; cap the wait so a stuck one is detected quickly
+    // even when a long --timeout-ms was given for the surrounding command.
+    let timeout = timeout.min(Duration::from_secs(30));
     let quit = BridgeClient::connect(inst.addr(), &inst.token, timeout).and_then(|mut c| {
         c.call(
             "editor_quit",

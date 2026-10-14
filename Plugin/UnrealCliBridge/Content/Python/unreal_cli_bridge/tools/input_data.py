@@ -23,23 +23,65 @@ def mapping_context_create(path):
     return {"path": c.get_path_name()}
 
 
+def _mappings_get(ctx):
+    try:
+        holder = ctx.get_editor_property("default_key_mappings")
+        return holder, list(holder.get_editor_property("mappings"))
+    except Exception:  # noqa: BLE001 - property layout differs between engine versions
+        return None, list(ctx.get_editor_property("mappings"))
+
+
+def _mappings_set(ctx, holder, mappings):
+    if holder is None:
+        ctx.set_editor_property("mappings", mappings)
+    else:
+        holder.set_editor_property("mappings", mappings)
+        ctx.set_editor_property("default_key_mappings", holder)
+
+
+def _instanced(ctx, kind, names):
+    out = []
+    for name in names or []:
+        alias = {"Swizzle": "SwizzleAxis"}.get(name, name)
+        cls = getattr(unreal, "Input%s%s" % (kind, alias), None)
+        if cls is None:
+            options = "Negate, Swizzle, DeadZone, Scalar" if kind == "Modifier" else "Pressed, Released, Down, Hold, Tap"
+            raise ToolError("input.bad_%s" % kind.lower(), "unknown %s '%s'" % (kind.lower(), name), hint="%ss: %s" % (kind.lower(), options))
+        out.append(unreal.new_object(cls, outer=ctx))
+    return out
+
+
 @tool("mapping_add", "input", "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping "
-      "context.", {"context": {"type": "string"}, "action": {"type": "string"}, "key": {"type": "string"}},
+      "context, with optional modifiers (Negate, Swizzle, DeadZone, Scalar) and triggers (Pressed, Released, Down, "
+      "Hold, Tap). WASD on one Axis2D move action (X = right, Y = forward): D none, A Negate, W Swizzle, S Swizzle+Negate.",
+      {"context": {"type": "string"}, "action": {"type": "string"}, "key": {"type": "string"},
+       "modifiers": {"type": "array", "items": {"type": "string"}}, "triggers": {"type": "array", "items": {"type": "string"}}},
       ["context", "action", "key"], mutating=True)
-def mapping_add(context, action, key):
+def mapping_add(context, action, key, modifiers=None, triggers=None):
     ctx = load_asset_or_fail(context, unreal.InputMappingContext)
     act = load_asset_or_fail(action, unreal.InputAction)
     k = unreal.Key()
     k.set_editor_property("key_name", key)
     if not unreal.InputLibrary.key_is_valid(k):
         raise ToolError("input.bad_key", "unknown key '%s'" % key, hint="key names: SpaceBar, W, LeftMouseButton, Gamepad_FaceButton_Bottom")
+    mods = _instanced(ctx, "Modifier", modifiers)
+    trigs = _instanced(ctx, "Trigger", triggers)
     ctx.modify()
     ctx.map_key(act, k)
-    try:
-        count = len(ctx.get_editor_property("default_key_mappings").get_editor_property("mappings"))
-    except Exception:  # noqa: BLE001 - property layout differs between engine versions
-        count = len(ctx.get_editor_property("mappings"))
-    return {"context": context, "action": action, "key": key, "mappings": count}
+    holder, mappings = _mappings_get(ctx)
+    if mods or trigs:
+        last = mappings[-1]
+        if mods:
+            last.set_editor_property("modifiers", mods)
+        if trigs:
+            last.set_editor_property("triggers", trigs)
+        mappings[-1] = last
+        _mappings_set(ctx, holder, mappings)
+        holder, mappings = _mappings_get(ctx)
+    last = mappings[-1]
+    return {"context": context, "action": action, "key": key, "mappings": len(mappings),
+            "modifiers": [m.get_class().get_name() for m in last.get_editor_property("modifiers")],
+            "triggers": [t.get_class().get_name() for t in last.get_editor_property("triggers")]}
 
 
 def _struct(path):

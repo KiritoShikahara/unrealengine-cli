@@ -7,6 +7,8 @@
 #include "Engine/LocalPlayer.h"
 #include "EngineUtils.h"
 #include "EnhancedInputSubsystems.h"
+#include "EnhancedInputDeveloperSettings.h"
+#include "InputMappingContext.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "ImageUtils.h"
@@ -152,6 +154,45 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				}
 				return true;
 			}), 0.05f);
+		});
+
+	R.Add(TEXT("input_default_context_add"), TEXT("input"), TEXT("Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini."),
+		TEXT(R"({"type":"object","properties":{"context":{"type":"string"},"priority":{"type":"integer"},"remove":{"type":"boolean"}},"required":["context"]})"),
+		EToolFlags::Mutating | EToolFlags::NoUndo,
+		[](const FToolCallRef& Call)
+		{
+			UInputMappingContext* Ctx = LoadObject<UInputMappingContext>(nullptr, *BP::ObjectPath(Call->GetString(TEXT("context"))), nullptr, LOAD_NoWarn | LOAD_Quiet);
+			if (!Ctx)
+			{
+				Call->Fail(TEXT("input.context_not_found"), FString::Printf(TEXT("no Input Mapping Context at '%s'"), *Call->GetString(TEXT("context"))), TEXT("create one: mapping_context_create"));
+				return;
+			}
+			UEnhancedInputDeveloperSettings* S = GetMutableDefault<UEnhancedInputDeveloperSettings>();
+			S->Modify();
+			const int32 Priority = static_cast<int32>(Call->GetNumber(TEXT("priority"), 0));
+			FDefaultContextSetting* Existing = S->DefaultMappingContexts.FindByPredicate([Ctx](const FDefaultContextSetting& D) { return D.InputMappingContext.ToSoftObjectPath() == FSoftObjectPath(Ctx); });
+			if (Call->GetBool(TEXT("remove")))
+			{
+				S->DefaultMappingContexts.RemoveAll([Ctx](const FDefaultContextSetting& D) { return D.InputMappingContext.ToSoftObjectPath() == FSoftObjectPath(Ctx); });
+			}
+			else if (Existing)
+			{
+				Existing->Priority = Priority;
+			}
+			else
+			{
+				FDefaultContextSetting D;
+				D.InputMappingContext = Ctx;
+				D.Priority = Priority;
+				S->DefaultMappingContexts.Add(D);
+			}
+			if (!Call->GetBool(TEXT("remove"))) S->bEnableDefaultMappingContexts = true;
+			S->TryUpdateDefaultConfigFile();
+			TArray<FString> Names;
+			for (const FDefaultContextSetting& D : S->DefaultMappingContexts) Names.Add(D.InputMappingContext.ToString());
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetArrayField(TEXT("defaultContexts"), StrArray(Names));
+			Call->Succeed(O);
 		});
 
 	R.Add(TEXT("pie_input"), TEXT("runtime"), TEXT("Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release."),

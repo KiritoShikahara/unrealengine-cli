@@ -733,6 +733,9 @@
     "delegate": {
      "type": "string"
     },
+    "properties": {
+     "type": "object"
+    },
     "position": {
      "type": "array",
      "items": {
@@ -1683,6 +1686,32 @@
   "minEngine": "5.5"
  },
  {
+  "name": "input_default_context_add",
+  "group": "input",
+  "summary": "Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini.",
+  "description": "Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "context": {
+     "type": "string"
+    },
+    "priority": {
+     "type": "integer"
+    },
+    "remove": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "context"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "jobs_cancel",
   "group": "jobs",
   "summary": "Cancel a queued or running job.",
@@ -1967,8 +1996,8 @@
  {
   "name": "mapping_add",
   "group": "input",
-  "summary": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context.",
-  "description": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context.",
+  "summary": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context, with optional modifiers (Negate, Swizzle, DeadZone, Scalar) and triggers (Pressed, Released, Down, Hold, Tap). WASD on one Axis2D move action (X = right, Y = forward): D none, A Negate, W Swizzle, S Swizzle+Negate.",
+  "description": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context, with optional modifiers (Negate, Swizzle, DeadZone, Scalar) and triggers (Pressed, Released, Down, Hold, Tap). WASD on one Axis2D move action (X = right, Y = forward): D none, A Negate, W Swizzle, S Swizzle+Negate.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -1980,6 +2009,18 @@
     },
     "key": {
      "type": "string"
+    },
+    "modifiers": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "triggers": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
     }
    },
    "required": [
@@ -2824,8 +2865,8 @@
  {
   "name": "prop_get",
   "group": "property",
-  "summary": "Read reflected properties of an asset, object, Blueprint defaults or actor ('Label' or 'Label.Component'). Without property, lists readable properties.",
-  "description": "Read reflected properties of an asset, object, Blueprint defaults or actor ('Label' or 'Label.Component'). Without property, lists readable properties.",
+  "summary": "Read reflected properties of an asset, object, Blueprint defaults ('/Game/BP'), a Blueprint component ('/Game/BP.Component'), an actor ('Label' or 'Label.Component') or 'WorldSettings'. Without property, lists readable properties.",
+  "description": "Read reflected properties of an asset, object, Blueprint defaults ('/Game/BP'), a Blueprint component ('/Game/BP.Component'), an actor ('Label' or 'Label.Component') or 'WorldSettings'. Without property, lists readable properties.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -2850,8 +2891,8 @@
  {
   "name": "prop_set",
   "group": "property",
-  "summary": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names.",
-  "description": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names.",
+  "summary": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names. Components also take CollisionProfileName, CollisionEnabled, GenerateOverlapEvents, SimulatePhysics, NotifyRigidBodyCollision, EnableGravity.",
+  "description": "Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names. Components also take CollisionProfileName, CollisionEnabled, GenerateOverlapEvents, SimulatePhysics, NotifyRigidBodyCollision, EnableGravity.",
   "inputSchema": {
    "type": "object",
    "properties": {

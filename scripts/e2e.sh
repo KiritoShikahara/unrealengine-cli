@@ -20,6 +20,10 @@ CODE=${PIPESTATUS[0]}
 if [ "$CODE" = 0 ] && [ -z "$MODE" ]; then
   python scripts/e2e-game.py 2>&1 | tail -n 3
   CODE=${PIPESTATUS[0]}
+  if [ "$CODE" = 0 ]; then
+    python scripts/e2e-game2.py 2>&1 | tail -n 3
+    CODE=${PIPESTATUS[0]}
+  fi
 fi
 $U editor close --force >/dev/null 2>&1 || true
 exit "$CODE"

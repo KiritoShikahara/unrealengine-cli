@@ -72,6 +72,31 @@ def _walk(obj, dotted):
     return chain, current
 
 
+def _primitive_setter(obj, name):
+    """Collision and physics settings live in BodyInstance; set them through the component's setters."""
+    if not isinstance(obj, unreal.PrimitiveComponent):
+        return None
+    def profile(v):
+        obj.set_collision_profile_name(str(v))
+        return str(obj.get_collision_profile_name())
+    def enabled(v):
+        obj.set_collision_enabled(from_json(v, obj.get_collision_enabled()))
+        return str(obj.get_collision_enabled())
+    def flag(setter, getter):
+        def apply(v):
+            getattr(obj, setter)(bool(v) if not isinstance(v, str) else v.lower() in ("true", "1", "yes"))
+            return getattr(obj, getter)() if getter else True
+        return apply
+    return {
+        "CollisionProfileName": profile,
+        "CollisionEnabled": enabled,
+        "GenerateOverlapEvents": flag("set_generate_overlap_events", "get_generate_overlap_events"),
+        "SimulatePhysics": flag("set_simulate_physics", "is_simulating_physics"),
+        "NotifyRigidBodyCollision": flag("set_notify_rigid_body_collision", None),
+        "EnableGravity": flag("set_enable_gravity", "is_gravity_enabled"),
+    }.get(name)
+
+
 @tool("prop_get", "property", "Read reflected properties of an asset, object, Blueprint defaults ('/Game/BP'), a Blueprint "
       "component ('/Game/BP.Component'), an actor ('Label' or 'Label.Component') or 'WorldSettings'. Without property, "
       "lists readable properties.",
@@ -93,12 +118,16 @@ def prop_get(path, property=None, filter=None):  # noqa: A002 - tool argument na
 
 
 @tool("prop_set", "property", "Set one property; property may be dotted (Settings.Speed) with array indices "
-      "(Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names.",
+      "(Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names. Components also take "
+      "CollisionProfileName, CollisionEnabled, GenerateOverlapEvents, SimulatePhysics, NotifyRigidBodyCollision, EnableGravity.",
       {"path": {"type": "string"}, "property": {"type": "string"}, "value": {}}, ["path", "property"],
       mutating=True)
 def prop_set(path, property, value=None):  # noqa: A002
     obj = _target(path)
     obj.modify()
+    special = _primitive_setter(obj, property)
+    if special:
+        return {"path": path, "property": property, "value": to_json(special(value))}
     chain, current = _walk(obj, property)
     new = from_json(value, current)
     # Write back from the leaf to the root: struct and array values are copies.

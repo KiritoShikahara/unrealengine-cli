@@ -1,6 +1,6 @@
 # Tool catalog
 
-136 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+137 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -111,7 +111,8 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | Tool | Changes | Summary |
 |---|---|---|
 | `input_action_create` | yes | Create an Enhanced Input Action (valueType: Boolean/Axis1D/Axis2D/Axis3D). |
-| `mapping_add` | yes | Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context. |
+| `input_default_context_add` | yes | Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini. |
+| `mapping_add` | yes | Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context, with optional modifiers (Negate, Swizzle, DeadZone, Scalar) and triggers (Pressed, Released, Down, Hold, Tap). WASD on one Axis2D move action (X = right, Y = forward): D none, A Negate, W Swizzle, S Swizzle+Negate. |
 | `mapping_context_create` | yes | Create an Enhanced Input Mapping Context. |
 
 ## jobs
@@ -196,8 +197,8 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `component_list` |  | Components of a level actor. |
 | `component_remove` | yes | Remove a component from a level actor instance. |
 | `prop_array_edit` | yes | Edit an array property: op = append / insert / remove / clear. |
-| `prop_get` |  | Read reflected properties of an asset, object, Blueprint defaults or actor ('Label' or 'Label.Component'). Without property, lists readable properties. |
-| `prop_set` | yes | Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names. |
+| `prop_get` |  | Read reflected properties of an asset, object, Blueprint defaults ('/Game/BP'), a Blueprint component ('/Game/BP.Component'), an actor ('Label' or 'Label.Component') or 'WorldSettings'. Without property, lists readable properties. |
+| `prop_set` | yes | Set one property; property may be dotted (Settings.Speed) with array indices (Tags[0]). value is JSON: numbers, strings, [x,y,z], {r,g,b,a}, object paths, enum names. Components also take CollisionProfileName, CollisionEnabled, GenerateOverlapEvents, SimulatePhysics, NotifyRigidBodyCollision, EnableGravity. |
 
 ## python
 

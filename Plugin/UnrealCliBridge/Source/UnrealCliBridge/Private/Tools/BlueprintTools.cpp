@@ -637,7 +637,7 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("bp_add_node"), TEXT("blueprint"), TEXT("Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString)."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro","InputAction","ComponentEvent","SpawnActor","CreateWidget","CallDispatcher","BindDispatcher","MakeStruct","BreakStruct","SwitchEnum","Timeline","Node"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"delegate":{"type":"string"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro","InputAction","ComponentEvent","SpawnActor","CreateWidget","CallDispatcher","BindDispatcher","MakeStruct","BreakStruct","SwitchEnum","Timeline","Node"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"delegate":{"type":"string"},"properties":{"type":"object"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
 		{
@@ -850,7 +850,12 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 					Call->Fail(TEXT("blueprint.struct_not_found"), FString::Printf(TEXT("no struct '%s'"), *Member), TEXT("examples: Vector, Rotator, Transform, HitResult, or a user struct path"));
 					return;
 				}
-				if (Type == TEXT("MakeStruct"))
+				// Structs with a native make/break function (HitResult, ...) use that function, like the editor does.
+				const FString Native = S->GetMetaData(Type == TEXT("MakeStruct") ? TEXT("HasNativeMake") : TEXT("HasNativeBreak"));
+				UFunction* NativeFn = Native.IsEmpty() ? nullptr : FindObject<UFunction>(nullptr, *Native);
+				if (NativeFn)
+					Node = Place<UK2Node_CallFunction>(G, Call, [NativeFn](UK2Node_CallFunction* N) { N->SetFromFunction(NativeFn); });
+				else if (Type == TEXT("MakeStruct"))
 					Node = Place<UK2Node_MakeStruct>(G, Call, [S](UK2Node_MakeStruct* N) { N->StructType = S; });
 				else
 					Node = Place<UK2Node_BreakStruct>(G, Call, [S](UK2Node_BreakStruct* N) { N->StructType = S; });
@@ -885,7 +890,29 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 					Call->Fail(TEXT("blueprint.node_class_not_found"), FString::Printf(TEXT("no graph node class '%s'"), *Member), TEXT("examples: K2Node_SwitchInteger, K2Node_SwitchString, K2Node_Select, K2Node_MakeArray, K2Node_GetArrayItem"));
 					return;
 				}
-				Node = PlaceClass(G, C, Call, [](UEdGraphNode*) {});
+				// properties: node settings applied before pins are built (e.g. CustomClass of K2Node_GetSubsystemFromPC).
+				const TSharedPtr<FJsonObject> Props = Call->GetObject(TEXT("properties"));
+				FString PropError;
+				Node = PlaceClass(G, C, Call, [&Props, &PropError](UEdGraphNode* N)
+				{
+					if (!Props.IsValid()) return;
+					for (const TPair<FString, TSharedPtr<FJsonValue>>& KV : Props->Values)
+					{
+						FProperty* P = N->GetClass()->FindPropertyByName(FName(*KV.Key));
+						const FString Text = KV.Value->Type == EJson::String ? KV.Value->AsString() : (KV.Value->Type == EJson::Boolean ? (KV.Value->AsBool() ? TEXT("True") : TEXT("False")) : FString::SanitizeFloat(KV.Value->AsNumber()));
+						if (!P || !P->ImportText_Direct(*Text, P->ContainerPtrToValuePtr<void>(N), N, PPF_None))
+						{
+							PropError = FString::Printf(TEXT("%s: cannot set '%s' to '%s'"), *N->GetClass()->GetName(), *KV.Key, *Text);
+							return;
+						}
+					}
+				});
+				if (!PropError.IsEmpty())
+				{
+					Node->DestroyNode();
+					Call->Fail(TEXT("args.invalid"), PropError);
+					return;
+				}
 			}
 			Touch(B, true);
 			Call->Succeed(NodeJson(G, Node));

@@ -5,6 +5,12 @@ set -u
 VER="${1:-5.7}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UPROJECT="$(cygpath -w "$ROOT/TestProject/TestProject.uproject")"
+# Generated UHT code differs between engine versions; drop the plugin's intermediates when the engine changes.
+INTER="$ROOT/TestProject/Plugins/UnrealCliBridge/Intermediate"
+if [ "$(cat "$INTER/.engine-version" 2>/dev/null)" != "$VER" ]; then
+  rm -rf "$INTER"
+  mkdir -p "$INTER" && echo "$VER" > "$INTER/.engine-version"
+fi
 sed -i "s/\"EngineAssociation\": \"[0-9.]*\"/\"EngineAssociation\": \"$VER\"/" "$ROOT/TestProject/TestProject.uproject"
 VSLANG=1033 "/c/Program Files/Epic Games/UE_$VER/Engine/Build/BatchFiles/Build.bat" TestProjectEditor Win64 Development \
   -Project="$UPROJECT" -WaitMutex > "$ROOT/target/ue-build-$VER.log" 2>&1

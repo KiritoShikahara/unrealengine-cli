@@ -27,8 +27,11 @@ namespace
 			R.Error = TEXT("Python is not available in this editor");
 			return R;
 		}
+		// ExecuteFile treats code whose first token ends in .py as a file path, so pass the code as data.
+		const FTCHARToUTF8 Utf8(*Code);
+		const FString Encoded = FBase64::Encode(reinterpret_cast<const uint8*>(Utf8.Get()), Utf8.Length());
 		FPythonCommandEx Cmd;
-		Cmd.Command = Code;
+		Cmd.Command = FString::Printf(TEXT("exec(compile(__import__('base64').b64decode('%s').decode('utf-8'), 'unrealengine-cli-exec', 'exec'), globals())"), *Encoded);
 		Cmd.ExecutionMode = EPythonCommandExecutionMode::ExecuteFile;
 		Cmd.FileExecutionScope = EPythonFileExecutionScope::Public;
 		R.bOk = Py->ExecPythonCommandEx(Cmd);

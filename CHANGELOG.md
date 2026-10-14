@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fix (#1): `fab` commands work with the Fab plugin shipped with UE 5.8 (no fixed `FabTab` tab). Fab is detected by its
+  module, its page is found in any window and opened through Window > Fab; commands wait for the page to sign in.
+- Fix: a Fab tab opened by a `fab` command is closed when the command ends. A Fab tab saved in the editor layout
+  made UE 5.7 crash at startup without rendering (`-nullrhi`, Automation runs).
+- `scripts/dev-build.sh` drops the plugin's intermediates when the engine version changes.
+- Fix (#2): `python exec` code whose first line ends in `.py` is no longer run as a file path.
+
 ## 0.3.1
 
 - Fab: `fab status|search|library|add` (tools `fab_status`, `fab_search`, `fab_library`, `fab_add`, `fab_page_run`).

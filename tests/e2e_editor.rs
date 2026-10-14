@@ -636,6 +636,16 @@ fn e2e_10_python_and_dry_run() {
         "import unreal; print(unreal.SystemLibrary.get_engine_version())",
     ]);
     assert!(out["output"].as_str().unwrap().starts_with("5."));
+    // A first line ending in .py must not turn the code into a file path (issue #2).
+    let out = ok(&[
+        "python",
+        "exec",
+        "# run: unrealengine-cli python exec @Scripts/x.py\nprint('first-line-ok')",
+    ]);
+    assert!(
+        out["output"].as_str().unwrap().contains("first-line-ok"),
+        "{out}"
+    );
     let (code, v) = cli(&["python", "exec", "raise RuntimeError('e2e-boom')"]);
     assert_eq!(code, 4);
     assert!(v["error"]["message"].as_str().unwrap().contains("e2e-boom"));

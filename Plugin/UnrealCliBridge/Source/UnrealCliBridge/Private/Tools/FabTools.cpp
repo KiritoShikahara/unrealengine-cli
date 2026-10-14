@@ -1,6 +1,9 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Containers/Ticker.h"
 #include "FileHelpers.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Modules/ModuleManager.h"
+#include "ToolMenus.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Internationalization/Regex.h"
@@ -26,6 +29,20 @@ void UFabPageBridge::Report(const FString& Id, const FString& Json)
 
 namespace
 {
+	// FToolMenuEntry::Action is private and the Fab plugin offers no other entry point to open its page. An explicit
+	// template instantiation may name a private member, which yields a pointer to it (standard C++).
+	struct FEntryActionTag
+	{
+		using Type = FToolUIActionChoice FToolMenuEntry::*;
+		friend Type EntryActionMember(FEntryActionTag);
+	};
+	template <typename Tag, typename Tag::Type Member>
+	struct TMemberAccess
+	{
+		friend typename Tag::Type EntryActionMember(Tag) { return Member; }
+	};
+	template struct TMemberAccess<FEntryActionTag, &FToolMenuEntry::Action>;
+
 	const FName FabTabId(TEXT("FabTab"));
 	const TCHAR* SignInHint = TEXT("open the Fab tab (Window > Fab), sign in, and retry");
 
@@ -39,11 +56,13 @@ namespace
 		return Bridge.Get();
 	}
 
+	/** A browser showing a Fab page (other editor pages, e.g. the start page, also use SWebBrowser). */
 	TSharedPtr<SWebBrowser> FindBrowser(const TSharedRef<SWidget>& Widget)
 	{
 		if (Widget->GetType() == FName(TEXT("SWebBrowser")))
 		{
-			return StaticCastSharedRef<SWebBrowser>(Widget);
+			TSharedRef<SWebBrowser> Browser = StaticCastSharedRef<SWebBrowser>(Widget);
+			return Browser->GetUrl().Contains(TEXT("fab.")) ? Browser : TSharedPtr<SWebBrowser>();
 		}
 		FChildren* Children = Widget->GetChildren();
 		for (int32 i = 0; Children && i < Children->Num(); ++i)
@@ -56,25 +75,131 @@ namespace
 		return nullptr;
 	}
 
-	/** The Fab tab's browser, opening the tab when needed. */
+	TSharedPtr<SWebBrowser> FindBrowserInWindows(const TArray<TSharedRef<SWindow>>& Windows)
+	{
+		for (const TSharedRef<SWindow>& Window : Windows)
+		{
+			if (TSharedPtr<SWebBrowser> Found = FindBrowser(Window))
+			{
+				return Found;
+			}
+			if (TSharedPtr<SWebBrowser> Found = FindBrowserInWindows(Window->GetChildWindows()))
+			{
+				return Found;
+			}
+		}
+		return nullptr;
+	}
+
+	/**
+	 * The Fab page's browser, opening Fab when needed. Fab 0.0.10 (UE 5.7) has a fixed nomad tab "FabTab";
+	 * later versions create document tabs (Fab1, Fab2, ...) from the Window > Fab menu action.
+	 */
 	TSharedPtr<SWebBrowser> FabBrowser(bool bOpen)
 	{
-		TSharedPtr<SDockTab> Tab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(FabTabId));
-		if (!Tab && bOpen && FGlobalTabmanager::Get()->HasTabSpawner(FabTabId))
+		if (TSharedPtr<SDockTab> Tab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(FabTabId)))
 		{
-			Tab = FGlobalTabmanager::Get()->TryInvokeTab(FTabId(FabTabId));
+			if (TSharedPtr<SWebBrowser> Found = FindBrowser(Tab->GetContent()))
+			{
+				return Found;
+			}
 		}
-		return Tab ? FindBrowser(Tab->GetContent()) : nullptr;
+		if (TSharedPtr<SWebBrowser> Found = FindBrowserInWindows(FSlateApplication::Get().GetTopLevelWindows()))
+		{
+			return Found;
+		}
+		// Opening creates a new tab each time in newer versions; ask at most every 30 s while the page loads.
+		static double LastOpen = -1000.0;
+		if (!bOpen || FPlatformTime::Seconds() - LastOpen < 30.0)
+		{
+			return nullptr;
+		}
+		LastOpen = FPlatformTime::Seconds();
+		if (FGlobalTabmanager::Get()->HasTabSpawner(FabTabId))
+		{
+			FGlobalTabmanager::Get()->TryInvokeTab(FTabId(FabTabId));
+		}
+		else if (UToolMenu* Menu = UToolMenus::Get()->ExtendMenu(TEXT("MainFrame.MainMenu.Window")))
+		{
+			if (FToolMenuSection* Section = Menu->FindSection(TEXT("GetContent")))
+			{
+				if (FToolMenuEntry* Entry = Section->FindEntry(TEXT("OpenFabTab")))
+				{
+					if (const FUIAction* Action = (Entry->*EntryActionMember(FEntryActionTag())).GetUIAction())
+					{
+						Action->Execute();
+					}
+				}
+			}
+		}
+		return nullptr;
 	}
 
 	bool FabAvailable(const FToolCallRef& Call)
 	{
-		if (FGlobalTabmanager::Get()->HasTabSpawner(FabTabId))
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("Fab")))
 		{
 			return true;
 		}
 		Call->Fail(TEXT("fab.unavailable"), TEXT("the Fab plugin is not loaded in this editor"), TEXT("enable the Fab plugin (Edit > Plugins > Fab) and restart the editor"));
 		return false;
+	}
+
+
+	/**
+	 * Page sessions: a Fab tab opened by a command is closed when the last running command ends. A Fab tab saved in
+	 * the editor layout makes Fab 0.0.10 crash at startup without rendering (-nullrhi, commandlets).
+	 */
+	struct FPageState
+	{
+		int32 Active = 0;
+		bool bOpenedByUs = false;
+	};
+
+	FPageState& PageState()
+	{
+		static FPageState State;
+		return State;
+	}
+
+	void BeginPage()
+	{
+		if (PageState().Active++ == 0)
+		{
+			PageState().bOpenedByUs = !FabBrowser(false).IsValid();
+		}
+	}
+
+	void EndPage()
+	{
+		FPageState& State = PageState();
+		if (--State.Active > 0 || !State.bOpenedByUs)
+		{
+			State.Active = FMath::Max(State.Active, 0);
+			return;
+		}
+		State.bOpenedByUs = false;
+		TArray<FName> Ids = { FabTabId };
+		for (int32 i = 1; i <= 64; ++i)
+		{
+			Ids.Add(*FString::Printf(TEXT("Fab%d"), i));
+		}
+		for (const FName& Id : Ids)
+		{
+			if (TSharedPtr<SDockTab> Tab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(Id)))
+			{
+				Tab->RequestCloseTab();
+			}
+		}
+		// Natively rendered pages (Fab 0.0.19+) live in their own window.
+		const TSharedPtr<SWindow> Root = FGlobalTabmanager::Get()->GetRootWindow();
+		for (const TSharedRef<SWindow>& Window : FSlateApplication::Get().GetTopLevelWindows())
+		{
+			if (Window != Root && FindBrowser(Window).IsValid())
+			{
+				Window->RequestDestroyWindow();
+			}
+		}
 	}
 
 	struct FPageRun
@@ -101,9 +226,11 @@ namespace
 		Run->Limit = FMath::Max(5.0, Limit);
 		const FString Wrapped = FString::Printf(
 			TEXT("(async()=>{const __r=(v)=>window.ue.unrealcliagent.report('%s',JSON.stringify(v===undefined?null:v));")
+			TEXT("const __me=async()=>{for(let i=0;i<20;i++){const r=await fetch('/i/users/me',{headers:{accept:'application/json'}});if(r.ok)return r.json();await new Promise(s=>setTimeout(s,500));}return null;};")
 			TEXT("try{const A=%s;const __v=await (async()=>{%s\n})();__r({ok:true,value:__v});}")
 			TEXT("catch(e){const m=e&&e.message||'';__r({ok:false,error:m.startsWith('fab.')?m:String(e&&e.stack||e)});}})();"),
 			*Run->Id, *ToJson(Args.IsValid() ? Args : MakeShared<FJsonObject>()), *Script);
+		BeginPage();
 		FabBrowser(true);
 		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Run, Wrapped, OnValue](float)
 		{
@@ -124,11 +251,13 @@ namespace
 				{
 					Error.Split(TEXT(": "), &Code, &Message);
 				}
+				EndPage();
 				Call->Fail(Code, Message, Code == TEXT("fab.script_error") ? TEXT("fix the script; the page may also require signing in to Fab") : FString());
 				return false;
 			}
 			if (Call->bCancelled || Now - Run->StartedAt > Run->Limit)
 			{
+				EndPage();
 				Call->Fail(TEXT("fab.timeout"), FString::Printf(TEXT("the Fab page did not answer within %.0f s"), Run->Limit),
 					TEXT("check that the Fab tab shows the store and that you are signed in, then retry"));
 				return false;
@@ -233,6 +362,7 @@ return {count:items.length,items};
 )JS");
 
 	const TCHAR* LibraryScript = TEXT(R"JS(
+await __me();
 const max=A.count||100; const q={sort_by:'-createdAt',count:'100'}; if(A.query) q.q=A.query;
 let url='/i/library/search?'+new URLSearchParams(q); const items=[];
 while(url&&items.length<max){
@@ -248,8 +378,8 @@ return {count:Math.min(items.length,max),items:items.slice(0,max)};
 )JS");
 
 	const TCHAR* StatusScript = TEXT(R"JS(
-const r=await fetch('/i/users/me',{headers:{accept:'application/json'}});
-const me=r.ok?await r.json():null;
+// The page signs in a few seconds after it loads.
+const me=await __me();
 return {signedIn:!!(me&&me.epicId),displayName:me&&me.displayName||null,url:location.href};
 )JS");
 
@@ -258,7 +388,7 @@ const get=async(p)=>{const r=await fetch(p,{headers:{accept:'application/json'}}
 const m=String(A.listing||'').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
 if(!m) throw new Error('fab.bad_listing: pass a listing id or a fab.com listing URL');
 const uid=m[0].toLowerCase();
-const me=await get('/i/users/me'); if(me.status!==200) throw new Error('fab.not_signed_in: the Fab page is not signed in');
+if(!await __me()) throw new Error('fab.not_signed_in: the Fab page is not signed in');
 const L=await get(`/i/listings/${uid}`);
 if(L.status!==200||!L.v) throw new Error(`fab.not_found: listing ${uid} was not found (HTTP ${L.status})`);
 const listing=L.v;
@@ -320,7 +450,7 @@ return {listingUid:uid,title:listing.title,format:code,file:fileName,engineVersi
 			{
 				if (FabAvailable(Call))
 				{
-					RunInPage(Call, Script, PageArgs(Call), Call->GetNumber(TEXT("timeoutSeconds"), Limit), [Call](const TSharedPtr<FJsonValue>& V) { SucceedWithValue(Call, V); });
+					RunInPage(Call, Script, PageArgs(Call), Call->GetNumber(TEXT("timeoutSeconds"), Limit), [Call](const TSharedPtr<FJsonValue>& V) { EndPage(); SucceedWithValue(Call, V); });
 				}
 			});
 	}
@@ -337,6 +467,7 @@ void UCli::RegisterFabTools(FToolRegistry& R)
 			{
 				RunInPage(Call, Call->GetString(TEXT("script")), PageArgs(Call), Call->GetNumber(TEXT("timeoutSeconds"), 60.0), [Call](const TSharedPtr<FJsonValue>& V)
 				{
+					EndPage();
 					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 					O->SetField(TEXT("value"), V.IsValid() ? V : MakeShared<FJsonValueNull>());
 					Call->Succeed(O);
@@ -384,6 +515,7 @@ void UCli::RegisterFabTools(FToolRegistry& R)
 				const TSharedPtr<FJsonObject>* Started = nullptr;
 				if (!V.IsValid() || !V->TryGetObject(Started))
 				{
+					EndPage();
 					Call->Fail(TEXT("fab.script_error"), TEXT("the Fab page returned no listing"));
 					return;
 				}
@@ -414,11 +546,13 @@ void UCli::RegisterFabTools(FToolRegistry& R)
 					{
 						if (!Errors.IsEmpty() || bCancelled)
 						{
+							EndPage();
 							Call->Fail(TEXT("fab.import_failed"), Errors.IsEmpty() ? TEXT("the import was cancelled") : Errors.Last(), TEXT("read the LogFab lines in `unrealengine-cli logs --category LogFab`"), Arr(StrArray(Errors)));
 							return false;
 						}
 						if (Call->bCancelled || FPlatformTime::Seconds() - StartedAt > Limit)
 						{
+							EndPage();
 							Call->Fail(TEXT("fab.timeout"), FString::Printf(TEXT("the import did not finish within %.0f s (it may still finish in the editor)"), Limit));
 							return false;
 						}
@@ -461,6 +595,7 @@ void UCli::RegisterFabTools(FToolRegistry& R)
 					Info->SetNumberField(TEXT("assetCount"), Assets.Num());
 					Info->SetArrayField(TEXT("assets"), StrArray(Names));
 					Info->SetNumberField(TEXT("seconds"), FPlatformTime::Seconds() - StartedAt);
+					EndPage();
 					Call->Succeed(Info);
 					return false;
 				}), 0.5f);

@@ -26,4 +26,6 @@ bash scripts/e2e.sh 5.7   # Windows + UE 5.7
 - エンジン API を使う前に、該当ヘッダーを grep してシグネチャを確認する
 - 他製品のコードや名前を持ち込まない(`tests/independence.rs` が検査する)
 - Windows で `setup` / `install` を名前に含むテストバイナリは UAC に止められるので使わない
+- Live Coding のロックはエンジン単位(同じ UE バージョンの全プロジェクト共通)。動作中は同じエンジンのビルドが失敗する
+- 数十分かかる E2E(`scripts/e2e-cpp.py` など)はバックグラウンドで実行し、ログファイルを確認する(実行中は `cargo build` で CLI を上書きしない)
 - `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。PIE の E2E は `UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.7`(描画あり)で回す

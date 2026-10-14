@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- The running editor's plugin version is checked on every command; an outdated plugin gives a warning with the update command.
+- `prop get|set` reach Blueprint component templates (`/Game/BP.Component`, added or inherited) and collision/physics
+  settings (CollisionProfileName, CollisionEnabled, GenerateOverlapEvents, SimulatePhysics, ...).
+- Enhanced Input: `mapping_add` modifiers and triggers; `input_default_context_add`.
+- Blueprint: `Node` takes `properties` (e.g. Get Subsystem's class); structs with native make/break functions use them.
+- C++: Live Coding no longer blocks the editor and stops with `code.live_coding_stuck`; `code apply --rebuild`;
+  `code apply --force` falls back to a rebuild; `editor close --force` ends a stuck editor and its child processes.
+- Game E2E 2 (`scripts/e2e-game2.py`): a shooter with input mapping, projectiles and damage; C++ E2E (`scripts/e2e-cpp.py`).
+
 ## 0.2.0
 
 - Play-testing: `pie_start`, `pie_input` (keys and Enhanced Input actions), `pie_wait`, `pie_screenshot` (scene + UMG, `blank` flag),

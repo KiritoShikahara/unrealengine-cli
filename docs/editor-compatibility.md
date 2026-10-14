@@ -26,6 +26,9 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
 
 * 2026-10-14 Windows 11, UE 5.7.4: build PASS, Automation 13/13, E2E 10/10.
 * 2026-10-14 Windows 11, UE 5.8: build PASS, Automation 8/8 (before the Level/Asset/Runtime specs were added), E2E 10/10.
+* 2026-10-15 robustness pass (plugin version check, Blueprint component props, input modifiers, editor close/exit fixes,
+  Live Coding fallback): UE 5.7.4 and 5.8 with -nullrhi and rendering, Automation 14/14, E2E 15/15, MCP 1/1,
+  both game E2Es PASS; C++ E2E (`scripts/e2e-cpp.py`) PASS on 5.7.4 through the rebuild fallback.
 * 2026-10-14 after game-making tools (play-testing, gameplay nodes, AI, UMG layout/animation): UE 5.7.4 and 5.8,
   Automation 14/14, E2E 14/14 + MCP 1/1 with -nullrhi and with rendering, game E2E (`scripts/e2e-game.py`) PASS.
 * 2026-10-14 v0.1.1: UE 5.7.4 and 5.8, Automation 14/14, E2E 11/11 with -nullrhi and with a rendering editor

@@ -13,6 +13,7 @@
 #include "Server/ToolRegistry.h"
 #include "SocketSubsystem.h"
 #include "Sockets.h"
+#include "Containers/Queue.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealCliBridge, Log, All);
 
@@ -20,6 +21,12 @@ using namespace UCli;
 
 namespace
 {
+	TQueue<TSharedPtr<FToolCall, ESPMode::ThreadSafe>, EQueueMode::Mpsc>& PendingCalls()
+	{
+		static TQueue<TSharedPtr<FToolCall, ESPMode::ThreadSafe>, EQueueMode::Mpsc> Queue;
+		return Queue;
+	}
+
 	constexpr uint32 MaxFrameBytes = 64u * 1024u * 1024u;
 
 	bool RecvExact(FSocket* S, uint8* Out, int32 Len, const TAtomic<bool>& bStop)
@@ -217,7 +224,7 @@ namespace UCli
 				Pending->Reply = Reply;
 				Pending->Event->Trigger();
 			};
-			AsyncTask(ENamedThreads::GameThread, [Call]() { FToolRegistry::Get().Dispatch(Call); });
+			PendingCalls().Enqueue(Call);
 
 			const uint32 WaitMs = static_cast<uint32>(Call->TimeoutMs);
 			if (!Pending->Event->Wait(WaitMs))
@@ -267,6 +274,17 @@ bool FBridgeServer::Start()
 	Port = Listener->GetPortNo();
 	Token = FGuid::NewGuid().ToString(EGuidFormats::Digits);
 	InstanceFile::Write(Port, Token);
+	// Tool calls run from the core ticker, outside the world tick: a task-graph game-thread task can run in the
+	// middle of a tick group, where switching levels or starting PIE trips engine assertions.
+	DispatchTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float)
+	{
+		TSharedPtr<FToolCall, ESPMode::ThreadSafe> Next;
+		while (PendingCalls().Dequeue(Next))
+		{
+			FToolRegistry::Get().Dispatch(Next.ToSharedRef());
+		}
+		return true;
+	}));
 	Thread = FRunnableThread::Create(this, TEXT("UnrealCliBridgeServer"));
 	UE_LOG(LogUnrealCliBridge, Display, TEXT("UnrealCliBridge listening on 127.0.0.1:%d"), Port);
 	return true;
@@ -275,6 +293,7 @@ bool FBridgeServer::Start()
 void FBridgeServer::Stop()
 {
 	*bStopping = true;
+	FTSTicker::GetCoreTicker().RemoveTicker(DispatchTicker);
 	if (Thread)
 	{
 		Thread->WaitForCompletion();

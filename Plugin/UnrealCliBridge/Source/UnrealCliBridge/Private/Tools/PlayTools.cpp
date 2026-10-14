@@ -22,6 +22,8 @@
 #include "Tools/BlueprintHelpers.h"
 #include "Tools/ToolRegistration.h"
 #include "UnrealClient.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
 
 using namespace UCli;
 
@@ -269,7 +271,21 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 			UGameViewportClient* GVC = World->GetGameViewport();
 			FViewport* VP = GVC ? GVC->Viewport : nullptr;
 			TArray<FColor> Pixels;
-			if (!VP || !VP->ReadPixels(Pixels) || Pixels.Num() == 0)
+			FIntPoint Size(0, 0);
+			FString Source = TEXT("slate");
+			// The Slate capture of the viewport widget includes UMG on top of the scene; ReadPixels has the scene only.
+			TSharedPtr<SViewport> ViewportWidget = GVC ? GVC->GetGameViewportWidget() : nullptr;
+			FIntVector SlateSize(0, 0, 0);
+			if (ViewportWidget.IsValid() && FSlateApplication::IsInitialized() && FSlateApplication::Get().TakeScreenshot(ViewportWidget.ToSharedRef(), Pixels, SlateSize) && Pixels.Num() > 0)
+			{
+				Size = FIntPoint(SlateSize.X, SlateSize.Y);
+			}
+			else if (VP && VP->ReadPixels(Pixels) && Pixels.Num() > 0)
+			{
+				Size = VP->GetSizeXY();
+				Source = TEXT("viewport");
+			}
+			if (Pixels.Num() == 0 || Pixels.Num() != Size.X * Size.Y)
 			{
 				Call->Fail(TEXT("pie.screenshot_failed"), TEXT("could not read the game viewport (an editor started with --null-rhi has none)"), TEXT("open the editor with rendering: unrealengine-cli editor open (or --headless)"));
 				return;
@@ -282,7 +298,6 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				MinLuma = FMath::Min(MinLuma, Luma);
 				MaxLuma = FMath::Max(MaxLuma, Luma);
 			}
-			const FIntPoint Size = VP->GetSizeXY();
 			TArray64<uint8> Png;
 			FImageUtils::PNGCompressImageArray(Size.X, Size.Y, TArrayView64<const FColor>(Pixels.GetData(), Pixels.Num()), Png);
 			const FString Path = PlayScreenshotPath(Call->GetString(TEXT("path")));
@@ -297,6 +312,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 			O->SetNumberField(TEXT("height"), Size.Y);
 			// One flat colour usually means nothing is lit or the camera sees nothing.
 			O->SetBoolField(TEXT("blank"), MaxLuma - MinLuma < 8);
+			O->SetStringField(TEXT("source"), Source);
 			Call->Succeed(O);
 		});
 

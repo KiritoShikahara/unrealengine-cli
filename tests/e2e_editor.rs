@@ -666,7 +666,7 @@ fn e2e_11_play_session_input_and_observation() {
         "--template",
         "/Engine/Maps/Templates/Template_Default",
     ]);
-    let ia = root("IA_Jump");
+    let ia = root("IA_PlayJump");
     call(
         "input_action_create",
         json!({"path": ia, "valueType": "Boolean"}),

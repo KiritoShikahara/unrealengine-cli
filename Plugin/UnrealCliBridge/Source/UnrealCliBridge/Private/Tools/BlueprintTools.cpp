@@ -229,7 +229,8 @@ namespace UCli::BP
 		return nullptr;
 	}
 
-	UEdGraphPin* ResolvePin(UEdGraph* Graph, const FString& Ref, FString& Error)
+	// Direction picks between same-named pins (a variable Set node has input and output pins both named after the variable).
+	UEdGraphPin* ResolvePin(UEdGraph* Graph, const FString& Ref, FString& Error, EEdGraphPinDirection Direction)
 	{
 		FString NodeRef, PinName;
 		if (!Ref.Split(TEXT("."), &NodeRef, &PinName))
@@ -243,10 +244,31 @@ namespace UCli::BP
 			Error = FString::Printf(TEXT("no node '%s' in graph %s"), *NodeRef, *Graph->GetName());
 			return nullptr;
 		}
+		auto Matches = [&PinName](const UEdGraphPin* P)
+		{
+			return P && (P->PinName.ToString().Equals(PinName, ESearchCase::IgnoreCase) || P->GetDisplayName().ToString().Equals(PinName, ESearchCase::IgnoreCase));
+		};
+		// Exact pin names on visible pins win over display names (a library call's hidden self pin is displayed as "Target").
+		for (UEdGraphPin* P : Node->Pins)
+		{
+			if (P && !P->bHidden && P->PinName.ToString().Equals(PinName, ESearchCase::IgnoreCase) && (Direction == EGPD_MAX || P->Direction == Direction)) return P;
+		}
+		if (Direction != EGPD_MAX)
+		{
+			for (UEdGraphPin* P : Node->Pins)
+			{
+				if (Matches(P) && P->Direction == Direction) return P;
+			}
+			// A Set node's output is the pin "Output_Get"; accept the variable name for it.
+			if (Direction == EGPD_Output && Node->IsA<UK2Node_VariableSet>() && Matches(Node->FindPin(PinName, EGPD_Input)))
+			{
+				if (UEdGraphPin* Out = Node->FindPin(TEXT("Output_Get"), EGPD_Output)) return Out;
+			}
+		}
 		TArray<FString> Names;
 		for (UEdGraphPin* P : Node->Pins)
 		{
-			if (P && (P->PinName.ToString().Equals(PinName, ESearchCase::IgnoreCase) || P->GetDisplayName().ToString().Equals(PinName, ESearchCase::IgnoreCase)))
+			if (Matches(P))
 			{
 				return P;
 			}
@@ -903,8 +925,8 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			UEdGraph* G = RequireGraph(Call, B);
 			if (!G) return;
 			FString Error;
-			UEdGraphPin* A = ResolvePin(G, Call->GetString(TEXT("from")), Error);
-			UEdGraphPin* C = A ? ResolvePin(G, Call->GetString(TEXT("to")), Error) : nullptr;
+			UEdGraphPin* A = ResolvePin(G, Call->GetString(TEXT("from")), Error, EGPD_Output);
+			UEdGraphPin* C = A ? ResolvePin(G, Call->GetString(TEXT("to")), Error, EGPD_Input) : nullptr;
 			if (!A || !C)
 			{
 				Call->Fail(TEXT("blueprint.pin_not_found"), Error);
@@ -979,7 +1001,7 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			UEdGraph* G = RequireGraph(Call, B);
 			if (!G) return;
 			FString Error;
-			UEdGraphPin* P = ResolvePin(G, Call->GetString(TEXT("node")) + TEXT(".") + Call->GetString(TEXT("pin")), Error);
+			UEdGraphPin* P = ResolvePin(G, Call->GetString(TEXT("node")) + TEXT(".") + Call->GetString(TEXT("pin")), Error, EGPD_Input);
 			if (!P)
 			{
 				Call->Fail(TEXT("blueprint.pin_not_found"), Error);
@@ -994,6 +1016,35 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			P->GetOwningNode()->Modify();
 			const UEdGraphSchema_K2* K2 = Cast<UEdGraphSchema_K2>(G->GetSchema());
 			const FString Value = Call->GetString(TEXT("value"));
+			const FName Category = P->PinType.PinCategory;
+			const bool bObjectPin = Category == UEdGraphSchema_K2::PC_Object || Category == UEdGraphSchema_K2::PC_Class
+				|| Category == UEdGraphSchema_K2::PC_SoftObject || Category == UEdGraphSchema_K2::PC_SoftClass || Category == UEdGraphSchema_K2::PC_Interface;
+			if (bObjectPin && K2)
+			{
+				// Object/class pins take an asset or class: a /Game path, a Blueprint (its class for class pins) or a native class name.
+				const bool bClass = Category == UEdGraphSchema_K2::PC_Class || Category == UEdGraphSchema_K2::PC_SoftClass;
+				UObject* Obj = nullptr;
+				if (Value.IsEmpty() || Value == TEXT("None")) {}
+				else if (bClass) Obj = ResolveClass(Value);
+				else Obj = LoadObject<UObject>(nullptr, *ObjectPath(Value), nullptr, LOAD_NoWarn | LOAD_Quiet);
+				if (!Obj && !(Value.IsEmpty() || Value == TEXT("None")))
+				{
+					Call->Fail(TEXT("blueprint.bad_value"), FString::Printf(TEXT("no %s '%s' for pin %s"), bClass ? TEXT("class") : TEXT("asset"), *Value, *P->PinName.ToString()));
+					return;
+				}
+				const FString Invalid = K2->IsPinDefaultValid(P, FString(), Obj, FText::GetEmpty());
+				if (!Invalid.IsEmpty())
+				{
+					Call->Fail(TEXT("blueprint.bad_value"), Invalid);
+					return;
+				}
+				K2->TrySetDefaultObject(*P, Obj);
+				Touch(B, false);
+				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+				O->SetStringField(TEXT("value"), Obj ? Obj->GetPathName() : TEXT("None"));
+				Call->Succeed(O);
+				return;
+			}
 			if (K2)
 			{
 				const FString Invalid = K2->IsPinDefaultValid(P, Value, nullptr, FText::GetEmpty());

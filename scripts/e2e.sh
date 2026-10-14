@@ -17,5 +17,9 @@ MODE=--null-rhi
 $U editor open $MODE --wait 2400 --output json >/dev/null || { echo "editor did not start"; exit 1; }
 UNREALENGINE_CLI_E2E=1 cargo test -q --test e2e_editor --test e2e_mcp_editor -- --test-threads=1 2>&1 | tail -n 30
 CODE=${PIPESTATUS[0]}
+if [ "$CODE" = 0 ] && [ -z "$MODE" ]; then
+  python scripts/e2e-game.py 2>&1 | tail -n 3
+  CODE=${PIPESTATUS[0]}
+fi
 $U editor close --force >/dev/null 2>&1 || true
 exit "$CODE"

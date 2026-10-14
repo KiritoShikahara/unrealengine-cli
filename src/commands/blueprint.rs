@@ -20,7 +20,7 @@ pub enum BlueprintCmd {
         #[arg(long, default_value = "EventGraph")]
         graph: String,
     },
-    /// Add a node (Event, CustomEvent, CallFunction, VariableGet, VariableSet, Branch, Sequence, Self, Cast, Macro)
+    /// Add a node: Event, CustomEvent, CallFunction, VariableGet/Set, Branch, Sequence, Self, Cast, Macro, InputAction, ComponentEvent, SpawnActor, CreateWidget, CallDispatcher, BindDispatcher, MakeStruct, BreakStruct, SwitchEnum, Timeline, Node
     AddNode {
         path: String,
         #[arg(long = "type")]

@@ -20,7 +20,7 @@ namespace UCli::BP
 	FString NodeId(const UEdGraph* Graph, const UEdGraphNode* Node);
 	TSharedPtr<FJsonObject> NodeJson(const UEdGraph* Graph, UEdGraphNode* Node);
 	UEdGraphNode* ResolveNode(UEdGraph* Graph, const FString& Ref);
-	UEdGraphPin* ResolvePin(UEdGraph* Graph, const FString& Ref, FString& Error);
+	UEdGraphPin* ResolvePin(UEdGraph* Graph, const FString& Ref, FString& Error, EEdGraphPinDirection Direction = EGPD_MAX);
 	UFunction* ResolveFunction(UBlueprint* Blueprint, const FString& Name, const FString& Parent);
 	TSharedPtr<FJsonObject> CompileJson(UBlueprint* Blueprint);
 }

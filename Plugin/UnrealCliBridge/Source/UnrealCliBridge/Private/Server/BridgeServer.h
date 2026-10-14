@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "HAL/Runnable.h"
+#include "Containers/Ticker.h"
 
 namespace UCli { class FBridgeConnection; }
 
@@ -35,4 +36,6 @@ private:
 	/** Owned by the accept thread; finished ones are reaped there, the rest in Stop. */
 	TArray<FConnectionThread> Connections;
 	void Reap(bool bAll);
+	/** Drains queued tool calls on the game thread between frames (never inside a world tick). */
+	FTSTicker::FDelegateHandle DispatchTicker;
 };

@@ -109,11 +109,14 @@ def from_json(value, current):
         return unreal.Color(int(v.get("r", 0)), int(v.get("g", 0)), int(v.get("b", 0)), int(v.get("a", 255)))
     if isinstance(current, unreal.EnumBase):
         enum_type = type(current)
-        name = str(value).upper()
-        for member in dir(enum_type):
-            if member.upper() == name or member.upper().endswith("_" + name):
+        members = [m for m in dir(enum_type) if m.isupper() and isinstance(getattr(enum_type, m), enum_type)]
+        name = str(value).split("::")[-1].upper()
+        flat = name.replace("_", "")
+        for member in members:
+            if member == name or member.endswith("_" + name) or member.replace("_", "") == flat:
                 return getattr(enum_type, member)
-        raise ToolError("prop.bad_value", "'%s' is not a %s value" % (value, enum_type.__name__))
+        raise ToolError("prop.bad_value", "'%s' is not a %s value" % (value, enum_type.__name__),
+                        "values: " + ", ".join(members))
     if isinstance(current, unreal.StructBase) and isinstance(value, dict):
         for k, v in value.items():
             current.set_editor_property(k, from_json(v, current.get_editor_property(k)))
@@ -139,6 +142,10 @@ def actors():
 
 
 def find_actor(label):
+    if label == "WorldSettings":
+        # The level's World Settings (game mode override, gravity, kill Z...) is not a listed actor.
+        world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+        return world.get_world_settings()
     for a in actors():
         if a.get_actor_label() == label or a.get_name() == label:
             return a

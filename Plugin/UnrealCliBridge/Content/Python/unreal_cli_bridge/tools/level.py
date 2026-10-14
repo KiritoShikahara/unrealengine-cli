@@ -46,12 +46,25 @@ def level_save(all=False):  # noqa: A002 - matches the tool argument name
     return {"saved": world.get_path_name() if world else None}
 
 
-@tool("actor_list", "level", "List actors in the open level, filtered by class and/or label substring.",
+def _class_matcher(class_filter, names):
+    """Exact class name (with or without the Blueprint _C suffix) when one exists, else a substring match."""
+    if not class_filter:
+        return lambda n: True
+    f = class_filter.lower()
+    exact = {f, f + "_c"}
+    if any(n.lower() in exact for n in names):
+        return lambda n: n.lower() in exact
+    return lambda n: f in n.lower()
+
+
+@tool("actor_list", "level", "List actors in the open level, filtered by class (an exact class name wins, else substring) and/or label substring.",
       {"classFilter": {"type": "string"}, "nameFilter": {"type": "string"}, "limit": {"type": "integer"}})
 def actor_list(classFilter=None, nameFilter=None, limit=500):
     out = []
-    for a in actors():
-        if classFilter and classFilter.lower() not in a.get_class().get_name().lower():
+    all_actors = actors()
+    matches = _class_matcher(classFilter, [a.get_class().get_name() for a in all_actors])
+    for a in all_actors:
+        if not matches(a.get_class().get_name()):
             continue
         if nameFilter and nameFilter.lower() not in a.get_actor_label().lower():
             continue

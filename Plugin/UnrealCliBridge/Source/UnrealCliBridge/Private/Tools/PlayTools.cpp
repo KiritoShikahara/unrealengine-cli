@@ -368,10 +368,16 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 			const int32 Limit = static_cast<int32>(Call->GetNumber(TEXT("limit"), 200));
 			APlayerController* PC = World->GetFirstPlayerController();
 			APawn* PlayerPawn = PC ? PC->GetPawn() : nullptr;
+			// An exact class name (with or without the Blueprint _C suffix) wins over substring matches,
+			// so "BP_Coin" does not also return BP_CoinGM.
+			// Decided by class existence, not by live actors: destroyed pickups must not turn the filter into a substring.
+			const bool bExact = !ClassFilter.IsEmpty()
+				&& (FindFirstObject<UClass>(*ClassFilter, EFindFirstObjectOptions::NativeFirst) || FindFirstObject<UClass>(*(ClassFilter + TEXT("_C")), EFindFirstObjectOptions::NativeFirst));
 			TArray<TSharedPtr<FJsonValue>> Items;
 			for (TActorIterator<AActor> It(World); It && Items.Num() < Limit; ++It)
 			{
-				if (!ClassFilter.IsEmpty() && !It->GetClass()->GetName().Contains(ClassFilter)) continue;
+				const FString N = It->GetClass()->GetName();
+				if (!ClassFilter.IsEmpty() && (bExact ? !(N.Equals(ClassFilter, ESearchCase::IgnoreCase) || N.Equals(ClassFilter + TEXT("_C"), ESearchCase::IgnoreCase)) : !N.Contains(ClassFilter))) continue;
 				if (!NameFilter.IsEmpty() && !It->GetActorLabel().Contains(NameFilter) && !It->GetName().Contains(NameFilter)) continue;
 				TSharedPtr<FJsonObject> O = PlayActorJson(*It);
 				if (*It == PlayerPawn) O->SetBoolField(TEXT("player"), true);

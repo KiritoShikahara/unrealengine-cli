@@ -181,7 +181,7 @@ enemy_before = run("pie", "get", "Chaser")
 run("pie", "input", "W", "--seconds", "0.8")
 run("pie", "wait", "--seconds", "1.5")
 after = run("pie", "get", "player")
-coins = [a for a in run("pie", "actors", "--class", "BP_Coin") if a["class"] == "BP_Coin_C"]
+coins = run("pie", "actors", "--class", "BP_Coin")  # exact match: must not include BP_CoinGM
 gm_actor = run("pie", "actors", "--class", "BP_CoinGM")
 score = run("pie", "get", gm_actor[0]["name"], "Score")["properties"]["Score"] if gm_actor else None
 enemy_after = run("pie", "get", "Chaser")

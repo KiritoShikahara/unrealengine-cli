@@ -128,10 +128,20 @@ pub fn close(inst: &Instance, force: bool, timeout: Duration) -> Result<Value, C
         }
     };
     let started = Instant::now();
-    while started.elapsed() < Duration::from_secs(60) {
+    let mut shutting_down_since: Option<Instant> = None;
+    while started.elapsed() < Duration::from_secs(90) {
         // The instance file goes away early in shutdown; the process (and its DLL locks) a little later.
-        if !instances::list().iter().any(|i| i.pid == inst.pid) && !process_alive(inst.pid) {
-            return Ok(json!({ "closed": true, "pid": inst.pid, "discarded": data["discarded"] }));
+        if !instances::list().iter().any(|i| i.pid == inst.pid) {
+            if !process_alive(inst.pid) {
+                return Ok(
+                    json!({ "closed": true, "pid": inst.pid, "discarded": data["discarded"] }),
+                );
+            }
+            // Past the point of saving: an editor that hangs while shutting down is ended.
+            let since = *shutting_down_since.get_or_insert_with(Instant::now);
+            if since.elapsed() > Duration::from_secs(30) {
+                return terminate(inst);
+            }
         }
         std::thread::sleep(Duration::from_millis(500));
     }

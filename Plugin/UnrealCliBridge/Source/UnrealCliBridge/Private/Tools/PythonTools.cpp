@@ -159,6 +159,13 @@ void UCli::RegisterPythonTools(FToolRegistry& R)
 	EnsurePythonTools(R);
 }
 
+bool UCli::ArePythonToolsReady()
+{
+	// Without Python there is nothing to wait for.
+	IPythonScriptPlugin* Py = IPythonScriptPlugin::Get();
+	return GPythonToolsLoaded || !Py || !Py->IsPythonAvailable();
+}
+
 void UCli::EnsurePythonTools(FToolRegistry& R)
 {
 	IPythonScriptPlugin* Py = IPythonScriptPlugin::Get();

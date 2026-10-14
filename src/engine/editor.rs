@@ -76,7 +76,9 @@ pub fn open(
         std::thread::sleep(Duration::from_millis(1000));
         if let Some(i) = running_for(uproject)
             && let Ok(mut c) = BridgeClient::connect(i.addr(), &i.token, Duration::from_secs(5))
-            && c.call("system_ping", json!({}), false, 5000).is_ok()
+            && let Ok(p) = c.call("system_ping", json!({}), false, 5000)
+            // Older plugins do not report pythonReady; treat a missing field as ready.
+            && p["pythonReady"] != false
         {
             return Ok(json!({
                 "alreadyRunning": false,

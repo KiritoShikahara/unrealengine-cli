@@ -71,10 +71,25 @@ def actor_find(label):
     return out
 
 
+def _null_rhi():
+    return "-nullrhi" in unreal.SystemLibrary.get_command_line().lower()
+
+
+# Native classes known to spawn safely without a renderer.
+_NULL_RHI_SAFE = {"Actor", "PointLight", "SpotLight", "DirectionalLight", "RectLight", "SkyLight", "CameraActor",
+                  "TriggerBox", "TriggerSphere", "TargetPoint", "PlayerStart", "Note", "ExponentialHeightFog",
+                  "PostProcessVolume", "BlockingVolume"}
+
+
 @tool("actor_spawn", "level", "Spawn an actor from a class name, Blueprint path or asset (mesh, etc.).",
       {"actorClass": {"type": "string"}, "location": V3, "rotation": V3, "label": {"type": "string"}},
       ["actorClass"], mutating=True)
 def actor_spawn(actorClass, location=None, rotation=None, label=None):
+    short = actorClass[1:] if len(actorClass) > 1 and actorClass[0] == "A" and actorClass[1].isupper() else actorClass
+    if _null_rhi() and (actorClass.startswith("/") or short not in _NULL_RHI_SAFE):
+        raise ToolError("actor.unsafe_without_renderer",
+                        "spawning '%s' in an editor started with -nullrhi crashes the engine" % actorClass,
+                        hint="reopen the editor with rendering: unreal-cli editor close && unreal-cli editor open --headless")
     loc, r = vec(location), rot(rotation)
     actor = None
     if actorClass.startswith("/"):

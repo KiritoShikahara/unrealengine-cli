@@ -297,6 +297,11 @@ void FToolRegistry::Dispatch(const FToolCallRef& Call)
 	const FToolDef* Def = Find(Call->Tool);
 	if (!Def)
 	{
+		if (!UCli::ArePythonToolsReady())
+		{
+			Call->Fail(TEXT("editor.not_ready"), FString::Printf(TEXT("'%s' is not registered yet: the editor's Python is still starting"), *Call->Tool), TEXT("retry in a few seconds"));
+			return;
+		}
 		Call->Fail(TEXT("tool.unknown"), FString::Printf(TEXT("unknown tool '%s'"), *Call->Tool), TEXT("list tools: unreal-cli tool list"));
 		return;
 	}

@@ -32,6 +32,7 @@ namespace
 		O->SetStringField(TEXT("projectName"), FApp::GetProjectName());
 		O->SetNumberField(TEXT("pid"), FPlatformProcess::GetCurrentProcessId());
 		O->SetNumberField(TEXT("uptimeSeconds"), FPlatformTime::Seconds() - GStartSeconds);
+		O->SetBoolField(TEXT("pythonReady"), UCli::ArePythonToolsReady());
 		if (GEditor)
 		{
 			O->SetBoolField(TEXT("playInEditor"), GEditor->PlayWorld != nullptr);

@@ -513,7 +513,9 @@ fn e2e_09_blueprint_pie_and_tests() {
     assert_eq!(ok(&["blueprint", "compile", &bp])["succeeded"], true);
     ok(&["blueprint", "save", &bp]);
     ok(&["level", "new", &root("L_Pie")]);
-    // Spawning Blueprint actors crashes the engine under -nullrhi; stop on the engine PIE log line.
+    // Spawning Blueprint actors under -nullrhi would crash the engine; the tool refuses instead.
+    let (code, err) = fails("actor_spawn", json!({"actorClass": bp}));
+    assert_eq!((code, err.as_str()), (4, "actor.unsafe_without_renderer"));
     if std::env::var("UNREAL_CLI_E2E_RENDER").as_deref() == Ok("1") {
         let pie = ok(&[
             "pie",

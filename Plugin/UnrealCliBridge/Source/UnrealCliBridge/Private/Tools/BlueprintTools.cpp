@@ -19,6 +19,7 @@
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
 #include "K2Node_AddDelegate.h"
+#include "K2Node_Message.h"
 #include "K2Node_BreakStruct.h"
 #include "K2Node_CallDelegate.h"
 #include "K2Node_ComponentBoundEvent.h"
@@ -544,8 +545,8 @@ namespace
 
 void UCli::RegisterBlueprintTools(FToolRegistry& R)
 {
-	R.Add(TEXT("bp_create"), TEXT("blueprint"), TEXT("Create a Blueprint asset (parent: class name, /Script path or Blueprint path)."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"parent":{"type":"string"}},"required":["path"]})"),
+	R.Add(TEXT("bp_create"), TEXT("blueprint"), TEXT("Create a Blueprint asset (parent: class name, /Script path or Blueprint path). kind=interface creates a Blueprint Interface (add its functions with bp_add_function)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"parent":{"type":"string"},"kind":{"type":"string","enum":["class","interface"]}},"required":["path"]})"),
 		EToolFlags::Mutating | EToolFlags::NoUndo,
 		[](const FToolCallRef& Call)
 		{
@@ -561,14 +562,15 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 				Call->Fail(TEXT("asset.exists"), FString::Printf(TEXT("'%s' already exists"), *Path));
 				return;
 			}
-			UClass* Parent = ResolveClass(Call->GetString(TEXT("parent"), TEXT("Actor")));
-			if (!Parent || !FKismetEditorUtilities::CanCreateBlueprintOfClass(Parent))
+			const bool bInterface = Call->GetString(TEXT("kind")) == TEXT("interface");
+			UClass* Parent = bInterface ? UInterface::StaticClass() : ResolveClass(Call->GetString(TEXT("parent"), TEXT("Actor")));
+			if (!Parent || (!bInterface && !FKismetEditorUtilities::CanCreateBlueprintOfClass(Parent)))
 			{
 				Call->Fail(TEXT("blueprint.bad_parent"), FString::Printf(TEXT("cannot create a Blueprint of '%s'"), *Call->GetString(TEXT("parent"), TEXT("Actor"))));
 				return;
 			}
 			UPackage* Package = CreatePackage(*Path);
-			UBlueprint* B = FKismetEditorUtilities::CreateBlueprint(Parent, Package, FName(*FPackageName::GetShortName(Path)), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+			UBlueprint* B = FKismetEditorUtilities::CreateBlueprint(Parent, Package, FName(*FPackageName::GetShortName(Path)), bInterface ? BPTYPE_Interface : BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 			FAssetRegistryModule::AssetCreated(B);
 			Package->MarkPackageDirty();
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
@@ -678,6 +680,11 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 				{
 					if (!F && Owner) F = Owner->FindFunctionByName(*Candidate);
 				}
+				// Events of interfaces the Blueprint implements (functions without outputs become events).
+				for (const FBPInterfaceDescription& I : B->ImplementedInterfaces)
+				{
+					if (!F && Parent.IsEmpty() && I.Interface) F = I.Interface->FindFunctionByName(*Member);
+				}
 				if (!F || !F->HasAnyFunctionFlags(FUNC_BlueprintEvent))
 				{
 					Call->Fail(TEXT("blueprint.event_not_found"), FString::Printf(TEXT("'%s' is not an overridable event of %s"), *Member, Owner ? *Owner->GetName() : TEXT("?")), TEXT("find events: bp_search_nodes kind=event"));
@@ -738,7 +745,11 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 					Call->Fail(TEXT("blueprint.function_not_found"), FString::Printf(TEXT("no callable function '%s'"), *Member), TEXT("find it: bp_search_nodes query=<name>"));
 					return;
 				}
-				Node = Place<UK2Node_CallFunction>(G, Call, [F](UK2Node_CallFunction* N) { N->SetFromFunction(F); });
+				// Interface functions are called as messages so any object can be the target.
+				if (F->GetOwnerClass() && F->GetOwnerClass()->HasAnyClassFlags(CLASS_Interface))
+					Node = Place<UK2Node_Message>(G, Call, [F](UK2Node_Message* N) { N->SetFromFunction(F); });
+				else
+					Node = Place<UK2Node_CallFunction>(G, Call, [F](UK2Node_CallFunction* N) { N->SetFromFunction(F); });
 			}
 			else if (Type == TEXT("VariableGet") || Type == TEXT("VariableSet"))
 			{

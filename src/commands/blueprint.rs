@@ -11,6 +11,9 @@ pub enum BlueprintCmd {
         path: String,
         #[arg(long, default_value = "Actor")]
         parent: String,
+        /// Create a Blueprint Interface instead of a class
+        #[arg(long)]
+        interface: bool,
     },
     /// Show variables, graphs and components
     Get { path: String },
@@ -150,9 +153,16 @@ pub fn to_call(cmd: BlueprintCmd) -> Result<(&'static str, Value), CliError> {
         }
     };
     let tool = match cmd {
-        BlueprintCmd::Create { path, parent } => {
+        BlueprintCmd::Create {
+            path,
+            parent,
+            interface,
+        } => {
             put("path", json!(path));
             put("parent", json!(parent));
+            if interface {
+                put("kind", json!("interface"));
+            }
             "bp_create"
         }
         BlueprintCmd::Get { path } => {

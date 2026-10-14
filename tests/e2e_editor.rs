@@ -1300,3 +1300,92 @@ fn e2e_17_menu_ui_clicks_in_play() {
     assert_eq!(text_of(&after), "STARTED", "{after}");
     ok(&["pie", "stop"]);
 }
+
+#[test]
+fn e2e_18_blueprint_interfaces() {
+    if !enabled() {
+        return;
+    }
+    let bpi = root("BPI_Interact");
+    ok(&["blueprint", "create", &bpi, "--interface"]);
+    call(
+        "bp_add_function",
+        json!({"path": bpi, "name": "Interact", "inputs": [{"name": "Who", "type": "Actor"}]}),
+    );
+    assert_eq!(ok(&["blueprint", "compile", &bpi])["errors"], 0);
+    ok(&["blueprint", "save", &bpi]);
+
+    let door = root("BP_Door");
+    ok(&["blueprint", "create", &door, "--parent", "Actor"]);
+    call(
+        "bp_implement_interface",
+        json!({"path": door, "interface": bpi}),
+    );
+    ok(&["blueprint", "compile", &door]);
+    let ev = node(&door, "Event", Some("Interact"), json!({}));
+    assert!(
+        ev["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "Who"),
+        "{ev}"
+    );
+    let say = node(&door, "CallFunction", Some("PrintString"), json!({}));
+    pin_link(&door, &ev, "then", &say, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &door,
+        say["id"].as_str().unwrap(),
+        "InString",
+        "DOOR_INTERACTED",
+    ]);
+    assert_eq!(ok(&["blueprint", "compile", &door])["errors"], 0);
+    ok(&["blueprint", "save", &door]);
+
+    // A caller that does not implement the interface sends it as a message.
+    let map = root("L_Interact");
+    ok(&[
+        "level",
+        "new",
+        &map,
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let begin = node(&map, "Event", Some("BeginPlay"), json!({}));
+    let find = node(&map, "CallFunction", Some("GetActorOfClass"), json!({}));
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        find["id"].as_str().unwrap(),
+        "ActorClass",
+        &door,
+    ]);
+    let msg = node(
+        &map,
+        "CallFunction",
+        Some("Interact"),
+        json!({"memberParent": bpi}),
+    );
+    assert_eq!(msg["class"], "K2Node_Message", "{msg}");
+    pin_link(&map, &begin, "then", &find, "execute");
+    pin_link(&map, &find, "then", &msg, "execute");
+    pin_link(&map, &find, "ReturnValue", &msg, "self");
+    assert_eq!(ok(&["blueprint", "compile", &map])["errors"], 0);
+    ok(&["blueprint", "save", &map]);
+    if render_enabled() {
+        call("actor_spawn", json!({"actorClass": door, "label": "Door1"}));
+        ok(&["level", "save"]);
+        let pie = ok(&[
+            "pie",
+            "run",
+            "--seconds",
+            "20",
+            "--stop-on-log",
+            "DOOR_INTERACTED",
+        ]);
+        assert_eq!(pie["endedReason"], "log", "{pie}");
+    }
+}

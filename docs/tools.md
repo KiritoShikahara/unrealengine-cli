@@ -62,7 +62,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `bp_add_variable` | yes | Add a member variable. type: bool/int/int64/byte/float/double/string/name/text/vector/rotator/transform/color/<class>/<struct>, optional []. |
 | `bp_compile` |  | Compile and return status, error/warning counts and messages. |
 | `bp_connect` | yes | Connect pins: from/to are '<node>.<pin>' (node = N<k> or guid). |
-| `bp_create` | yes | Create a Blueprint asset (parent: class name, /Script path or Blueprint path). |
+| `bp_create` | yes | Create a Blueprint asset (parent: class name, /Script path or Blueprint path). kind=interface creates a Blueprint Interface (add its functions with bp_add_function). |
 | `bp_disconnect` | yes | Break one link (from+to) or every link of a pin (from only). |
 | `bp_get` |  | Variables, graphs, components and interfaces of a Blueprint. |
 | `bp_graph_get` |  | Nodes, pins and links of one graph. Node ids N<k> are stable until nodes are removed. |
@@ -176,7 +176,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | Tool | Changes | Summary |
 |---|---|---|
 | `cook_content` | yes | Start a content cook for a platform; returns the process id and log file. |
-| `package_project` | yes | Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status). |
+| `package_project` | yes | Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows; never an engine install or Content); returns the process id and log file (poll with package_status). check=true only validates outputDir. |
 | `package_status` |  | State of a package/cook run from its log file (running, succeeded, failed). |
 
 ## project

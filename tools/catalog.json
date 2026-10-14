@@ -885,8 +885,8 @@
  {
   "name": "bp_create",
   "group": "blueprint",
-  "summary": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path).",
-  "description": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path).",
+  "summary": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path). kind=interface creates a Blueprint Interface (add its functions with bp_add_function).",
+  "description": "Create a Blueprint asset (parent: class name, /Script path or Blueprint path). kind=interface creates a Blueprint Interface (add its functions with bp_add_function).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -895,6 +895,13 @@
     },
     "parent": {
      "type": "string"
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "class",
+      "interface"
+     ]
     }
    },
    "required": [
@@ -2435,8 +2442,8 @@
  {
   "name": "package_project",
   "group": "packaging",
-  "summary": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
-  "description": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
+  "summary": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows; never an engine install or Content); returns the process id and log file (poll with package_status). check=true only validates outputDir.",
+  "description": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows; never an engine install or Content); returns the process id and log file (poll with package_status). check=true only validates outputDir.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -2453,6 +2460,9 @@
     },
     "platform": {
      "type": "string"
+    },
+    "check": {
+     "type": "boolean"
     }
    },
    "required": [

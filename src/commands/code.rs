@@ -371,9 +371,24 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool, rebuild: bool) -> Result<Value,
             json!({ "action": action, "reason": reason, "changedFiles": names, "applied": false }),
         );
     }
+    // Remember the open level so the reopened editor shows it again (the editor would start on its default map).
+    let level = if running.is_some() {
+        let saved = ctx.global.timeout_ms;
+        ctx.global.timeout_ms = 5_000;
+        let info = ctx.call("level_info", json!({})).ok();
+        ctx.global.timeout_ms = saved;
+        info.and_then(|v| v["path"].as_str().map(str::to_string))
+            .filter(|p| p.starts_with("/Game/"))
+            .map(|p| p.split('.').next().unwrap_or(&p).to_string())
+    } else {
+        None
+    };
     let mut live_error = Value::Null;
     if action == "live" {
-        match ctx.call_with_timeout("code_live_compile", json!({}), 600_000) {
+        // The plugin gives up after 300 s; 360 s covers an editor whose game thread Live Coding has blocked,
+        // so a stuck compile falls back to a rebuild promptly whatever --timeout-ms says.
+        ctx.global.timeout_ms = 360_000;
+        match ctx.call("code_live_compile", json!({ "timeoutSeconds": 300 })) {
             Ok(live) => {
                 return Ok(
                     json!({ "action": action, "reason": reason, "changedFiles": names, "live": live }),
@@ -409,7 +424,11 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool, rebuild: bool) -> Result<Value,
             .as_ref()
             .map(|i| editor::WindowMode::from_instance(&i.mode))
             .unwrap_or(editor::WindowMode::Normal);
-        Some(editor::open(&engine, &up, mode, Duration::from_secs(600))?)
+        let opened = editor::open(&engine, &up, mode, Duration::from_secs(600))?;
+        if let Some(path) = &level {
+            let _ = ctx.call("level_open", json!({ "path": path }));
+        }
+        Some(opened)
     } else {
         None
     };

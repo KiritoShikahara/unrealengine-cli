@@ -44,6 +44,7 @@ try:
     run("blueprint", "save", bp)
     run("level", "new", ROOT + "/L_Cpp", "--template", "/Engine/Maps/Templates/Template_Default")
     run("tool", "call", "actor_spawn", "--args", json.dumps({"actorClass": bp, "location": [0, 0, 200], "label": "Keeper"}))
+    run("level", "save")
 
     def points_after_call():
         run("pie", "start")

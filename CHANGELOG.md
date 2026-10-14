@@ -15,6 +15,11 @@
 - `doctor` reports the running editor's plugin version; recommends `r.ShaderCompiler.AllowDistributedCompilation=0`
   (the old `r.XGEShaderCompile` no longer exists in UE 5.7).
 - `code apply` reopens the level that was open after a rebuild.
+- Blueprint Interfaces: `blueprint create --interface`, interface events in implementers, calls as messages.
+- MCP clients receive CLI warnings as an extra text item.
+- `prop set` takes asset paths in arrays (e.g. `OverrideMaterials`), sets physics flags on Blueprint component
+  templates, and reports values the engine reverted (`prop.not_applied`).
+- E2E: menu UI clicks, Level Blueprint, Blueprint Interfaces, SaveGame round trip.
 - Fixes: `package_project` with an empty outputDir archived into the engine's Binaries folder (now refused, as is
   any Unreal Engine install and the project's Content folder; relative paths are under the project; `check: true`
   validates without building); relative paths for `editor_screenshot` and `asset_import` resolve under the project; editor exit no longer crashes in the bridge; `editor close` waits for the process

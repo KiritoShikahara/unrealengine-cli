@@ -25,6 +25,7 @@ unrealengine-cli skills lint --severity error
 | `unreal-development-loop` | Iterating on a feature: edit, compile, run in PIE, read logs, repeat until it works |
 | `unreal-engine-reference` | You need to check an engine C++ or Python API signature before using it |
 | `unreal-enhanced-input` | Adding input actions, mapping contexts and key bindings, and wiring them to player Blueprints |
+| `unreal-fab-assets` | The project needs ready-made content from Fab (meshes, materials, VFX, sounds, asset packs): find a listing, then download and add it to the project |
 | `unreal-game-from-scratch` | Building a playable game or prototype end to end: game mode, player pawn and input, gameplay actors, HUD, level, then play-testing it |
 | `unreal-landscape` | Creating terrain, sculpting or painting a landscape |
 | `unreal-level-build` | Building or changing a level: creating maps, spawning, moving, attaching or deleting actors |

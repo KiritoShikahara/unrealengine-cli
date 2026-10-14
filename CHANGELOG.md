@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+- Fab: `fab status|search|library|add` (tools `fab_status`, `fab_search`, `fab_library`, `fab_add`, `fab_page_run`).
+  `fab add` downloads a listing from the signed-in user's library through the editor's Fab tab and imports it like
+  Add to Project (asset packs for the running engine version, or glTF/GLB/FBX under `/Game/Fab`), then waits and saves.
+  `--acquire-free` adds a free listing to the library first; paid listings are never bought.
+- New skill `unreal-fab-assets`.
+- Fix: a command run in a project whose editor is not running no longer drives another project's editor
+  (it used to fall back to the only running editor, so `editor close` could close someone else's editor).
+  Instance files caught mid-rewrite are re-read instead of reported as missing.
+
 ## 0.3.0
 
 - The running editor's plugin version is checked on every command; an outdated plugin gives a warning with the update command.

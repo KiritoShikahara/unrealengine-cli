@@ -130,7 +130,27 @@ fn default_pid() -> Option<u32> {
 /// Picks the editor to talk to: --instance, then --project / cwd project, then the remembered
 /// default, then the only running instance.
 pub fn select(pid: Option<u32>, project: Option<&Path>, cwd: &Path) -> Result<Instance, CliError> {
-    let all = list();
+    let mut all = list();
+    let wanted = match (pid, project) {
+        (Some(_), _) => None,
+        (None, Some(p)) => Some(paths::find_uproject(Some(p), cwd)?),
+        (None, None) => paths::find_uproject(None, cwd).ok(),
+    };
+    // A running editor rewrites its instance file every 10 s; a read during the rename misses it.
+    for _ in 0..5 {
+        let found = match (pid, &wanted) {
+            (Some(pid), _) => all.iter().any(|i| i.pid == pid),
+            (None, Some(w)) => all
+                .iter()
+                .any(|i| paths::same_path(Path::new(&i.project), w)),
+            (None, None) => !all.is_empty(),
+        };
+        if found {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(200));
+        all = list();
+    }
     if let Some(pid) = pid {
         return all.into_iter().find(|i| i.pid == pid).ok_or_else(|| {
             CliError::connect(
@@ -143,10 +163,6 @@ pub fn select(pid: Option<u32>, project: Option<&Path>, cwd: &Path) -> Result<In
     if all.is_empty() {
         return Err(no_instance());
     }
-    let wanted = match project {
-        Some(p) => Some(paths::find_uproject(Some(p), cwd)?),
-        None => paths::find_uproject(None, cwd).ok(),
-    };
     if let Some(w) = &wanted {
         if let Some(i) = all
             .iter()
@@ -166,6 +182,16 @@ pub fn select(pid: Option<u32>, project: Option<&Path>, cwd: &Path) -> Result<In
         && let Some(i) = all.iter().find(|i| i.pid == d)
     {
         return Ok(i.clone());
+    }
+    // Never drive another project's editor just because it is the only one running.
+    if let Some(w) = &wanted {
+        return Err(CliError::connect(
+            "connect.no_instance",
+            format!("no running editor has {} open", w.display()),
+        )
+        .with_hint(
+            "start it: unrealengine-cli editor open (or pick another editor with --instance <pid>)",
+        ));
     }
     if all.len() == 1 {
         return Ok(all.into_iter().next().unwrap());

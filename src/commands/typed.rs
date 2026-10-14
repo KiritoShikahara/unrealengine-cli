@@ -576,3 +576,106 @@ pub fn pie(ctx: &mut Ctx, cmd: PieCmd) -> Result<Value, CliError> {
         PieCmd::Click { widget } => ctx.call("pie_click", Args::new().put("widget", widget).done()),
     }
 }
+
+#[derive(Debug, Subcommand)]
+pub enum FabCmd {
+    /// Whether the editor's Fab page is signed in (opens the Fab tab)
+    Status,
+    /// Search Fab listings
+    Search {
+        query: String,
+        /// Only free listings
+        #[arg(long)]
+        free: bool,
+        #[arg(long)]
+        count: Option<u32>,
+    },
+    /// Your Fab library (owned listings), optionally filtered
+    Library {
+        query: Option<String>,
+        #[arg(long)]
+        count: Option<u32>,
+    },
+    /// Download a listing from your library and add it to the project (waits for the import)
+    Add {
+        /// Listing uid or fab.com listing URL
+        listing: String,
+        /// unreal-engine | gltf | glb | fbx (default: the first one offered, in that order)
+        #[arg(long)]
+        format: Option<String>,
+        /// Megascans quality: low | medium | high | raw
+        #[arg(long)]
+        quality: Option<String>,
+        /// Add a free listing to your library first (accepts its license; paid listings are never bought)
+        #[arg(long = "acquire-free")]
+        acquire_free: bool,
+        /// Seconds to wait for the download and import
+        #[arg(long, default_value_t = 1800)]
+        timeout: u64,
+    },
+}
+
+pub fn fab(ctx: &mut Ctx, cmd: FabCmd) -> Result<Value, CliError> {
+    match cmd {
+        FabCmd::Status => ctx.call_with_timeout("fab_status", json!({}), 90_000),
+        FabCmd::Search { query, free, count } => {
+            let args = Args::new()
+                .put("query", query)
+                .flag("freeOnly", free)
+                .put("count", count)
+                .done();
+            ctx.call_with_timeout("fab_search", args, 90_000)
+        }
+        FabCmd::Library { query, count } => {
+            let args = Args::new().put("query", query).put("count", count).done();
+            ctx.call_with_timeout("fab_library", args, 150_000)
+        }
+        FabCmd::Add {
+            listing,
+            format,
+            quality,
+            acquire_free,
+            timeout,
+        } => {
+            let args = Args::new()
+                .put("listing", listing)
+                .put("format", format)
+                .put("quality", quality)
+                .flag("acquireFree", acquire_free)
+                .put("timeoutSeconds", timeout)
+                .done();
+            // The job's deadline is the request timeout; leave room for the page lookup.
+            let started = ctx.call_with_timeout("fab_add", args, (timeout + 180) * 1000)?;
+            let job = started["jobId"].as_str().unwrap_or_default().to_string();
+            let begin = std::time::Instant::now();
+            loop {
+                let j = ctx.call("jobs_get", json!({ "jobId": job }))?;
+                match j["state"].as_str().unwrap_or_default() {
+                    "succeeded" => return Ok(j["result"].clone()),
+                    "failed" => {
+                        let e = &j["error"];
+                        return Err(CliError::editor(
+                            e["code"].as_str().unwrap_or("fab.import_failed"),
+                            e["message"].as_str().unwrap_or("the Fab import failed"),
+                        )
+                        .with_details(e["details"].clone()));
+                    }
+                    "timeout" | "cancelled" => {
+                        return Err(CliError::timeout(
+                            "fab.timeout",
+                            format!("job {job} ended: {}", j["state"]),
+                        ));
+                    }
+                    _ if begin.elapsed().as_secs() > timeout + 180 => {
+                        let _ = ctx.call("jobs_cancel", json!({ "jobId": job }));
+                        return Err(CliError::timeout(
+                            "fab.timeout",
+                            "the Fab import did not finish in time",
+                        ));
+                    }
+                    _ => std::thread::sleep(std::time::Duration::from_millis(500)),
+                }
+            }
+        }
+    }
+}

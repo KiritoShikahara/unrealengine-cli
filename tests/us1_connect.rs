@@ -105,6 +105,30 @@ fn logs_forwards_filters() {
 }
 
 #[test]
+fn cwd_project_never_falls_back_to_another_projects_editor() {
+    let home = tempfile::tempdir().unwrap();
+    let m = MockBuilder::new()
+        .tool("system_ping", |_| Ok(json!({"pong": true})))
+        .start();
+    write_instance(home.path(), &m, "C:/Other/Other.uproject");
+    let proj = tempfile::tempdir().unwrap();
+    std::fs::write(proj.path().join("Game.uproject"), "{}").unwrap();
+    let (code, v) = run_json(home.path(), proj.path(), &["ping"]);
+    assert_eq!(code, 3, "{v}");
+    assert_eq!(v["error"]["code"], "connect.no_instance");
+    assert!(
+        v["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Game.uproject"),
+        "{v}"
+    );
+    let pid = std::process::id().to_string();
+    let (code, v) = run_json(home.path(), proj.path(), &["--instance", &pid, "ping"]);
+    assert_eq!(code, 0, "an explicit --instance still works: {v}");
+}
+
+#[test]
 fn project_flag_selects_matching_instance() {
     let home = tempfile::tempdir().unwrap();
     let proj = tempfile::tempdir().unwrap();

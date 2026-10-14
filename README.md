@@ -3,7 +3,7 @@
 [日本語](README.ja.md)
 
 `unrealengine-cli` is a Rust CLI that lets AI agents (Claude Code, Codex, Cursor, ...) drive Unreal Editor 5.5–5.8.
-It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 139 editor tools:
+It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 144 editor tools:
 Blueprints, levels and actors, assets, reflected properties, C++ (Live Coding / rebuild), PIE, Automation tests,
 animation, UMG, materials, Niagara, landscapes, Enhanced Input, data assets, Sequencer, audio and packaging.
 
@@ -61,6 +61,7 @@ These scenarios run against a real editor (UE 5.7 and 5.8) with CLI calls only:
 | Coin game: game mode with score, HUD, pickups, an enemy chasing the player (Behavior Tree + NavMesh), played in PIE | `scripts/e2e-game.py` |
 | Shooter: Enhanced Input with WASD modifiers, character movement, projectiles, damage | `scripts/e2e-game2.py` |
 | C++: new UCLASS, rebuild, use from a Blueprint in PIE, change the .cpp and apply it (Live Coding or rebuild) | `scripts/e2e-cpp.py` |
+| Fab: library search, then Add to Project for an asset pack and an FBX listing (imported, saved) | `unrealengine-cli fab add <uid>` (manual; needs a signed-in Fab tab) |
 | Editor tools: Blueprints, levels, assets, materials, input, data, UMG, animation, Niagara, landscape, AI, packaging checks | `bash scripts/e2e.sh 5.7` |
 
 ## Editor modes

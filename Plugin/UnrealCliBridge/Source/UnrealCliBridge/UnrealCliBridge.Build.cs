@@ -14,7 +14,7 @@ public class UnrealCliBridge : ModuleRules
             "EditorSubsystem", "ToolMenus", "AnimGraph", "AnimGraphRuntime", "UMG", "UMGEditor",
             "Niagara", "NiagaraEditor", "Landscape", "Foliage", "EnhancedInput", "InputCore",
             "AIModule", "AIGraph", "BehaviorTreeEditor", "NavigationSystem", "GameplayTasks",
-            "MovieScene", "MovieSceneTracks"
+            "MovieScene", "MovieSceneTracks", "WebBrowser"
         });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

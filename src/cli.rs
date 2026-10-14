@@ -144,6 +144,11 @@ pub enum Command {
         #[command(subcommand)]
         action: typed::PieCmd,
     },
+    /// Fab marketplace: search, your library, add listings to the project
+    Fab {
+        #[command(subcommand)]
+        action: typed::FabCmd,
+    },
     /// Automation tests
     Test {
         #[command(subcommand)]
@@ -414,6 +419,7 @@ fn dispatch(
         Command::Asset { action } => ("asset", typed::asset(ctx, action)),
         Command::Prop { action } => ("prop", typed::prop(ctx, action)),
         Command::Pie { action } => ("pie", typed::pie(ctx, action)),
+        Command::Fab { action } => ("fab", typed::fab(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),
         Command::Skills { action } => {

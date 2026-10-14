@@ -1,6 +1,6 @@
 # Tool catalog
 
-139 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+144 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -105,6 +105,16 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `editor_selection_set` | yes | Select level actors by label (replaces the selection). |
 | `editor_undo` | yes | Undo the last editor transaction. |
 | `editor_viewport_camera` |  | Get the active viewport camera, or move it when location/rotation are given. |
+
+## fab
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `fab_add` | yes | Download a Fab listing from the user's library and add it to the project, as the Fab tab's Add to Project does (asset packs for this engine version, or glTF/GLB/FBX imported under /Game/Fab). Runs as a job; the result lists the imported content path. acquireFree adds a free listing to the user's library first (accepting its license); paid listings are never bought. |
+| `fab_library` |  | List the signed-in user's Fab library (owned listings), optionally filtered by query. Pass a uid to fab_add. |
+| `fab_page_run` |  | Run JavaScript in the editor's Fab browser page (opens the Fab tab). The script is an async function body; `A` holds the args; its return value comes back as JSON. |
+| `fab_search` |  | Search Fab listings: uid, title, type, seller, isFree, formats. Pass a uid to fab_add. |
+| `fab_status` |  | Whether the Fab plugin is loaded and its page is signed in to Fab (opens the Fab tab). |
 
 ## input
 

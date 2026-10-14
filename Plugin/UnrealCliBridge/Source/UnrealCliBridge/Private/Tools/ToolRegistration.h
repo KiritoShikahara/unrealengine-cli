@@ -22,4 +22,5 @@ namespace UCli
 	void RegisterNiagaraLandscapeTools(FToolRegistry& Registry);
 	void RegisterPlayTools(FToolRegistry& Registry);
 	void RegisterAiTools(FToolRegistry& Registry);
+	void RegisterFabTools(FToolRegistry& Registry);
 }

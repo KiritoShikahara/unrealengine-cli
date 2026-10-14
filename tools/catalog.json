@@ -1668,6 +1668,133 @@
   "minEngine": "5.5"
  },
  {
+  "name": "fab_add",
+  "group": "fab",
+  "summary": "Download a Fab listing from the user's library and add it to the project, as the Fab tab's Add to Project does (asset packs for this engine version, or glTF/GLB/FBX imported under /Game/Fab). Runs as a job; the result lists the imported content path. acquireFree adds a free listing to the user's library first (accepting its license); paid listings are never bought.",
+  "description": "Download a Fab listing from the user's library and add it to the project, as the Fab tab's Add to Project does (asset packs for this engine version, or glTF/GLB/FBX imported under /Game/Fab). Runs as a job; the result lists the imported content path. acquireFree adds a free listing to the user's library first (accepting its license); paid listings are never bought.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "listing": {
+     "type": "string",
+     "description": "listing uid or fab.com listing URL"
+    },
+    "format": {
+     "type": "string",
+     "enum": [
+      "unreal-engine",
+      "gltf",
+      "glb",
+      "fbx"
+     ]
+    },
+    "quality": {
+     "type": "string",
+     "enum": [
+      "low",
+      "medium",
+      "high",
+      "raw"
+     ]
+    },
+    "acquireFree": {
+     "type": "boolean"
+    },
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "listing"
+   ]
+  },
+  "mutating": true,
+  "longRunning": true,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "fab_library",
+  "group": "fab",
+  "summary": "List the signed-in user's Fab library (owned listings), optionally filtered by query. Pass a uid to fab_add.",
+  "description": "List the signed-in user's Fab library (owned listings), optionally filtered by query. Pass a uid to fab_add.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "count": {
+     "type": "integer"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "fab_page_run",
+  "group": "fab",
+  "summary": "Run JavaScript in the editor's Fab browser page (opens the Fab tab). The script is an async function body; `A` holds the args; its return value comes back as JSON.",
+  "description": "Run JavaScript in the editor's Fab browser page (opens the Fab tab). The script is an async function body; `A` holds the args; its return value comes back as JSON.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "script": {
+     "type": "string"
+    },
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "script"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "fab_search",
+  "group": "fab",
+  "summary": "Search Fab listings: uid, title, type, seller, isFree, formats. Pass a uid to fab_add.",
+  "description": "Search Fab listings: uid, title, type, seller, isFree, formats. Pass a uid to fab_add.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "count": {
+     "type": "integer"
+    },
+    "freeOnly": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "query"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "fab_status",
+  "group": "fab",
+  "summary": "Whether the Fab plugin is loaded and its page is signed in to Fab (opens the Fab tab).",
+  "description": "Whether the Fab plugin is loaded and its page is signed in to Fab (opens the Fab tab).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "input_action_create",
   "group": "input",
   "summary": "Create an Enhanced Input Action (valueType: Boolean|Axis1D|Axis2D|Axis3D).",

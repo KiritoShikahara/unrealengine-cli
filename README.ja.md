@@ -3,7 +3,7 @@
 [English](README.md)
 
 `unrealengine-cli` は、AI エージェント(Claude Code、Codex、Cursor など)から Unreal Editor 5.5〜5.8 を操作するための Rust 製 CLI です。
-エディタ側プラグイン **UnrealCliBridge** とループバック TCP で通信し、139 個のエディタツールを公開します。
+エディタ側プラグイン **UnrealCliBridge** とループバック TCP で通信し、144 個のエディタツールを公開します。
 対象は Blueprint、レベルとアクター、アセット、リフレクションによるプロパティ操作、C++(Live Coding / 再ビルド)、PIE、Automation テスト、
 アニメーション、UMG、マテリアル、Niagara、ランドスケープ、Enhanced Input、データアセット、Sequencer、オーディオ、パッケージングです。
 
@@ -58,6 +58,7 @@ unrealengine-cli pie run --seconds 10 --stop-on-log Hello
 |---|---|
 | コイン集めゲーム: スコアを持つ GameMode、HUD、コイン、プレイヤーを追う敵(Behavior Tree + NavMesh)を作り、PIE で遊んで確認 | `scripts/e2e-game.py` |
 | シューティング: WASD の Modifier 付き Enhanced Input、キャラクター移動、弾、ダメージ | `scripts/e2e-game2.py` |
+| Fab: ライブラリ検索、asset pack と FBX の素材を Add to Project と同じ方法で取り込み・保存 | `unrealengine-cli fab add <uid>`(手動。Fab タブでのサインインが必要) |
 | C++: UCLASS の追加、再ビルド、Blueprint から PIE で利用、.cpp の変更を反映(Live Coding または再ビルド) | `scripts/e2e-cpp.py` |
 | エディタツール全般: Blueprint、レベル、アセット、マテリアル、入力、データ、UMG、アニメーション、Niagara、ランドスケープ、AI、パッケージングのチェック | `bash scripts/e2e.sh 5.7` |
 

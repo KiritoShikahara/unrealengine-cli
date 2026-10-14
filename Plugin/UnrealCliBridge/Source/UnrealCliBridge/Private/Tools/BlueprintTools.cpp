@@ -18,6 +18,16 @@
 #include "K2Node_Self.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_BreakStruct.h"
+#include "K2Node_CallDelegate.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_MakeStruct.h"
+#include "K2Node_SpawnActorFromClass.h"
+#include "K2Node_SwitchEnum.h"
+#include "K2Node_Timeline.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/TimelineTemplate.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -426,6 +436,79 @@ namespace
 	}
 
 	const TCHAR* StandardMacros = TEXT("/Engine/EditorBlueprintResources/StandardMacros.StandardMacros");
+
+	// Places a node of any graph-node class (for node classes whose headers are private or optional).
+	// bPinsFirst: some nodes (SpawnActorFromClass) read their pins in PostPlacedNewNode.
+	UEdGraphNode* PlaceClass(UEdGraph* G, UClass* C, const FToolCallRef& Call, TFunctionRef<void(UEdGraphNode*)> Setup, bool bPinsFirst = false)
+	{
+		UEdGraphNode* Node = NewObject<UEdGraphNode>(G, C, NAME_None, RF_Transactional);
+		G->AddNode(Node, false, false);
+		Node->CreateNewGuid();
+		Setup(Node);
+		const TArray<TSharedPtr<FJsonValue>> Pos = Call->GetArray(TEXT("position"));
+		if (Pos.Num() == 2)
+		{
+			Node->NodePosX = static_cast<int32>(Pos[0]->AsNumber());
+			Node->NodePosY = static_cast<int32>(Pos[1]->AsNumber());
+		}
+		else
+		{
+			int32 MaxY = 0;
+			for (UEdGraphNode* N : G->Nodes)
+			{
+				if (N && N != Node) MaxY = FMath::Max(MaxY, N->NodePosY + 200);
+			}
+			Node->NodePosY = MaxY;
+		}
+		if (bPinsFirst)
+		{
+			Node->AllocateDefaultPins();
+			Node->PostPlacedNewNode();
+		}
+		else
+		{
+			Node->PostPlacedNewNode();
+			Node->AllocateDefaultPins();
+		}
+		return Node;
+	}
+
+	UClass* ResolveNodeClass(const FString& Name)
+	{
+		for (const FString& Candidate : {Name, TEXT("K2Node_") + Name})
+		{
+			UClass* C = Candidate.StartsWith(TEXT("/")) ? LoadObject<UClass>(nullptr, *Candidate) : FindFirstObject<UClass>(*Candidate, EFindFirstObjectOptions::NativeFirst);
+			if (C && C->IsChildOf(UEdGraphNode::StaticClass()) && !C->HasAnyClassFlags(CLASS_Abstract)) return C;
+		}
+		return nullptr;
+	}
+
+	UScriptStruct* ResolveStruct(const FString& Name)
+	{
+		if (Name.StartsWith(TEXT("/"))) return LoadObject<UScriptStruct>(nullptr, *ObjectPath(Name));
+		UScriptStruct* S = FindFirstObject<UScriptStruct>(*Name, EFindFirstObjectOptions::NativeFirst);
+		return S ? S : FindFirstObject<UScriptStruct>(*Name.RightChop(Name.StartsWith(TEXT("F")) ? 1 : 0), EFindFirstObjectOptions::NativeFirst);
+	}
+
+	UEnum* ResolveEnum(const FString& Name)
+	{
+		return Name.StartsWith(TEXT("/")) ? LoadObject<UEnum>(nullptr, *ObjectPath(Name)) : FindFirstObject<UEnum>(*Name, EFindFirstObjectOptions::NativeFirst);
+	}
+
+	// Class whose properties a Blueprint graph sees: the skeleton class has members added since the last compile.
+	UClass* GraphClass(UBlueprint* B)
+	{
+		return B->SkeletonGeneratedClass ? B->SkeletonGeneratedClass.Get() : B->GeneratedClass.Get();
+	}
+
+	void SetClassPin(UEdGraphNode* Node, UClass* Cls)
+	{
+		if (UEdGraphPin* Pin = Node->FindPin(TEXT("Class")))
+		{
+			Pin->DefaultObject = Cls;
+			Node->PinDefaultValueChanged(Pin);
+		}
+	}
 }
 
 void UCli::RegisterBlueprintTools(FToolRegistry& R)
@@ -531,8 +614,8 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(GraphJson(G));
 		});
 
-	R.Add(TEXT("bp_add_node"), TEXT("blueprint"), TEXT("Add a node: Event | CustomEvent | CallFunction | VariableGet | VariableSet | Branch | Sequence | Self | Cast | Macro."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
+	R.Add(TEXT("bp_add_node"), TEXT("blueprint"), TEXT("Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro","InputAction","ComponentEvent","SpawnActor","CreateWidget","CallDispatcher","BindDispatcher","MakeStruct","BreakStruct","SwitchEnum","Timeline","Node"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"delegate":{"type":"string"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
 		{
@@ -586,7 +669,34 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			else if (Type == TEXT("CustomEvent"))
 			{
 				if (!NeedMember()) return;
+				// delegate = an event dispatcher name: the event gets its signature so it can be bound with BindDispatcher.
+				const FString Signature = Call->GetString(TEXT("delegate"));
+				UFunction* SigFn = nullptr;
+				if (!Signature.IsEmpty())
+				{
+					UClass* Owner = Parent.IsEmpty() ? GraphClass(B) : ResolveClass(Parent);
+					FMulticastDelegateProperty* Prop = Owner ? FindFProperty<FMulticastDelegateProperty>(Owner, *Signature) : nullptr;
+					SigFn = Prop ? Prop->SignatureFunction.Get() : nullptr;
+					if (!SigFn)
+					{
+						Call->Fail(TEXT("blueprint.dispatcher_not_found"), FString::Printf(TEXT("no event dispatcher '%s'"), *Signature), TEXT("add one: bp_add_event_dispatcher, then bp_compile"));
+						return;
+					}
+				}
 				Node = Place<UK2Node_CustomEvent>(G, Call, [&](UK2Node_CustomEvent* N) { N->CustomFunctionName = FName(*Member); });
+				if (SigFn)
+				{
+					UK2Node_CustomEvent* Event = CastChecked<UK2Node_CustomEvent>(Node);
+					const UEdGraphSchema_K2* K2 = GetDefault<UEdGraphSchema_K2>();
+					for (TFieldIterator<FProperty> It(SigFn); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+					{
+						FEdGraphPinType PinType;
+						if (K2->ConvertPropertyToPinType(*It, PinType))
+						{
+							Event->CreateUserDefinedPin(It->GetFName(), PinType, EGPD_Output);
+						}
+					}
+				}
 			}
 			else if (Type == TEXT("CallFunction"))
 			{
@@ -602,17 +712,21 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			else if (Type == TEXT("VariableGet") || Type == TEXT("VariableSet"))
 			{
 				if (!NeedMember()) return;
-				const bool bExists = FBlueprintEditorUtils::FindNewVariableIndex(B, *Member) != INDEX_NONE
-					|| (B->ParentClass && B->ParentClass->FindPropertyByName(*Member));
+				UClass* External = Parent.IsEmpty() ? nullptr : ResolveClass(Parent);
+				const bool bExists = External ? External->FindPropertyByName(*Member) != nullptr
+					: FBlueprintEditorUtils::FindNewVariableIndex(B, *Member) != INDEX_NONE
+						|| (GraphClass(B) && GraphClass(B)->FindPropertyByName(*Member))
+						|| (B->ParentClass && B->ParentClass->FindPropertyByName(*Member));
 				if (!bExists)
 				{
-					Call->Fail(TEXT("blueprint.variable_not_found"), FString::Printf(TEXT("no variable '%s'"), *Member), TEXT("add it: bp_add_variable"));
+					Call->Fail(TEXT("blueprint.variable_not_found"), FString::Printf(TEXT("no variable or component '%s'%s"), *Member, External ? *(TEXT(" on ") + External->GetName()) : TEXT("")), TEXT("add it: bp_add_variable / bp_add_component (compile first for new components)"));
 					return;
 				}
+				auto SetRef = [&](FMemberReference& Ref) { if (External) Ref.SetExternalMember(*Member, External); else Ref.SetSelfMember(*Member); };
 				if (Type == TEXT("VariableGet"))
-					Node = Place<UK2Node_VariableGet>(G, Call, [&](UK2Node_VariableGet* N) { N->VariableReference.SetSelfMember(*Member); });
+					Node = Place<UK2Node_VariableGet>(G, Call, [&](UK2Node_VariableGet* N) { SetRef(N->VariableReference); });
 				else
-					Node = Place<UK2Node_VariableSet>(G, Call, [&](UK2Node_VariableSet* N) { N->VariableReference.SetSelfMember(*Member); });
+					Node = Place<UK2Node_VariableSet>(G, Call, [&](UK2Node_VariableSet* N) { SetRef(N->VariableReference); });
 			}
 			else if (Type == TEXT("Branch"))
 			{
@@ -648,6 +762,108 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 					return;
 				}
 				Node = Place<UK2Node_MacroInstance>(G, Call, [Macro](UK2Node_MacroInstance* N) { N->SetMacroGraph(Macro); });
+			}
+			else if (Type == TEXT("InputAction"))
+			{
+				if (!NeedMember()) return;
+				UObject* Action = LoadObject<UObject>(nullptr, *ObjectPath(Member), nullptr, LOAD_NoWarn | LOAD_Quiet);
+				UClass* NodeClass = ResolveNodeClass(TEXT("/Script/InputBlueprintNodes.K2Node_EnhancedInputAction"));
+				FObjectPropertyBase* Prop = NodeClass ? FindFProperty<FObjectPropertyBase>(NodeClass, TEXT("InputAction")) : nullptr;
+				if (!Action || !Action->GetClass()->GetName().Equals(TEXT("InputAction")) || !Prop)
+				{
+					Call->Fail(TEXT("blueprint.input_action_not_found"), FString::Printf(TEXT("no Input Action at '%s'"), *Member), TEXT("create one: input_action_create"));
+					return;
+				}
+				Node = PlaceClass(G, NodeClass, Call, [Prop, Action](UEdGraphNode* N) { Prop->SetObjectPropertyValue_InContainer(N, Action); });
+			}
+			else if (Type == TEXT("ComponentEvent"))
+			{
+				if (!NeedMember()) return;
+				const FString Delegate = Call->GetString(TEXT("delegate"));
+				FObjectProperty* CompProp = GraphClass(B) ? FindFProperty<FObjectProperty>(GraphClass(B), *Member) : nullptr;
+				FMulticastDelegateProperty* DelProp = CompProp && CompProp->PropertyClass ? FindFProperty<FMulticastDelegateProperty>(CompProp->PropertyClass, *Delegate) : nullptr;
+				if (!DelProp)
+				{
+					Call->Fail(TEXT("blueprint.event_not_found"), FString::Printf(TEXT("no component '%s' with event '%s'"), *Member, *Delegate), TEXT("delegate examples: OnComponentBeginOverlap, OnComponentEndOverlap, OnComponentHit, OnClicked; compile after bp_add_component"));
+					return;
+				}
+				Node = Place<UK2Node_ComponentBoundEvent>(G, Call, [CompProp, DelProp](UK2Node_ComponentBoundEvent* N) { N->InitializeComponentBoundEventParams(CompProp, DelProp); });
+			}
+			else if (Type == TEXT("SpawnActor") || Type == TEXT("CreateWidget"))
+			{
+				UClass* Cls = Member.IsEmpty() ? nullptr : ResolveClass(Member);
+				if (!Member.IsEmpty() && !Cls)
+				{
+					Call->Fail(TEXT("blueprint.class_not_found"), FString::Printf(TEXT("no class '%s'"), *Member));
+					return;
+				}
+				if (Type == TEXT("SpawnActor"))
+					Node = PlaceClass(G, UK2Node_SpawnActorFromClass::StaticClass(), Call, [](UEdGraphNode*) {}, true);
+				else
+					Node = PlaceClass(G, ResolveNodeClass(TEXT("/Script/UMGEditor.K2Node_CreateWidget")), Call, [](UEdGraphNode*) {});
+				if (Cls) SetClassPin(Node, Cls);
+			}
+			else if (Type == TEXT("CallDispatcher") || Type == TEXT("BindDispatcher"))
+			{
+				if (!NeedMember()) return;
+				UClass* Owner = Parent.IsEmpty() ? GraphClass(B) : ResolveClass(Parent);
+				FMulticastDelegateProperty* Prop = Owner ? FindFProperty<FMulticastDelegateProperty>(Owner, *Member) : nullptr;
+				if (!Prop)
+				{
+					Call->Fail(TEXT("blueprint.dispatcher_not_found"), FString::Printf(TEXT("no event dispatcher '%s'"), *Member), TEXT("add one: bp_add_event_dispatcher, then bp_compile"));
+					return;
+				}
+				const bool bSelf = Parent.IsEmpty();
+				if (Type == TEXT("CallDispatcher"))
+					Node = Place<UK2Node_CallDelegate>(G, Call, [Prop, bSelf, Owner](UK2Node_CallDelegate* N) { N->SetFromProperty(Prop, bSelf, Owner); });
+				else
+					Node = Place<UK2Node_AddDelegate>(G, Call, [Prop, bSelf, Owner](UK2Node_AddDelegate* N) { N->SetFromProperty(Prop, bSelf, Owner); });
+			}
+			else if (Type == TEXT("MakeStruct") || Type == TEXT("BreakStruct"))
+			{
+				if (!NeedMember()) return;
+				UScriptStruct* S = ResolveStruct(Member);
+				if (!S)
+				{
+					Call->Fail(TEXT("blueprint.struct_not_found"), FString::Printf(TEXT("no struct '%s'"), *Member), TEXT("examples: Vector, Rotator, Transform, HitResult, or a user struct path"));
+					return;
+				}
+				if (Type == TEXT("MakeStruct"))
+					Node = Place<UK2Node_MakeStruct>(G, Call, [S](UK2Node_MakeStruct* N) { N->StructType = S; });
+				else
+					Node = Place<UK2Node_BreakStruct>(G, Call, [S](UK2Node_BreakStruct* N) { N->StructType = S; });
+			}
+			else if (Type == TEXT("SwitchEnum"))
+			{
+				if (!NeedMember()) return;
+				UEnum* E = ResolveEnum(Member);
+				if (!E)
+				{
+					Call->Fail(TEXT("blueprint.enum_not_found"), FString::Printf(TEXT("no enum '%s'"), *Member));
+					return;
+				}
+				Node = Place<UK2Node_SwitchEnum>(G, Call, [E](UK2Node_SwitchEnum* N) { N->SetEnum(E); });
+			}
+			else if (Type == TEXT("Timeline"))
+			{
+				if (!NeedMember()) return;
+				if (!B->FindTimelineTemplateByVariableName(FName(*Member)))
+				{
+					Call->Fail(TEXT("blueprint.timeline_not_found"), FString::Printf(TEXT("no timeline '%s'"), *Member), TEXT("add one: bp_add_timeline"));
+					return;
+				}
+				Node = Place<UK2Node_Timeline>(G, Call, [&](UK2Node_Timeline* N) { N->TimelineName = FName(*Member); });
+			}
+			else if (Type == TEXT("Node"))
+			{
+				if (!NeedMember()) return;
+				UClass* C = ResolveNodeClass(Member);
+				if (!C)
+				{
+					Call->Fail(TEXT("blueprint.node_class_not_found"), FString::Printf(TEXT("no graph node class '%s'"), *Member), TEXT("examples: K2Node_SwitchInteger, K2Node_SwitchString, K2Node_Select, K2Node_MakeArray, K2Node_GetArrayItem"));
+					return;
+				}
+				Node = PlaceClass(G, C, Call, [](UEdGraphNode*) {});
 			}
 			Touch(B, true);
 			Call->Succeed(NodeJson(G, Node));
@@ -909,6 +1125,117 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			}
 			Touch(B, true);
 			Call->Succeed(GraphJson(G));
+		});
+
+	R.Add(TEXT("bp_add_event_dispatcher"), TEXT("blueprint"), TEXT("Add an event dispatcher with optional inputs [{name,type}]; then bp_compile and use CallDispatcher / BindDispatcher nodes."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"inputs":{"type":"array"}},"required":["path","name"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			const FName Name(*Call->GetString(TEXT("name")));
+			if (FindGraph(B, Name.ToString()) || FBlueprintEditorUtils::FindNewVariableIndex(B, Name) != INDEX_NONE)
+			{
+				Call->Fail(TEXT("blueprint.name_taken"), FString::Printf(TEXT("'%s' is already used in this Blueprint"), *Name.ToString()));
+				return;
+			}
+			TArray<TPair<FName, FEdGraphPinType>> Inputs;
+			FString Error;
+			for (const TSharedPtr<FJsonValue>& V : Call->GetArray(TEXT("inputs")))
+			{
+				FEdGraphPinType T;
+				if (!ParseType(V->AsObject()->GetStringField(TEXT("type")), T, Error))
+				{
+					Call->Fail(TEXT("args.invalid"), Error);
+					return;
+				}
+				Inputs.Emplace(FName(*V->AsObject()->GetStringField(TEXT("name"))), T);
+			}
+			B->Modify();
+			FEdGraphPinType DelegateType;
+			DelegateType.PinCategory = UEdGraphSchema_K2::PC_MCDelegate;
+			if (!FBlueprintEditorUtils::AddMemberVariable(B, Name, DelegateType))
+			{
+				Call->Fail(TEXT("blueprint.add_failed"), TEXT("could not add the event dispatcher"));
+				return;
+			}
+			const UEdGraphSchema_K2* K2 = GetDefault<UEdGraphSchema_K2>();
+			UEdGraph* G = FBlueprintEditorUtils::CreateNewGraph(B, Name, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			G->bEditable = false;
+			K2->CreateDefaultNodesForGraph(*G);
+			K2->CreateFunctionGraphTerminators(*G, static_cast<UClass*>(nullptr));
+			K2->AddExtraFunctionFlags(G, FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public);
+			K2->MarkFunctionEntryAsEditable(G, true);
+			B->DelegateSignatureGraphs.Add(G);
+			TArray<UK2Node_FunctionEntry*> Entries;
+			G->GetNodesOfClass(Entries);
+			if (Entries.Num() > 0)
+			{
+				for (const TPair<FName, FEdGraphPinType>& In : Inputs)
+				{
+					Entries[0]->CreateUserDefinedPin(In.Key, In.Value, EGPD_Output);
+				}
+			}
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(B);
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("dispatcher"), Name.ToString());
+			O->SetNumberField(TEXT("inputs"), Inputs.Num());
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bp_add_timeline"), TEXT("blueprint"), TEXT("Add a timeline with float tracks [{name, keys:[[time,value],...]}] and place its node in the event graph (outputs: Update, Finished and one pin per track)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"length":{"type":"number"},"loop":{"type":"boolean"},"autoPlay":{"type":"boolean"},"tracks":{"type":"array"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","name"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			UEdGraph* G = FBlueprintEditorUtils::FindEventGraph(B);
+			const FName Name(*Call->GetString(TEXT("name")));
+			if (!G || !FBlueprintEditorUtils::DoesSupportTimelines(B))
+			{
+				Call->Fail(TEXT("blueprint.timeline_unsupported"), TEXT("this Blueprint has no event graph or does not support timelines (Actor-based Blueprints do)"));
+				return;
+			}
+			if (B->FindTimelineTemplateByVariableName(Name))
+			{
+				Call->Fail(TEXT("blueprint.name_taken"), FString::Printf(TEXT("timeline '%s' already exists"), *Name.ToString()));
+				return;
+			}
+			B->Modify();
+			UTimelineTemplate* T = FBlueprintEditorUtils::AddNewTimeline(B, Name);
+			if (!T)
+			{
+				Call->Fail(TEXT("blueprint.add_failed"), TEXT("could not add the timeline (name in use?)"));
+				return;
+			}
+			T->Modify();
+			T->TimelineLength = static_cast<float>(Call->GetNumber(TEXT("length"), 5.0));
+			T->bLoop = Call->GetBool(TEXT("loop"));
+			T->bAutoPlay = Call->GetBool(TEXT("autoPlay"));
+			for (const TSharedPtr<FJsonValue>& V : Call->GetArray(TEXT("tracks")))
+			{
+				const TSharedPtr<FJsonObject> TrackJson = V->AsObject();
+				FTTFloatTrack Track;
+				Track.SetTrackName(FName(*TrackJson->GetStringField(TEXT("name"))), T);
+				Track.CurveFloat = NewObject<UCurveFloat>(T->GetOuter(), NAME_None, RF_Public | RF_Transactional);
+				const TArray<TSharedPtr<FJsonValue>>* Keys = nullptr;
+				if (TrackJson->TryGetArrayField(TEXT("keys"), Keys))
+				{
+					for (const TSharedPtr<FJsonValue>& K : *Keys)
+					{
+						const TArray<TSharedPtr<FJsonValue>>& P = K->AsArray();
+						if (P.Num() == 2) Track.CurveFloat->FloatCurve.AddKey(static_cast<float>(P[0]->AsNumber()), static_cast<float>(P[1]->AsNumber()));
+					}
+				}
+				const int32 Index = T->FloatTracks.Add(Track);
+				T->AddDisplayTrack(FTTTrackId(FTTTrackBase::TT_FloatInterp, Index));
+			}
+			G->Modify();
+			UK2Node_Timeline* Node = Place<UK2Node_Timeline>(G, Call, [&](UK2Node_Timeline* N) { N->TimelineName = Name; });
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(B);
+			Call->Succeed(NodeJson(G, Node));
 		});
 
 	R.Add(TEXT("bp_add_component"), TEXT("blueprint"), TEXT("Add a component to the Blueprint's construction script (optionally under a parent component)."),

@@ -547,6 +547,33 @@
   "minEngine": "5.5"
  },
  {
+  "name": "bp_add_event_dispatcher",
+  "group": "blueprint",
+  "summary": "Add an event dispatcher with optional inputs [{name,type}]; then bp_compile and use CallDispatcher / BindDispatcher nodes.",
+  "description": "Add an event dispatcher with optional inputs [{name,type}]; then bp_compile and use CallDispatcher / BindDispatcher nodes.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "inputs": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "bp_add_function",
   "group": "blueprint",
   "summary": "Add a function graph with optional inputs/outputs [{name,type}].",
@@ -582,8 +609,8 @@
  {
   "name": "bp_add_node",
   "group": "blueprint",
-  "summary": "Add a node: Event | CustomEvent | CallFunction | VariableGet | VariableSet | Branch | Sequence | Self | Cast | Macro.",
-  "description": "Add a node: Event | CustomEvent | CallFunction | VariableGet | VariableSet | Branch | Sequence | Self | Cast | Macro.",
+  "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
+  "description": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -605,13 +632,27 @@
       "Sequence",
       "Self",
       "Cast",
-      "Macro"
+      "Macro",
+      "InputAction",
+      "ComponentEvent",
+      "SpawnActor",
+      "CreateWidget",
+      "CallDispatcher",
+      "BindDispatcher",
+      "MakeStruct",
+      "BreakStruct",
+      "SwitchEnum",
+      "Timeline",
+      "Node"
      ]
     },
     "memberName": {
      "type": "string"
     },
     "memberParent": {
+     "type": "string"
+    },
+    "delegate": {
      "type": "string"
     },
     "position": {
@@ -624,6 +665,48 @@
    "required": [
     "path",
     "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_timeline",
+  "group": "blueprint",
+  "summary": "Add a timeline with float tracks [{name, keys:[[time,value],...]}] and place its node in the event graph (outputs: Update, Finished and one pin per track).",
+  "description": "Add a timeline with float tracks [{name, keys:[[time,value],...]}] and place its node in the event graph (outputs: Update, Finished and one pin per track).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "length": {
+     "type": "number"
+    },
+    "loop": {
+     "type": "boolean"
+    },
+    "autoPlay": {
+     "type": "boolean"
+    },
+    "tracks": {
+     "type": "array"
+    },
+    "position": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    }
+   },
+   "required": [
+    "path",
+    "name"
    ]
   },
   "mutating": true,

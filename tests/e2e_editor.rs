@@ -723,3 +723,140 @@ fn e2e_11_play_session_input_and_observation() {
     ok(&["pie", "stop"]);
     assert_eq!(ok(&["pie", "status"])["playing"], false);
 }
+
+fn node(bp: &str, ty: &str, member: Option<&str>, extra: Value) -> Value {
+    let mut args = json!({"path": bp, "type": ty});
+    if let Some(m) = member {
+        args["memberName"] = json!(m);
+    }
+    for (k, v) in extra.as_object().unwrap() {
+        args[k] = v.clone();
+    }
+    call("bp_add_node", args)
+}
+
+fn pin_link(bp: &str, from: &Value, from_pin: &str, to: &Value, to_pin: &str) {
+    let f = format!("{}.{from_pin}", from["id"].as_str().unwrap());
+    let t = format!("{}.{to_pin}", to["id"].as_str().unwrap());
+    ok(&["blueprint", "connect", bp, &f, &t]);
+}
+
+#[test]
+fn e2e_12_blueprint_gameplay_nodes() {
+    if !enabled() {
+        return;
+    }
+    let bp = root("BP_Pickup");
+    ok(&["blueprint", "create", &bp, "--parent", "Actor"]);
+    call(
+        "bp_add_component",
+        json!({"path": bp, "class": "SphereComponent", "name": "Trigger"}),
+    );
+    ok(&["blueprint", "compile", &bp]);
+    // Overlap event -> call an event dispatcher with an int payload.
+    let overlap = ok(&[
+        "blueprint",
+        "add-node",
+        &bp,
+        "--type",
+        "ComponentEvent",
+        "--member",
+        "Trigger",
+        "--delegate",
+        "OnComponentBeginOverlap",
+    ]);
+    call(
+        "bp_add_event_dispatcher",
+        json!({"path": bp, "name": "OnPicked", "inputs": [{"name": "Amount", "type": "int"}]}),
+    );
+    ok(&["blueprint", "compile", &bp]);
+    let fire = node(&bp, "CallDispatcher", Some("OnPicked"), json!({}));
+    pin_link(&bp, &overlap, "then", &fire, "execute");
+    let bind = node(&bp, "BindDispatcher", Some("OnPicked"), json!({}));
+    let handler = node(
+        &bp,
+        "CustomEvent",
+        Some("HandlePicked"),
+        json!({"delegate": "OnPicked"}),
+    );
+    assert!(
+        handler["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "Amount"),
+        "{handler}"
+    );
+    pin_link(&bp, &handler, "OutputDelegate", &bind, "Delegate");
+    // Timeline driving a vector built with MakeStruct.
+    let tl = call(
+        "bp_add_timeline",
+        json!({"path": bp, "name": "Bob", "length": 2.0, "loop": true, "autoPlay": true,
+               "tracks": [{"name": "Height", "keys": [[0, 0], [1, 50], [2, 0]]}]}),
+    );
+    assert!(
+        tl["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "Height"),
+        "{tl}"
+    );
+    let make = node(&bp, "MakeStruct", Some("Vector"), json!({}));
+    pin_link(&bp, &tl, "Height", &make, "Z");
+    node(&bp, "BreakStruct", Some("HitResult"), json!({}));
+    node(&bp, "SwitchEnum", Some("EMovementMode"), json!({}));
+    for class in ["K2Node_SwitchInteger", "K2Node_Select", "K2Node_MakeArray"] {
+        node(&bp, "Node", Some(class), json!({}));
+    }
+    let comp = node(&bp, "VariableGet", Some("Trigger"), json!({}));
+    assert!(!comp["pins"].as_array().unwrap().is_empty(), "{comp}");
+    // Input, spawning and UI nodes.
+    let ia = root("IA_Interact");
+    call(
+        "input_action_create",
+        json!({"path": ia, "valueType": "Boolean"}),
+    );
+    let input = node(&bp, "InputAction", Some(&ia), json!({}));
+    assert!(
+        input["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "Triggered"),
+        "{input}"
+    );
+    let spawn = node(&bp, "SpawnActor", Some("PointLight"), json!({}));
+    assert!(
+        spawn["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "SpawnTransform"),
+        "{spawn}"
+    );
+    let widget = root("WBP_Score");
+    call("widget_create", json!({"path": widget}));
+    let cw = node(&bp, "CreateWidget", Some(&widget), json!({}));
+    assert!(
+        cw["pins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["name"] == "OwningPlayer"),
+        "{cw}"
+    );
+    let (_, err) = fails(
+        "bp_add_node",
+        json!({"path": bp, "type": "ComponentEvent", "memberName": "Trigger", "delegate": "Nope"}),
+    );
+    assert_eq!(err, "blueprint.event_not_found");
+    let (_, err) = fails(
+        "bp_add_node",
+        json!({"path": bp, "type": "Node", "memberName": "NotANode"}),
+    );
+    assert_eq!(err, "blueprint.node_class_not_found");
+    let compiled = ok(&["blueprint", "compile", &bp]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &bp]);
+}

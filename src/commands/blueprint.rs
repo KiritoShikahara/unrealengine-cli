@@ -29,6 +29,9 @@ pub enum BlueprintCmd {
         member: Option<String>,
         #[arg(long = "member-parent")]
         member_parent: Option<String>,
+        /// Component event delegate for --type ComponentEvent (e.g. OnComponentBeginOverlap)
+        #[arg(long)]
+        delegate: Option<String>,
         #[arg(long, default_value = "EventGraph")]
         graph: String,
         /// x,y
@@ -166,6 +169,7 @@ pub fn to_call(cmd: BlueprintCmd) -> Result<(&'static str, Value), CliError> {
             node_type,
             member,
             member_parent,
+            delegate,
             graph,
             position,
         } => {
@@ -173,6 +177,7 @@ pub fn to_call(cmd: BlueprintCmd) -> Result<(&'static str, Value), CliError> {
             put("type", json!(node_type));
             put("memberName", json!(member));
             put("memberParent", json!(member_parent));
+            put("delegate", json!(delegate));
             put("graph", json!(graph));
             if let Some(p) = &position
                 && p.len() != 2

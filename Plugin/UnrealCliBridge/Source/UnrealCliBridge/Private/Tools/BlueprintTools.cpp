@@ -622,7 +622,13 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			{
 				for (USCS_Node* N : B->SimpleConstructionScript->GetAllNodes())
 				{
-					Components.Add(FString::Printf(TEXT("%s (%s)"), *N->GetVariableName().ToString(), N->ComponentClass ? *N->ComponentClass->GetName() : TEXT("?")));
+					// "Name (Class)" plus its parent: an SCS node, or an inherited component it is attached to.
+					FString Entry = FString::Printf(TEXT("%s (%s)"), *N->GetVariableName().ToString(), N->ComponentClass ? *N->ComponentClass->GetName() : TEXT("?"));
+					if (const USCS_Node* ParentNode = B->SimpleConstructionScript->FindParentNode(N))
+						Entry += TEXT(" under ") + ParentNode->GetVariableName().ToString();
+					else if (!N->ParentComponentOrVariableName.IsNone())
+						Entry += TEXT(" under ") + N->ParentComponentOrVariableName.ToString();
+					Components.Add(Entry);
 				}
 			}
 			O->SetArrayField(TEXT("components"), StrArray(Components));

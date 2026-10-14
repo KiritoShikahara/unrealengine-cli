@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
 - Fix (#1): `fab` commands work with the Fab plugin shipped with UE 5.8 (no fixed `FabTab` tab). Fab is detected by its
   module, its page is found in any window and opened through Window > Fab; commands wait for the page to sign in.

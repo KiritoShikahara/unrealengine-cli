@@ -4,7 +4,7 @@ import re
 import unreal
 
 from .. import ToolError, tool
-from ..util import find_actor, from_json, load_class, public_props, to_json
+from ..util import array_element, find_actor, from_json, load_class, public_props, to_json
 
 _SEG = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)(?:\[(\d+)\])?$")
 
@@ -138,6 +138,9 @@ def prop_set(path, property, value=None):  # noqa: A002
         container.set_editor_property(name, new)
         new = container
     _, after = _walk(obj, property)
+    if isinstance(value, list) and isinstance(after, (list, unreal.Array)) and len(after) < len(value):
+        raise ToolError("prop.not_applied", "%s kept %d of %d element(s): the engine adjusted the value" % (property, len(after), len(value)),
+                        "e.g. a StaticMeshComponent keeps one material override per slot of its mesh: set StaticMesh first")
     return {"path": path, "property": property, "value": to_json(after)}
 
 
@@ -152,9 +155,9 @@ def prop_array_edit(path, property, op, index=None, value=None):  # noqa: A002
     items = list(arr)
     sample = items[0] if items else None
     if op == "append":
-        items.append(from_json(value, sample) if sample is not None else value)
+        items.append(array_element(value, sample))
     elif op == "insert":
-        items.insert(index or 0, from_json(value, sample) if sample is not None else value)
+        items.insert(index or 0, array_element(value, sample))
     elif op == "remove":
         if index is None or index >= len(items):
             raise ToolError("prop.bad_index", "index out of range (%d element(s))" % len(items))

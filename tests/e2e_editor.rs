@@ -1082,6 +1082,17 @@ fn e2e_15_blueprint_component_properties() {
         "/Engine/BasicShapes/Cube",
     ]);
     assert_eq!(set["value"], "/Engine/BasicShapes/Cube.Cube", "{set}");
+    // Arrays of asset references take asset paths.
+    let mat = root("M_Crate");
+    call("material_create", json!({"path": mat}));
+    let mats = ok(&[
+        "prop",
+        "set",
+        &comp,
+        "OverrideMaterials",
+        &format!("[\"{mat}\"]"),
+    ]);
+    assert!(mats["value"].to_string().contains("M_Crate"), "{mats}");
     // Inherited components are reachable by name too.
     let speed = ok(&[
         "prop",

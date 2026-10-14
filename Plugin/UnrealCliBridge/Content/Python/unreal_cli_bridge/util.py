@@ -122,7 +122,8 @@ def from_json(value, current):
             current.set_editor_property(k, from_json(v, current.get_editor_property(k)))
         return current
     if isinstance(current, (unreal.Array, list)) and isinstance(value, list):
-        return value
+        sample = current[0] if len(current) else None
+        return [array_element(v, sample) for v in value]
     if (current is None or isinstance(current, unreal.Object)) and (value is None or isinstance(value, str)):
         if value in (None, "", "None"):
             return None
@@ -131,6 +132,16 @@ def from_json(value, current):
             raise ToolError("prop.bad_value", "no object at '%s'" % value)
         return obj
     return value
+
+
+def array_element(value, sample=None):
+    """One array element from JSON: '/Game/...' strings become assets (e.g. materials), others follow the sample."""
+    if isinstance(value, str) and value.startswith("/"):
+        obj = unreal.load_asset(value) or unreal.load_object(None, value)
+        if obj is None:
+            raise ToolError("prop.bad_value", "no asset at '%s'" % value)
+        return obj
+    return from_json(value, sample) if sample is not None else value
 
 
 def editor_world():

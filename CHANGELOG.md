@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - The running editor's plugin version is checked on every command; an outdated plugin gives a warning with the update command.
 - `prop get|set` reach Blueprint component templates (`/Game/BP.Component`, added or inherited) and collision/physics

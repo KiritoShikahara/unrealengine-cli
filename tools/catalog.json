@@ -2631,6 +2631,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "classFilter": {
      "type": "string"
     },
@@ -2654,6 +2658,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "actor": {
      "type": "string"
     },
@@ -2678,6 +2686,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "widget": {
      "type": "string"
     }
@@ -2698,6 +2710,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "command": {
      "type": "string"
     }
@@ -2718,6 +2734,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "actor": {
      "type": "string"
     },
@@ -2747,6 +2767,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "key": {
      "type": "string"
     },
@@ -2791,6 +2815,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "path": {
      "type": "string"
     }
@@ -2803,11 +2831,25 @@
  {
   "name": "pie_start",
   "group": "runtime",
-  "summary": "Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop.",
-  "description": "Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop.",
+  "summary": "Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds).",
+  "description": "Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds).",
   "inputSchema": {
    "type": "object",
-   "properties": {}
+   "properties": {
+    "players": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 4
+    },
+    "netMode": {
+     "type": "string",
+     "enum": [
+      "standalone",
+      "listen",
+      "client"
+     ]
+    }
+   }
   },
   "mutating": false,
   "longRunning": false,
@@ -2847,6 +2889,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "seconds": {
      "type": "number"
     },
@@ -2864,6 +2910,24 @@
   "group": "runtime",
   "summary": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
   "description": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_worlds",
+  "group": "runtime",
+  "summary": "Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers.",
+  "description": "Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers.",
   "inputSchema": {
    "type": "object",
    "properties": {}

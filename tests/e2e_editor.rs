@@ -1534,3 +1534,89 @@ fn e2e_20_parallel_clients() {
     assert!(codes.iter().all(|c| *c == 0), "exit codes: {codes:?}");
     assert_eq!(cli(&["ping"]).0, 0);
 }
+
+#[test]
+fn e2e_21_multiplayer_pie() {
+    if !enabled() {
+        return;
+    }
+    let (_, err) = fails("pie_actors", json!({"world": "client:1"}));
+    assert_eq!(err, "pie.not_running");
+    if !render_enabled() {
+        eprintln!(
+            "multiplayer E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Net"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let count_pcs = |world: &str| {
+        call(
+            "pie_actors",
+            json!({"world": world, "classFilter": "PlayerController"}),
+        )
+        .as_array()
+        .unwrap()
+        .len()
+    };
+
+    // Listen server with 2 players: the host's world and one client world.
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    let worlds = call("pie_worlds", json!({}));
+    let ids: Vec<&str> = worlds
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(ids, ["server", "client:1"], "{worlds}");
+    assert_eq!(worlds[0]["netMode"], "ListenServer", "{worlds}");
+    assert_eq!(worlds[1]["netMode"], "Client", "{worlds}");
+    assert_eq!(count_pcs("server"), 2, "the server sees every player");
+    assert_eq!(
+        count_pcs("client:1"),
+        1,
+        "a client sees only its own controller"
+    );
+    let own = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    assert_eq!(own["role"], "AutonomousProxy", "{own}");
+    let (_, err) = fails("pie_actors", json!({"world": "client:5"}));
+    assert_eq!(err, "pie.world_not_found");
+
+    // Input sent to client 1 moves only client 1's pawn.
+    let client_before = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    let host_before = call("pie_get", json!({"world": "server", "actor": "player"}));
+    call(
+        "pie_input",
+        json!({"world": "client:1", "key": "W", "seconds": 1.0}),
+    );
+    let client_after = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    let host_after = call("pie_get", json!({"world": "server", "actor": "player"}));
+    assert!(
+        dist(&client_before["location"], &client_after["location"]) > 50.0,
+        "W did not move client 1's pawn: {client_before} -> {client_after}"
+    );
+    assert!(
+        dist(&host_before["location"], &host_after["location"]) < 1.0,
+        "the host's pawn moved: {host_before} -> {host_after}"
+    );
+    call("pie_stop", json!({}));
+
+    // Client mode: a dedicated server in the editor process and 2 client worlds.
+    call("pie_start", json!({"players": 2, "netMode": "client"}));
+    let worlds = call("pie_worlds", json!({}));
+    let modes: Vec<&str> = worlds
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["netMode"].as_str().unwrap())
+        .collect();
+    assert_eq!(modes, ["DedicatedServer", "Client", "Client"], "{worlds}");
+    assert_eq!(count_pcs("server"), 2);
+    call("pie_stop", json!({}));
+}

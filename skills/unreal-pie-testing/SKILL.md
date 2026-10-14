@@ -1,8 +1,8 @@
 ---
 name: unreal-pie-testing
 description: Use when verifying behaviour by playing the game in the editor (input, screenshots, actor state) or running Automation tests.
-version: 1.1.0
-tools: [pie_run, pie_start, pie_input, pie_wait, pie_screenshot, pie_actors, pie_get, pie_call, pie_exec, pie_widgets, pie_click, pie_stop, automation_run, automation_list]
+version: 1.2.0
+tools: [pie_run, pie_start, pie_worlds, pie_input, pie_wait, pie_screenshot, pie_actors, pie_get, pie_call, pie_exec, pie_widgets, pie_click, pie_stop, automation_run, automation_list]
 ---
 
 # unreal-pie-testing
@@ -24,7 +24,12 @@ Use when verifying behaviour by playing the game in the editor (input, screensho
    6. `unrealengine-cli pie call <actor> "TakeHit 25"` to trigger functions or custom events; `pie exec "slomo 0.5"`.
    7. UI: `unrealengine-cli pie widgets` lists on-screen widgets and texts; `pie click <ButtonName>` presses a button and returns what its handler logged.
    8. `unrealengine-cli pie stop`.
-4. `unrealengine-cli test list <filter>` and `unrealengine-cli test run <filter>`; without a running editor `test run` uses a headless editor process.
+4. Multiplayer play-test (listen server or dedicated server with clients, all in the editor process):
+   1. `unrealengine-cli pie start --players 2 --net-mode listen` (`client` = dedicated server + clients).
+   2. `unrealengine-cli pie worlds` lists `server`, `client:1`, ... with their net mode.
+   3. Add `--world <id>` to any pie command: `pie --world client:1 input W --seconds 1`, `pie actors --world server --class PlayerController`.
+   4. `pie get` and `pie actors` report `role` / `remoteRole` (Authority, AutonomousProxy, SimulatedProxy) and `owner`.
+5. `unrealengine-cli test list <filter>` and `unrealengine-cli test run <filter>`; without a running editor `test run` uses a headless editor process.
 
 ## Verify
 
@@ -32,4 +37,4 @@ State read with `pie get` changed as expected after input; the screenshot shows 
 
 ## On failure
 
-Quote failing test names and their first error. `pie.already_running`: `unrealengine-cli pie stop`. `pie.not_running`: `pie start` first. `pie.screenshot_failed`: reopen the editor with rendering.
+Quote failing test names and their first error. `pie.already_running`: `unrealengine-cli pie stop`. `pie.not_running`: `pie start` first. `pie.screenshot_failed`: reopen the editor with rendering. `pie.world_not_found`: the hint lists the session's worlds.

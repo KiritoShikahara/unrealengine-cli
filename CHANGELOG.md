@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`
+  for every pie command; actors report `role`, `remoteRole` and `owner`.
+
 ## 0.3.2
 
 - Fix (#1): `fab` commands work with the Fab plugin shipped with UE 5.8 (no fixed `FabTab` tab). Fab is detected by its

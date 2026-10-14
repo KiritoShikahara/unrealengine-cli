@@ -5,6 +5,8 @@
 #include "Editor.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "UObject/StrongObjectPtr.h"
 #include "EngineUtils.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputDeveloperSettings.h"
@@ -36,13 +38,76 @@ using namespace UCli;
 
 namespace
 {
+	const TCHAR* NetModeName(ENetMode Mode)
+	{
+		switch (Mode)
+		{
+		case NM_DedicatedServer: return TEXT("DedicatedServer");
+		case NM_ListenServer: return TEXT("ListenServer");
+		case NM_Client: return TEXT("Client");
+		default: return TEXT("Standalone");
+		}
+	}
+
+	struct FPieWorld
+	{
+		FString Id;
+		UWorld* World = nullptr;
+		int32 Instance = 0;
+	};
+
+	/** Worlds of the play session in PIE instance order: "standalone", or "server" and "client:1", "client:2", ... */
+	TArray<FPieWorld> PieWorlds()
+	{
+		TArray<FPieWorld> Out;
+		for (const FWorldContext& C : GEngine->GetWorldContexts())
+		{
+			if (C.WorldType == EWorldType::PIE && C.World())
+			{
+				Out.Add({ FString(), C.World(), C.PIEInstance });
+			}
+		}
+		Out.Sort([](const FPieWorld& A, const FPieWorld& B) { return A.Instance < B.Instance; });
+		int32 Client = 0, Standalone = 0;
+		for (FPieWorld& W : Out)
+		{
+			const ENetMode Mode = W.World->GetNetMode();
+			if (Mode == NM_Client) W.Id = FString::Printf(TEXT("client:%d"), ++Client);
+			else if (Mode == NM_Standalone) W.Id = ++Standalone == 1 ? FString(TEXT("standalone")) : FString::Printf(TEXT("standalone:%d"), Standalone);
+			else W.Id = TEXT("server");
+		}
+		return Out;
+	}
+
+	int32 CountControllers(UWorld* World)
+	{
+		int32 N = 0;
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It) ++N;
+		return N;
+	}
+
+	/** The play world named by the optional "world" argument (default: the editor's primary play world). */
 	UWorld* RequirePlayWorld(const FToolCallRef& Call)
 	{
 		if (!GEditor->PlayWorld)
 		{
 			Call->Fail(TEXT("pie.not_running"), TEXT("no play session is running"), TEXT("start one: pie_start"));
+			return nullptr;
 		}
-		return GEditor->PlayWorld;
+		const FString Id = Call->GetString(TEXT("world"));
+		if (Id.IsEmpty())
+		{
+			return GEditor->PlayWorld;
+		}
+		TArray<FString> Ids;
+		for (const FPieWorld& W : PieWorlds())
+		{
+			if (W.Id == Id) return W.World;
+			Ids.Add(W.Id);
+		}
+		Call->Fail(TEXT("pie.world_not_found"), FString::Printf(TEXT("the play session has no world '%s'"), *Id),
+			FString::Printf(TEXT("worlds: %s"), *FString::Join(Ids, TEXT(", "))), Arr(StrArray(Ids)));
+		return nullptr;
 	}
 
 	APlayerController* RequirePlayer(const FToolCallRef& Call)
@@ -98,6 +163,10 @@ namespace
 		Rot->SetNumberField(TEXT("roll"), R.Roll);
 		O->SetObjectField(TEXT("rotation"), Rot);
 		O->SetObjectField(TEXT("velocity"), PlayVectorJson(A->GetVelocity()));
+		const auto RoleName = [](ENetRole Role) { return StaticEnum<ENetRole>()->GetNameStringByValue(Role).RightChop(5); };
+		O->SetStringField(TEXT("role"), RoleName(A->GetLocalRole()));
+		O->SetStringField(TEXT("remoteRole"), RoleName(A->GetRemoteRole()));
+		if (AActor* Owner = A->GetOwner()) O->SetStringField(TEXT("owner"), Owner->GetActorLabel());
 		return O;
 	}
 
@@ -127,8 +196,8 @@ namespace
 
 void UCli::RegisterPlayTools(FToolRegistry& R)
 {
-	R.Add(TEXT("pie_start"), TEXT("runtime"), TEXT("Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop."),
-		TEXT(R"({"type":"object","properties":{}})"), EToolFlags::None,
+	R.Add(TEXT("pie_start"), TEXT("runtime"), TEXT("Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds)."),
+		TEXT(R"({"type":"object","properties":{"players":{"type":"integer","minimum":1,"maximum":4},"netMode":{"type":"string","enum":["standalone","listen","client"]}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			if (GEditor->PlayWorld || GEditor->IsPlaySessionRequestQueued())
@@ -136,29 +205,80 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				Call->Fail(TEXT("pie.already_running"), TEXT("a play session is already running"), TEXT("stop it: pie_stop"));
 				return;
 			}
+			const int32 Players = FMath::Clamp(static_cast<int32>(Call->GetNumber(TEXT("players"), 1)), 1, 4);
+			const FString Mode = Call->GetString(TEXT("netMode"), TEXT("standalone"));
 			FRequestPlaySessionParams Params;
 			Params.WorldType = EPlaySessionWorldType::PlayInEditor;
+			// A copy of the play settings: the user's Multiplayer Options stay as they are.
+			TSharedRef<TStrongObjectPtr<ULevelEditorPlaySettings>> Settings = MakeShared<TStrongObjectPtr<ULevelEditorPlaySettings>>(
+				DuplicateObject<ULevelEditorPlaySettings>(GetDefault<ULevelEditorPlaySettings>(), GetTransientPackage()));
+			(*Settings)->SetPlayNetMode(Mode == TEXT("listen") ? PIE_ListenServer : Mode == TEXT("client") ? PIE_Client : PIE_Standalone);
+			(*Settings)->SetPlayNumberOfClients(Players);
+			(*Settings)->SetRunUnderOneProcess(true);
+			Params.EditorPlaySettings = Settings->Get();
 			GEditor->RequestPlaySession(Params);
-			const double Deadline = FPlatformTime::Seconds() + 60.0;
-			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Deadline](float)
+			// A dedicated server has a world of its own; a listen server's host is one of the players.
+			const int32 Expected = Mode == TEXT("client") ? Players + 1 : Players;
+			const bool bNetworked = Mode == TEXT("listen") || Mode == TEXT("client");
+			const double Deadline = FPlatformTime::Seconds() + 90.0;
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Settings, Expected, Players, bNetworked, Deadline](float)
 			{
-				UWorld* World = GEditor->PlayWorld;
-				if (World && World->GetFirstPlayerController())
+				const TArray<FPieWorld> Worlds = PieWorlds();
+				bool bReady = GEditor->PlayWorld && Worlds.Num() == Expected;
+				for (const FPieWorld& W : Worlds)
+				{
+					const ENetMode NM = W.World->GetNetMode();
+					if (NM == NM_DedicatedServer || NM == NM_ListenServer)
+					{
+						// Every client has joined once the server has a controller per player.
+						bReady &= !bNetworked || CountControllers(W.World) >= Players;
+					}
+					else
+					{
+						APlayerController* PC = W.World->GetFirstPlayerController();
+						bReady &= PC && PC->GetPawn();
+					}
+				}
+				if (bReady)
 				{
 					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
-					O->SetStringField(TEXT("world"), World->GetPathName());
-					APawn* Pawn = World->GetFirstPlayerController()->GetPawn();
-					O->SetStringField(TEXT("pawn"), Pawn ? Pawn->GetName() : FString());
+					O->SetStringField(TEXT("world"), GEditor->PlayWorld->GetPathName());
+					APlayerController* First = GEditor->PlayWorld->GetFirstPlayerController();
+					O->SetStringField(TEXT("pawn"), First && First->GetPawn() ? First->GetPawn()->GetName() : FString());
+					TArray<FString> Ids;
+					for (const FPieWorld& W : Worlds) Ids.Add(W.Id);
+					O->SetArrayField(TEXT("worlds"), StrArray(Ids));
 					Call->Succeed(O);
 					return false;
 				}
 				if (FPlatformTime::Seconds() > Deadline)
 				{
-					Call->Fail(TEXT("pie.start_failed"), TEXT("the play session did not start within 60 s"), TEXT("check the log: unrealengine-cli logs --severity warning"));
+					Call->Fail(TEXT("pie.start_failed"), FString::Printf(TEXT("the play session did not start within 90 s (%d of %d worlds ready)"), Worlds.Num(), Expected),
+						TEXT("check the log: unrealengine-cli logs --severity warning"));
 					return false;
 				}
 				return true;
 			}), 0.05f);
+		});
+
+	R.Add(TEXT("pie_worlds"), TEXT("runtime"), TEXT("Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers."),
+		TEXT(R"({"type":"object","properties":{}})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			if (!RequirePlayWorld(Call)) return;
+			TArray<TSharedPtr<FJsonValue>> Items;
+			for (const FPieWorld& W : PieWorlds())
+			{
+				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+				O->SetStringField(TEXT("id"), W.Id);
+				O->SetStringField(TEXT("netMode"), NetModeName(W.World->GetNetMode()));
+				O->SetNumberField(TEXT("pieInstance"), W.Instance);
+				O->SetStringField(TEXT("map"), W.World->GetMapName());
+				O->SetNumberField(TEXT("playerControllers"), CountControllers(W.World));
+				O->SetBoolField(TEXT("primary"), W.World == GEditor->PlayWorld);
+				Items.Add(Obj(O));
+			}
+			Call->Succeed(Arr(Items));
 		});
 
 	R.Add(TEXT("input_default_context_add"), TEXT("input"), TEXT("Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini."),
@@ -201,7 +321,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_input"), TEXT("runtime"), TEXT("Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release."),
-		TEXT(R"({"type":"object","properties":{"key":{"type":"string"},"action":{"type":"string"},"value":{},"seconds":{"type":"number"}}})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"key":{"type":"string"},"action":{"type":"string"},"value":{},"seconds":{"type":"number"}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			APlayerController* PC = RequirePlayer(Call);
@@ -276,7 +396,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_wait"), TEXT("runtime"), TEXT("Let the play session run for seconds, or until a log line contains untilLog (whichever comes first)."),
-		TEXT(R"({"type":"object","properties":{"seconds":{"type":"number"},"untilLog":{"type":"string"}}})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"seconds":{"type":"number"},"untilLog":{"type":"string"}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			if (!RequirePlayWorld(Call)) return;
@@ -309,7 +429,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_screenshot"), TEXT("runtime"), TEXT("Capture the play session's game viewport to a PNG (default under Saved/UnrealCli/Screenshots) and return its path; blank=true means a single flat colour (unlit level or camera sees nothing). View the image to check what the player sees."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"}}})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"path":{"type":"string"}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			UWorld* World = RequirePlayWorld(Call);
@@ -363,7 +483,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_actors"), TEXT("runtime"), TEXT("Actors of the play world (filter by class or label/name substring) with location, rotation and velocity; the player's pawn is flagged."),
-		TEXT(R"({"type":"object","properties":{"classFilter":{"type":"string"},"nameFilter":{"type":"string"},"limit":{"type":"integer"}}})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"classFilter":{"type":"string"},"nameFilter":{"type":"string"},"limit":{"type":"integer"}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			UWorld* World = RequirePlayWorld(Call);
@@ -392,7 +512,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_get"), TEXT("runtime"), TEXT("Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity."),
-		TEXT(R"({"type":"object","properties":{"actor":{"type":"string"},"component":{"type":"string"},"properties":{"type":"array","items":{"type":"string"}}},"required":["actor"]})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"actor":{"type":"string"},"component":{"type":"string"},"properties":{"type":"array","items":{"type":"string"}}},"required":["actor"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			AActor* A = FindPlayActor(Call);
@@ -431,7 +551,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_call"), TEXT("runtime"), TEXT("Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\"."),
-		TEXT(R"({"type":"object","properties":{"actor":{"type":"string"},"command":{"type":"string"}},"required":["actor","command"]})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"actor":{"type":"string"},"command":{"type":"string"}},"required":["actor","command"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			AActor* A = FindPlayActor(Call);
@@ -455,7 +575,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_widgets"), TEXT("runtime"), TEXT("UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks)."),
-		TEXT(R"({"type":"object","properties":{}})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"}}})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			UWorld* World = RequirePlayWorld(Call);
@@ -486,7 +606,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_click"), TEXT("runtime"), TEXT("Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets)."),
-		TEXT(R"({"type":"object","properties":{"widget":{"type":"string"}},"required":["widget"]})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"widget":{"type":"string"}},"required":["widget"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			UWorld* World = RequirePlayWorld(Call);
@@ -530,7 +650,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 		});
 
 	R.Add(TEXT("pie_exec"), TEXT("runtime"), TEXT("Run a console command in the play world (e.g. \"slomo 0.5\", \"show collision\", \"ce MyEvent\")."),
-		TEXT(R"({"type":"object","properties":{"command":{"type":"string"}},"required":["command"]})"), EToolFlags::None,
+		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"command":{"type":"string"}},"required":["command"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
 			APlayerController* PC = RequirePlayer(Call);

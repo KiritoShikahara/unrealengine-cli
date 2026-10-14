@@ -16,17 +16,17 @@
 
 ## Phase 2: Foundational(全ストーリーの前提)
 
-- [ ] T004 PIE ワールド解決の Automation Spec を `Private/Tests/PieWorldSpec.cpp` に書く(standalone / server / client:n、存在しない id で `pie.world_not_found`)
-- [ ] T005 `Private/Tools/PlayTools.cpp` の「最初の PIE ワールド」ヘルパーを、`world` 引数で選べる `ResolvePieWorld` に置き換える(省略時の挙動は変えない)
+- [x] T004 PIE ワールド解決の Automation Spec(PIE は Automation から起動できないため、E2E `e2e_21_multiplayer_pie` で検証する) を `Private/Tests/PieWorldSpec.cpp` に書く(standalone / server / client:n、存在しない id で `pie.world_not_found`)
+- [x] T005 `Private/Tools/PlayTools.cpp` の「最初の PIE ワールド」ヘルパーを、`world` 引数で選べる `ResolvePieWorld` に置き換える(省略時の挙動は変えない)
 
 ## Phase 3: US1 - マルチプレイの PIE (P1) 🎯 MVP
 
-- [ ] T006 [P] [US1] `pie start --players --net-mode` と `pie worlds`、`--world` の引数対応のモックテストを `tests/us11_net.rs` に書く
-- [ ] T007 [P] [US1] E2E `e2e_21_multiplayer_pie` を `tests/e2e_editor.rs` に書く(2 人の Listen Server、各ワールドの PlayerController 数、クライアント 1 への入力)
-- [ ] T008 [US1] `pie_start` に players / netMode を追加し、`ULevelEditorPlaySettings` を一時変更して終了時に戻す(`Private/Tools/PlayTools.cpp`)
-- [ ] T009 [US1] `pie_worlds` と、既存 PIE ツール(actors、input、wait、screenshot、widgets、click)の `world` 引数を実装する
-- [ ] T010 [US1] アクター情報に role / remoteRole / owner / netGuid を追加する
-- [ ] T011 [US1] `src/commands/typed.rs` に `--players`、`--net-mode`、`--world`、`pie worlds` を追加する
+- [x] T006 [P] [US1] `pie start --players --net-mode` と `pie worlds`、`--world` の引数対応のモックテストを `tests/us11_net.rs` に書く
+- [x] T007 [P] [US1] E2E `e2e_21_multiplayer_pie` を `tests/e2e_editor.rs` に書く(2 人の Listen Server、各ワールドの PlayerController 数、クライアント 1 への入力)
+- [x] T008 [US1] `pie_start` に players / netMode を追加し、`ULevelEditorPlaySettings` を一時変更して終了時に戻す(`Private/Tools/PlayTools.cpp`)
+- [x] T009 [US1] `pie_worlds` と、既存 PIE ツール(actors、input、wait、screenshot、widgets、click)の `world` 引数を実装する
+- [x] T010 [US1] アクター情報に role / remoteRole / owner / netGuid を追加する
+- [x] T011 [US1] `src/commands/typed.rs` に `--players`、`--net-mode`、`--world`、`pie worlds` を追加する
 
 ## Phase 4: US2 - レプリケーションと RPC (P1)
 

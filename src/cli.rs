@@ -141,6 +141,9 @@ pub enum Command {
     },
     /// Play In Editor
     Pie {
+        /// World of a multiplayer session: server, client:1, client:2, ... (see `pie worlds`)
+        #[arg(long, global = true)]
+        world: Option<String>,
         #[command(subcommand)]
         action: typed::PieCmd,
     },
@@ -418,7 +421,7 @@ fn dispatch(
         Command::Level { action } => ("level", typed::level(ctx, action)),
         Command::Asset { action } => ("asset", typed::asset(ctx, action)),
         Command::Prop { action } => ("prop", typed::prop(ctx, action)),
-        Command::Pie { action } => ("pie", typed::pie(ctx, action)),
+        Command::Pie { world, action } => ("pie", typed::pie(ctx, action, world)),
         Command::Fab { action } => ("fab", typed::fab(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),

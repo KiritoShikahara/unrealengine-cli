@@ -1,6 +1,6 @@
 # Tool catalog
 
-144 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+145 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -230,11 +230,12 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `pie_input` |  | Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release. |
 | `pie_run` |  | Play In Editor for durationSeconds (or until a log line contains stopOnLog), then stop and report errors. |
 | `pie_screenshot` |  | Capture the play session's game viewport to a PNG (default under Saved/UnrealCli/Screenshots) and return its path; blank=true means a single flat colour (unlit level or camera sees nothing). View the image to check what the player sees. |
-| `pie_start` |  | Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. |
+| `pie_start` |  | Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds). |
 | `pie_status` |  | Whether a play session is running and its world. |
 | `pie_stop` |  | Stop the running play session. |
 | `pie_wait` |  | Let the play session run for seconds, or until a log line contains untilLog (whichever comes first). |
 | `pie_widgets` |  | UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks). |
+| `pie_worlds` |  | Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers. |
 
 ## sequencer
 

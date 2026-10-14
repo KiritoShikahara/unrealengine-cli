@@ -860,3 +860,121 @@ fn e2e_12_blueprint_gameplay_nodes() {
     assert_eq!(compiled["errors"], 0, "{compiled}");
     ok(&["blueprint", "save", &bp]);
 }
+
+#[test]
+fn e2e_13_ai_behavior_tree_and_navigation() {
+    if !enabled() {
+        return;
+    }
+    let bb = root("BB_Enemy");
+    let made = call(
+        "blackboard_create",
+        json!({"path": bb, "keys": [
+            {"name": "Target", "type": "Object", "baseClass": "Actor"},
+            {"name": "Destination", "type": "Vector"},
+            {"name": "CanSee", "type": "Bool"}]}),
+    );
+    for key in ["Target", "Destination", "CanSee"] {
+        assert!(
+            made["keys"].as_array().unwrap().iter().any(|k| k == key),
+            "{made}"
+        );
+    }
+    call(
+        "blackboard_add_key",
+        json!({"path": bb, "name": "Alert", "type": "Float"}),
+    );
+    let (_, err) = fails(
+        "blackboard_add_key",
+        json!({"path": bb, "name": "X", "type": "Banana"}),
+    );
+    assert_eq!(err, "args.invalid");
+    let bt = root("BT_Enemy");
+    call(
+        "behavior_tree_create",
+        json!({"path": bt, "blackboard": bb}),
+    );
+    let sel = call(
+        "bt_add_node",
+        json!({"path": bt, "parent": "root", "kind": "composite", "class": "Selector"}),
+    );
+    let chase = call(
+        "bt_add_node",
+        json!({"path": bt, "parent": sel["id"], "kind": "composite", "class": "Sequence"}),
+    );
+    call(
+        "bt_add_node",
+        json!({"path": bt, "parent": chase["id"], "kind": "decorator", "class": "Blackboard",
+               "properties": {"BlackboardKey": "CanSee"}}),
+    );
+    call(
+        "bt_add_node",
+        json!({"path": bt, "parent": chase["id"], "kind": "task", "class": "MoveTo",
+               "properties": {"BlackboardKey": "Target", "AcceptableRadius": 120}}),
+    );
+    call(
+        "bt_add_node",
+        json!({"path": bt, "parent": sel["id"], "kind": "task", "class": "Wait",
+               "properties": {"WaitTime": 2.5}}),
+    );
+    let (_, err) = fails(
+        "bt_add_node",
+        json!({"path": bt, "parent": "root", "kind": "task", "class": "Wait"}),
+    );
+    assert_eq!(err, "ai.invalid_parent");
+    let (_, err) = fails(
+        "bt_add_node",
+        json!({"path": bt, "parent": sel["id"], "kind": "task", "class": "MoveTo",
+               "properties": {"BlackboardKey": "NoSuchKey"}}),
+    );
+    assert_eq!(err, "args.invalid");
+    let tree = call("bt_get", json!({"path": bt}));
+    assert_eq!(tree["runnable"], true, "{tree}");
+    let top = &tree["children"][0];
+    assert_eq!(top["class"], "BTComposite_Selector", "{tree}");
+    assert_eq!(
+        top["children"][0]["class"], "BTComposite_Sequence",
+        "{tree}"
+    );
+    assert_eq!(
+        top["children"][0]["attached"][0]["kind"], "decorator",
+        "{tree}"
+    );
+    assert_eq!(
+        top["children"][0]["children"][0]["class"], "BTTask_MoveTo",
+        "{tree}"
+    );
+    assert_eq!(top["children"][1]["class"], "BTTask_Wait", "{tree}");
+    ok(&["asset", "save", &bt]);
+
+    if !render_enabled() {
+        eprintln!(
+            "navigation E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Nav"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    call(
+        "nav_bounds_add",
+        json!({"location": [0, 0, 0], "extent": [3000, 3000, 500]}),
+    );
+    let mut path = Value::Null;
+    for _ in 0..40 {
+        path = call(
+            "nav_path",
+            json!({"from": [0, 0, 100], "to": [800, 600, 100]}),
+        );
+        if path["valid"] == true {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+    assert_eq!(path["valid"], true, "{path}");
+    assert!(path["length"].as_f64().unwrap() > 900.0, "{path}");
+}

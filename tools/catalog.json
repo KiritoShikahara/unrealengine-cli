@@ -493,6 +493,84 @@
   "minEngine": "5.5"
  },
  {
+  "name": "behavior_tree_create",
+  "group": "ai",
+  "summary": "Create a Behavior Tree using a Blackboard; build it with bt_add_node (parent \"root\" first).",
+  "description": "Create a Behavior Tree using a Blackboard; build it with bt_add_node (parent \"root\" first).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "blackboard": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "blackboard"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "blackboard_add_key",
+  "group": "ai",
+  "summary": "Add a key to a Blackboard (type: Bool|Int|Float|Vector|Rotator|Object|Class|Name|String|Enum; baseClass for Object/Class).",
+  "description": "Add a key to a Blackboard (type: Bool|Int|Float|Vector|Rotator|Object|Class|Name|String|Enum; baseClass for Object/Class).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "baseClass": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "name",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "blackboard_create",
+  "group": "ai",
+  "summary": "Create a Blackboard with keys [{name, type: Bool|Int|Float|Vector|Rotator|Object|Class|Name|String|Enum, baseClass (Object/Class keys, e.g. Actor)}].",
+  "description": "Create a Blackboard with keys [{name, type: Bool|Int|Float|Vector|Rotator|Object|Class|Name|String|Enum, baseClass (Object/Class keys, e.g. Actor)}].",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "keys": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "blendspace_create",
   "group": "anim",
   "summary": "Create a 2D Blend Space for a skeleton.",
@@ -1083,6 +1161,67 @@
    ]
   },
   "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bt_add_node",
+  "group": "ai",
+  "summary": "Add to a Behavior Tree: kind composite (Selector, Sequence, SimpleParallel) or task (MoveTo, Wait, RunBehavior, PlaySound, a Blueprint task path...) as the last child of parent (\"root\" or a node id), or kind decorator (Blackboard, Cooldown, Loop, TimeLimit...) / service (DefaultFocus, RunEQS, a Blueprint service...) attached to parent. properties: {Name: value}; Blackboard key selectors take a key name; value-or-key properties take a value or \"key:<KeyName>\".",
+  "description": "Add to a Behavior Tree: kind composite (Selector, Sequence, SimpleParallel) or task (MoveTo, Wait, RunBehavior, PlaySound, a Blueprint task path...) as the last child of parent (\"root\" or a node id), or kind decorator (Blackboard, Cooldown, Loop, TimeLimit...) / service (DefaultFocus, RunEQS, a Blueprint service...) attached to parent. properties: {Name: value}; Blackboard key selectors take a key name; value-or-key properties take a value or \"key:<KeyName>\".",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "composite",
+      "task",
+      "decorator",
+      "service"
+     ]
+    },
+    "class": {
+     "type": "string"
+    },
+    "properties": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "path",
+    "parent",
+    "kind",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bt_get",
+  "group": "ai",
+  "summary": "A Behavior Tree as a nested tree: node ids, classes, names, attached decorators/services, children in execution order.",
+  "description": "A Behavior Tree as a nested tree: node ids, classes, names, attached decorators/services, children in execution order.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
   "longRunning": false,
   "minEngine": "5.5"
  },
@@ -2058,6 +2197,66 @@
    ]
   },
   "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "nav_bounds_add",
+  "group": "ai",
+  "summary": "Add a Nav Mesh Bounds Volume (location, extent = half size in cm) to the level; navigation rebuilds in the background (check with nav_path).",
+  "description": "Add a Nav Mesh Bounds Volume (location, extent = half size in cm) to the level; navigation rebuilds in the background (check with nav_path).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "location": {
+     "type": "array"
+    },
+    "extent": {
+     "type": "array"
+    },
+    "label": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "nav_build",
+  "group": "ai",
+  "summary": "Start rebuilding navigation for the open level (asynchronous: poll until building=false, or query nav_path).",
+  "description": "Start rebuilding navigation for the open level (asynchronous: poll until building=false, or query nav_path).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "nav_path",
+  "group": "ai",
+  "summary": "Find a navigation path between two points [x,y,z] in the open level (or the play world when playing): valid, partial, length and points.",
+  "description": "Find a navigation path between two points [x,y,z] in the open level (or the play world when playing): valid, partial, length and points.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "from": {
+     "type": "array"
+    },
+    "to": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "from",
+    "to"
+   ]
+  },
+  "mutating": false,
   "longRunning": false,
   "minEngine": "5.5"
  },

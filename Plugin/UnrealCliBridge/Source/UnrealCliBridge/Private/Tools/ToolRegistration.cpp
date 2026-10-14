@@ -18,6 +18,7 @@ namespace UCli
 		RegisterAnimGraphTools(Registry);
 		RegisterNiagaraLandscapeTools(Registry);
 		RegisterPlayTools(Registry);
+		RegisterAiTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

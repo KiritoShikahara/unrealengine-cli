@@ -21,4 +21,5 @@ namespace UCli
 	void RegisterAnimGraphTools(FToolRegistry& Registry);
 	void RegisterNiagaraLandscapeTools(FToolRegistry& Registry);
 	void RegisterPlayTools(FToolRegistry& Registry);
+	void RegisterAiTools(FToolRegistry& Registry);
 }

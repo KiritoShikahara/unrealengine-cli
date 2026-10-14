@@ -1,8 +1,21 @@
 # Tool catalog
 
-126 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+134 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
+
+## ai
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `behavior_tree_create` | yes | Create a Behavior Tree using a Blackboard; build it with bt_add_node (parent "root" first). |
+| `blackboard_add_key` | yes | Add a key to a Blackboard (type: Bool/Int/Float/Vector/Rotator/Object/Class/Name/String/Enum; baseClass for Object/Class). |
+| `blackboard_create` | yes | Create a Blackboard with keys [{name, type: Bool/Int/Float/Vector/Rotator/Object/Class/Name/String/Enum, baseClass (Object/Class keys, e.g. Actor)}]. |
+| `bt_add_node` | yes | Add to a Behavior Tree: kind composite (Selector, Sequence, SimpleParallel) or task (MoveTo, Wait, RunBehavior, PlaySound, a Blueprint task path...) as the last child of parent ("root" or a node id), or kind decorator (Blackboard, Cooldown, Loop, TimeLimit...) / service (DefaultFocus, RunEQS, a Blueprint service...) attached to parent. properties: {Name: value}; Blackboard key selectors take a key name; value-or-key properties take a value or "key:<KeyName>". |
+| `bt_get` |  | A Behavior Tree as a nested tree: node ids, classes, names, attached decorators/services, children in execution order. |
+| `nav_bounds_add` | yes | Add a Nav Mesh Bounds Volume (location, extent = half size in cm) to the level; navigation rebuilds in the background (check with nav_path). |
+| `nav_build` |  | Start rebuilding navigation for the open level (asynchronous: poll until building=false, or query nav_path). |
+| `nav_path` |  | Find a navigation path between two points [x,y,z] in the open level (or the play world when playing): valid, partial, length and points. |
 
 ## anim
 

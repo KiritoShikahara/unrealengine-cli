@@ -258,6 +258,20 @@ bool FToolRegistry::Validate(const TSharedPtr<FJsonObject>& Schema, const TShare
 				return false;
 			}
 		}
+		const TSharedPtr<FJsonObject>* Items = nullptr;
+		FString ItemType;
+		if (Arg.Value->Type == EJson::Array && (*PropSchema)->TryGetObjectField(TEXT("items"), Items) && (*Items)->TryGetStringField(TEXT("type"), ItemType))
+		{
+			const TArray<TSharedPtr<FJsonValue>>& Elements = Arg.Value->AsArray();
+			for (int32 I = 0; I < Elements.Num(); ++I)
+			{
+				if (!MatchesType(ItemType, Elements[I]))
+				{
+					OutError = FString::Printf(TEXT("argument '%s'[%d] must be %s"), *Arg.Key, I, *ItemType);
+					return false;
+				}
+			}
+		}
 		const TArray<TSharedPtr<FJsonValue>>* Enum = nullptr;
 		if ((*PropSchema)->TryGetArrayField(TEXT("enum"), Enum) && Arg.Value->Type == EJson::String)
 		{

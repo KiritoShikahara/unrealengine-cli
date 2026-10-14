@@ -38,6 +38,7 @@ bool FUCliRegistryValidation::RunTest(const FString&)
 	TestEqual(TEXT("unknown tool"), Code(Call(TEXT("does_not_exist"))), FString(TEXT("tool.unknown")));
 	TestEqual(TEXT("missing arg"), Code(Call(TEXT("jobs_get"))), FString(TEXT("args.invalid")));
 	TestEqual(TEXT("wrong type"), Code(Call(TEXT("jobs_get"), TEXT("{\"jobId\":3}"))), FString(TEXT("args.invalid")));
+	TestEqual(TEXT("bad array item"), Code(Call(TEXT("editor_selection_set"), TEXT("{\"labels\":[1,2]}"))), FString(TEXT("args.invalid")));
 	TestEqual(TEXT("bad enum"), Code(Call(TEXT("editor_logs"), TEXT("{\"severity\":\"loud\"}"))), FString(TEXT("args.invalid")));
 	return true;
 }

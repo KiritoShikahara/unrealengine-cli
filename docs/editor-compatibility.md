@@ -14,11 +14,12 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
 * `--null-rhi`: spawning actors with mesh primitives (StaticMeshActor, Blueprint actors) and starting PIE crash
   the engine (`EXCEPTION_INT_DIVIDE_BY_ZERO` in UnrealEditor-Engine). E2E therefore skips PIE unless
   `UNREALENGINE_CLI_E2E_RENDER=1` with a rendering editor.
-* On some machines a Live Coding compile never finishes (the Live Coding console stops after starting UBA) and the
-  engine blocks the editor's game thread while it waits. `code apply` gives up after 6 minutes; with `--force` it closes
-  the editor, rebuilds and reopens it (with the level that was open), so the change still lands. Seen on the
-  development machine with UE 5.7.4; `bAllowUBAExecutor=false` in the project's BuildConfiguration.xml did not help.
-  Live Coding's lock is per engine install: while it runs, other builds with the same engine fail.
+* A Live Coding compile can stall (the Live Coding console stops after starting UBA) and the engine blocks the
+  editor's game thread while it waits. `code apply` gives up after 6 minutes; with `--force` it closes the editor,
+  rebuilds and reopens it (with the level that was open), so the change still lands. Seen on the development machine
+  with UE 5.7.4 while another project was building at the same time; the same E2E later passed through Live Coding
+  itself (`scripts/e2e-cpp.py`, `liveApply: live`). Live Coding's lock is per engine install: while it runs, other
+  builds with the same engine fail.
 * Machines with an XGE / Incredibuild controller may never finish shader compilation; set
   `r.ShaderCompiler.AllowDistributedCompilation=0` under `[ConsoleVariables]` in the project's DefaultEngine.ini
   (`r.XGEShaderCompile` no longer exists in UE 5.7; `doctor` accepts either).
@@ -37,7 +38,8 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
   packaged game PASS on 5.7.4.
 * 2026-10-15 robustness pass (plugin version check, Blueprint component props, input modifiers, editor close/exit fixes,
   Live Coding fallback): UE 5.7.4 and 5.8 with -nullrhi and rendering, Automation 14/14, E2E 15/15, MCP 1/1,
-  both game E2Es PASS; C++ E2E (`scripts/e2e-cpp.py`) PASS on 5.7.4 through the rebuild fallback.
+  both game E2Es PASS; C++ E2E (`scripts/e2e-cpp.py`) PASS on 5.7.4 through the rebuild fallback, and later through
+  Live Coding itself.
 * 2026-10-14 after game-making tools (play-testing, gameplay nodes, AI, UMG layout/animation): UE 5.7.4 and 5.8,
   Automation 14/14, E2E 14/14 + MCP 1/1 with -nullrhi and with rendering, game E2E (`scripts/e2e-game.py`) PASS.
 * 2026-10-14 v0.1.1: UE 5.7.4 and 5.8, Automation 14/14, E2E 11/11 with -nullrhi and with a rendering editor

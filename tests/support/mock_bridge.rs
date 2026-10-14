@@ -37,6 +37,14 @@ impl MockBuilder {
         self
     }
 
+    /// A tool that answers only after `ms` milliseconds.
+    pub fn slow_tool(self, name: &str, ms: u64) -> Self {
+        self.tool(name, move |_| {
+            std::thread::sleep(std::time::Duration::from_millis(ms));
+            Ok(json!({}))
+        })
+    }
+
     pub fn tool<F>(mut self, name: &str, f: F) -> Self
     where
         F: Fn(&Value) -> Result<Value, Value> + Send + Sync + 'static,

@@ -70,7 +70,7 @@ bash scripts/e2e.sh 5.7     # plugin build + Automation tests + editor E2E (Wind
 bash scripts/gen-catalog.sh # refresh tools/catalog.json from a running editor
 ```
 
-See [docs/architecture.md](docs/architecture.md), [docs/tools.md](docs/tools.md), [docs/skills.md](docs/skills.md)
+See [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [docs/tools.md](docs/tools.md), [docs/skills.md](docs/skills.md)
 and [docs/editor-compatibility.md](docs/editor-compatibility.md).
 
 ## License

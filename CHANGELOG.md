@@ -15,8 +15,9 @@
 - `doctor` reports the running editor's plugin version; recommends `r.ShaderCompiler.AllowDistributedCompilation=0`
   (the old `r.XGEShaderCompile` no longer exists in UE 5.7).
 - `code apply` reopens the level that was open after a rebuild.
-- Fixes: `package_project` with an empty outputDir archived into the engine's Binaries folder (now refused; relative
-  paths are under the project); editor exit no longer crashes in the bridge; `editor close` waits for the process
+- Fixes: `package_project` with an empty outputDir archived into the engine's Binaries folder (now refused, as is
+  any Unreal Engine install and the project's Content folder; relative paths are under the project; `check: true`
+  validates without building); relative paths for `editor_screenshot` and `asset_import` resolve under the project; editor exit no longer crashes in the bridge; `editor close` waits for the process
   to exit (DLL locks) and ends an editor that hangs while shutting down; `--class` filters prefer an exact class
   name; `e2e.sh` clears test assets from earlier runs.
 

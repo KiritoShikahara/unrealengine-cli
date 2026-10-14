@@ -22,10 +22,21 @@ def _output_dir(output_dir):
         raise ToolError("args.invalid", "outputDir is empty", "pass a folder, e.g. Build/Windows (relative to the project)")
     path = output_dir if os.path.isabs(output_dir) else os.path.join(_project_dir(), output_dir)
     path = os.path.normpath(path)
-    engine = _full(unreal.Paths.engine_dir())
-    if os.path.normcase(path).startswith(os.path.normcase(os.path.dirname(engine.rstrip("\\/")))):
-        raise ToolError("package.bad_output_dir", "'%s' is inside the engine install" % path,
-                        "choose a folder outside the engine, e.g. Build/Windows (relative to the project)")
+    # Refuse any Unreal Engine install (not just the running one) and the project's Content folder.
+    probe = path
+    while True:
+        if os.path.isfile(os.path.join(probe, "Engine", "Build", "BatchFiles", "RunUAT.bat")) or \
+                os.path.isfile(os.path.join(probe, "Build", "BatchFiles", "RunUAT.bat")):
+            raise ToolError("package.bad_output_dir", "'%s' is inside an Unreal Engine install (%s)" % (path, probe),
+                            "choose a folder outside the engine, e.g. Build/Windows (relative to the project)")
+        parent = os.path.dirname(probe)
+        if parent == probe:
+            break
+        probe = parent
+    content = os.path.join(_project_dir(), "Content")
+    if os.path.normcase(path + os.sep).startswith(os.path.normcase(content + os.sep)):
+        raise ToolError("package.bad_output_dir", "'%s' is inside the project's Content folder" % path,
+                        "choose a folder outside Content, e.g. Build/Windows (relative to the project)")
     return path
 
 
@@ -51,12 +62,16 @@ def _start(args, log_name):
 
 
 @tool("package_project", "packaging", "Start BuildCookRun to package the project into outputDir (relative paths "
-      "are under the project, e.g. Build/Windows); returns the process id and log file (poll with package_status).",
+      "are under the project, e.g. Build/Windows; never an engine install or Content); returns the process id and log "
+      "file (poll with package_status). check=true only validates outputDir.",
       {"outputDir": {"type": "string"}, "configuration": {"type": "string", "enum": ["Development", "Shipping", "DebugGame"]},
-       "platform": {"type": "string"}}, ["outputDir"], mutating=True, undoable=False)
-def package_project(outputDir, configuration="Development", platform=None):
+       "platform": {"type": "string"}, "check": {"type": "boolean"}}, ["outputDir"], mutating=True, undoable=False)
+def package_project(outputDir, configuration="Development", platform=None, check=False):
     plat = platform or _platform()
     archive = _output_dir(outputDir)
+    if check:
+        # Validate only: report where the build would go without starting it.
+        return {"outputDir": archive, "platform": plat, "configuration": configuration, "started": False}
     result = _start(["-platform=" + plat, "-clientconfig=" + configuration, "-build", "-cook", "-stage", "-pak",
                      "-archive", "-archivedirectory=" + archive], "package.log")
     result["outputDir"] = archive

@@ -1106,13 +1106,39 @@ fn e2e_15_blueprint_component_properties() {
     );
     assert_eq!(err, "args.invalid");
     // Packaging output must be given and must stay out of the engine install.
-    let (_, err) = fails("package_project", json!({"outputDir": ""}));
+    let (_, err) = fails("package_project", json!({"outputDir": "", "check": true}));
     assert_eq!(err, "args.invalid");
     let (_, err) = fails(
         "package_project",
-        json!({"outputDir": "C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64"}),
+        json!({"outputDir": "C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64", "check": true}),
     );
     assert_eq!(err, "package.bad_output_dir");
+    // Any engine install is refused, not only the running editor's (both 5.7 and 5.8 are installed here).
+    for engine in ["UE_5.7", "UE_5.8"] {
+        let (_, err) = fails(
+            "package_project",
+            json!({"outputDir": format!("C:/Program Files/Epic Games/{engine}/Engine/Binaries/Win64"), "check": true}),
+        );
+        assert_eq!(err, "package.bad_output_dir", "{engine}");
+    }
+    let (_, err) = fails(
+        "package_project",
+        json!({"outputDir": "Content/Build", "check": true}),
+    );
+    assert_eq!(err, "package.bad_output_dir");
+    let checked = call(
+        "package_project",
+        json!({"outputDir": "Build/Windows", "check": true}),
+    );
+    assert_eq!(checked["started"], false);
+    assert!(
+        std::path::Path::new(checked["outputDir"].as_str().unwrap()).ends_with(
+            std::path::Path::new("TestProject")
+                .join("Build")
+                .join("Windows")
+        ),
+        "{checked}"
+    );
 }
 
 #[test]

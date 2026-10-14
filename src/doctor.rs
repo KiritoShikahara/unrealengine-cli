@@ -15,6 +15,21 @@ fn check(name: &str, ok: bool, detail: impl Into<String>, hint: &str) -> Value {
     v
 }
 
+fn xge_disabled(uproject: &Path) -> bool {
+    let ini = uproject
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join("Config/DefaultEngine.ini");
+    std::fs::read_to_string(ini)
+        .map(|t| {
+            t.lines().any(|l| {
+                l.replace(' ', "")
+                    .eq_ignore_ascii_case("r.XGEShaderCompile=0")
+            })
+        })
+        .unwrap_or(false)
+}
+
 /// Environment checks; never fails, reports each problem with a hint.
 pub fn run(uproject: Option<&Path>) -> Value {
     let mut checks = Vec::new();
@@ -56,6 +71,16 @@ pub fn run(uproject: Option<&Path>) -> Value {
                 "not found"
             },
             "install Visual Studio 2022 with the 'Game development with C++' workload",
+        ));
+    }
+    if cfg!(windows) && std::env::var_os("XGE_INSTALL_DIR").is_some()
+        || Path::new("C:/Program Files (x86)/Incredibuild/xgConsole.exe").is_file()
+    {
+        checks.push(check(
+            "shader_compile",
+            uproject.is_some_and(xge_disabled),
+            "XGE / Incredibuild is installed; the editor sends shader jobs to it",
+            "if shader compilation never finishes, add r.XGEShaderCompile=0 under [ConsoleVariables] in Config/DefaultEngine.ini",
         ));
     }
     let Some(up) = uproject else {

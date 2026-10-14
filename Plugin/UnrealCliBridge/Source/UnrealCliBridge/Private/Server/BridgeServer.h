@@ -15,6 +15,8 @@ class FBridgeServer : public FRunnable
 public:
 	bool Start();
 	void Stop();
+	/** Engine exit: signal threads and remove the instance file without joining or freeing anything. */
+	void StopForExit();
 	int32 GetPort() const { return Port; }
 	const FString& GetToken() const { return Token; }
 

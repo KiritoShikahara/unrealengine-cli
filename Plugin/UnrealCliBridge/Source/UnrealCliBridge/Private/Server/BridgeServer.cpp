@@ -276,8 +276,12 @@ bool FBridgeServer::Start()
 	InstanceFile::Write(Port, Token);
 	// Tool calls run from the core ticker, outside the world tick: a task-graph game-thread task can run in the
 	// middle of a tick group, where switching levels or starting PIE trips engine assertions.
-	DispatchTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float)
+	DispatchTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Stopping = bStopping](float)
 	{
+		if (*Stopping)
+		{
+			return false;
+		}
 		TSharedPtr<FToolCall, ESPMode::ThreadSafe> Next;
 		while (PendingCalls().Dequeue(Next))
 		{
@@ -293,7 +297,12 @@ bool FBridgeServer::Start()
 void FBridgeServer::Stop()
 {
 	*bStopping = true;
-	FTSTicker::GetCoreTicker().RemoveTicker(DispatchTicker);
+	// Quitting runs inside this ticker (editor_quit is a tool call); removing it from there recursed until the
+	// stack overflowed. During exit the ticker is left alone and stops itself via bStopping.
+	if (!IsEngineExitRequested())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(DispatchTicker);
+	}
 	if (Thread)
 	{
 		Thread->WaitForCompletion();
@@ -307,6 +316,12 @@ void FBridgeServer::Stop()
 		Listener = nullptr;
 	}
 	Reap(true);
+	InstanceFile::Remove();
+}
+
+void FBridgeServer::StopForExit()
+{
+	*bStopping = true;
 	InstanceFile::Remove();
 }
 

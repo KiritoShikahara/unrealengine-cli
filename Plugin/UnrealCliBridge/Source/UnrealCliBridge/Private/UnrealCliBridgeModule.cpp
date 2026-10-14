@@ -26,8 +26,18 @@ void FUnrealCliBridgeModule::ShutdownModule()
 {
 	if (Server)
 	{
-		Server->Stop();
-		Server.Reset();
+		if (IsEngineExitRequested())
+		{
+			// The process is exiting: joining and freeing the socket threads here overflowed the stack on
+			// some shutdowns. Stop accepting, drop the instance file and let process exit reclaim the rest.
+			Server->StopForExit();
+			(void)Server.Release();
+		}
+		else
+		{
+			Server->Stop();
+			Server.Reset();
+		}
 	}
 	FBridgeLog::Uninstall();
 }

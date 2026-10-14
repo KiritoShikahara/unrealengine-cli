@@ -109,7 +109,11 @@ pub enum Command {
         add_code_module: bool,
     },
     /// Check engine, build tools, plugin and editor
-    Doctor,
+    Doctor {
+        /// Print a Markdown summary to paste into a bug report
+        #[arg(long)]
+        report: bool,
+    },
     /// Editor lifecycle: open, close, build, status
     Editor {
         #[command(subcommand)]
@@ -391,7 +395,7 @@ fn dispatch(
             build,
             add_code_module,
         } => ("setup", project::setup_cmd(ctx, build, add_code_module)),
-        Command::Doctor => ("doctor", project::doctor_cmd(ctx)),
+        Command::Doctor { report } => ("doctor", project::doctor_cmd(ctx, report)),
         Command::Editor { action } => match action {
             EditorCmd::Open {
                 headless,

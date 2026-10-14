@@ -69,3 +69,7 @@ bash scripts/e2e.sh 5.7     # プラグインのビルド + Automation テスト
 ```
 
 詳しくは [docs/architecture.md](docs/architecture.md)、[docs/tools.md](docs/tools.md)、[docs/skills.md](docs/skills.md)、[docs/editor-compatibility.md](docs/editor-compatibility.md) を参照してください。
+
+## バグ報告
+
+[GitHub の Issue](https://github.com/KiritoShikahara/unrealengine-cli/issues/new?template=bug_report.yml) に、プロジェクトのフォルダで実行した `unrealengine-cli doctor --report` の出力と、失敗したコマンドの `--output json` の結果を貼ってください。

@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in unrealengine-cli or the UnrealCliBridge plugin does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      description: The exact command and its JSON output (`--output json`). Remove anything private.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Environment
+      description: Paste the output of `unrealengine-cli doctor --report` (run it in the project folder).
+      render: markdown
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Editor mode
+      options:
+        - Normal (window)
+        - --headless
+        - --null-rhi
+        - Editor not running
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Editor log (optional)
+      description: Relevant lines from `unrealengine-cli logs --severity warning` or Saved/Logs, or crash details.
+      render: text

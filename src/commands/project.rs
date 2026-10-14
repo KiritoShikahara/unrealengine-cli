@@ -39,8 +39,13 @@ pub fn setup_cmd(
     Ok(data)
 }
 
-pub fn doctor_cmd(ctx: &Ctx) -> Result<Value, CliError> {
-    Ok(doctor::run(ctx.uproject().ok().as_deref()))
+pub fn doctor_cmd(ctx: &Ctx, report: bool) -> Result<Value, CliError> {
+    let up = ctx.uproject().ok();
+    let checks = doctor::run(up.as_deref());
+    if report {
+        return Ok(Value::String(doctor::report(&checks, up.as_deref())));
+    }
+    Ok(checks)
 }
 
 pub fn build_cmd(ctx: &mut Ctx) -> Result<Value, CliError> {

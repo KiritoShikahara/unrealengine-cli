@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
+use crate::core::paths;
 use crate::engine::{editor, locate};
 use crate::setup;
 use crate::transport::client::BridgeClient;
@@ -28,6 +29,43 @@ fn xge_disabled(uproject: &Path) -> bool {
             })
         })
         .unwrap_or(false)
+}
+
+/// Markdown environment summary for bug reports; the user's home directory is shown as `~`.
+pub fn report(doctor: &Value, uproject: Option<&Path>) -> String {
+    let engine = uproject
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        .and_then(|v| v["EngineAssociation"].as_str().map(str::to_string))
+        .unwrap_or_else(|| "unknown (no .uproject found)".into());
+    let mut md = format!(
+        "## Environment\n\n- unrealengine-cli {}\n- OS: {} {}\n- Engine version (project): {}\n- Healthy: {}\n\n| check | result | detail |\n|---|---|---|\n",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS,
+        std::env::consts::ARCH,
+        engine,
+        if doctor["healthy"] == true {
+            "yes"
+        } else {
+            "no"
+        },
+    );
+    let home = paths::home().to_string_lossy().to_string();
+    for c in doctor["checks"].as_array().into_iter().flatten() {
+        let detail = c["detail"].as_str().unwrap_or("").replace('|', "/");
+        let detail = if home.len() > 1 {
+            detail.replace(&home, "~")
+        } else {
+            detail
+        };
+        md.push_str(&format!(
+            "| {} | {} | {} |\n",
+            c["name"].as_str().unwrap_or("?"),
+            if c["ok"] == true { "OK" } else { "NG" },
+            detail
+        ));
+    }
+    md
 }
 
 /// Environment checks; never fails, reports each problem with a hint.

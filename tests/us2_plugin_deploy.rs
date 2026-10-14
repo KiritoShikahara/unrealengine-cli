@@ -127,3 +127,20 @@ fn doctor_reports_checks_without_failing() {
     assert_eq!(plugin["ok"], false);
     assert_eq!(plugin["hint"], "unrealengine-cli setup");
 }
+
+#[test]
+fn doctor_report_is_markdown_for_bug_reports() {
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    project(proj.path(), true);
+    let (code, v) = run_json(home.path(), proj.path(), &["doctor", "--report"]);
+    assert_eq!(code, 0, "{v}");
+    let md = v["data"].as_str().expect("report is a string");
+    assert!(
+        md.contains(&format!("unrealengine-cli {}", env!("CARGO_PKG_VERSION"))),
+        "{md}"
+    );
+    assert!(md.contains(std::env::consts::OS), "{md}");
+    assert!(md.contains("| plugin | NG |"), "{md}");
+    assert!(md.contains("Engine version"), "{md}");
+}

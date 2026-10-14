@@ -74,6 +74,11 @@ bash scripts/gen-catalog.sh # refresh tools/catalog.json from a running editor
 See [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [docs/tools.md](docs/tools.md), [docs/skills.md](docs/skills.md)
 and [docs/editor-compatibility.md](docs/editor-compatibility.md).
 
+## Reporting bugs
+
+Open a [GitHub issue](https://github.com/KiritoShikahara/unrealengine-cli/issues/new?template=bug_report.yml) and paste the
+output of `unrealengine-cli doctor --report` (run in the project folder) with the failing command's `--output json` result.
+
 ## License
 
 MIT

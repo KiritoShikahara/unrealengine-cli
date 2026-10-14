@@ -1,25 +1,44 @@
 mod support;
 
 use serde_json::json;
+use std::sync::{Arc, Mutex};
 use support::mock_bridge::MockBuilder;
-use support::{run_json, write_instance};
+
+use support::{run_json, write_instance, write_instance_pid};
+
+/// A stand-in editor process that the mocked editor_quit ends.
+fn fake_editor() -> std::process::Child {
+    let mut cmd = if cfg!(windows) {
+        let mut c = std::process::Command::new("ping");
+        c.args(["-n", "120", "127.0.0.1"]);
+        c
+    } else {
+        let mut c = std::process::Command::new("sleep");
+        c.arg("120");
+        c
+    };
+    cmd.stdout(std::process::Stdio::null()).spawn().unwrap()
+}
 
 #[test]
-fn close_waits_for_the_instance_to_go_away() {
+fn close_waits_for_the_instance_and_the_process_to_go_away() {
     let home = tempfile::tempdir().unwrap();
-    let file = home
-        .path()
-        .join("instances")
-        .join(format!("{}.json", std::process::id()));
+    let editor = Arc::new(Mutex::new(fake_editor()));
+    let pid = editor.lock().unwrap().id();
+    let file = home.path().join("instances").join(format!("{pid}.json"));
     let f = file.clone();
+    let e = editor.clone();
     let m = MockBuilder::new()
         .tool("editor_quit", move |_| {
-            // The real plugin removes its instance file when it shuts down.
+            // The real plugin removes its instance file when it shuts down, then the process exits.
             let _ = std::fs::remove_file(&f);
+            let mut child = e.lock().unwrap();
+            let _ = child.kill();
+            let _ = child.wait();
             Ok(json!({"quitting": true, "discarded": []}))
         })
         .start();
-    write_instance(home.path(), &m, "p");
+    write_instance_pid(home.path(), &m, "p", pid);
     let (code, v) = run_json(home.path(), home.path(), &["editor", "close"]);
     assert_eq!(code, 0, "{v}");
     assert_eq!(v["data"]["closed"], true);

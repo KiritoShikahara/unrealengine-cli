@@ -8,9 +8,14 @@ use serde_json::{Value, json};
 
 /// Writes an instance file pointing at a mock bridge (pid = this test process, so it looks alive).
 pub fn write_instance(home: &Path, bridge: &mock_bridge::MockBridge, project: &str) {
+    write_instance_pid(home, bridge, project, std::process::id());
+}
+
+/// Instance file for a given editor process id (tests that need the "editor" process to exit).
+#[allow(dead_code)]
+pub fn write_instance_pid(home: &Path, bridge: &mock_bridge::MockBridge, project: &str, pid: u32) {
     let dir = home.join("instances");
     std::fs::create_dir_all(&dir).unwrap();
-    let pid = std::process::id();
     let body = json!({
         "pid": pid, "port": bridge.addr.port(), "token": bridge.token, "project": project,
         "engineVersion": "5.7.1", "pluginVersion": "0.1.0", "protocolVersion": 1,

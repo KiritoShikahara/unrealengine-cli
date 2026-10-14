@@ -6,7 +6,7 @@ use unrealengine_cli::update::{
 
 #[test]
 fn auto_update_runs_at_most_once_a_day() {
-    let dir = std::env::temp_dir().join(format!("uecli-auto-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("unrealengine-cli-auto-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let stamp = dir.join("last-update-check");
     let _ = std::fs::remove_file(&stamp);

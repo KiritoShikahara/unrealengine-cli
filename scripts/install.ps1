@@ -17,12 +17,12 @@ try {
         throw "checksum mismatch for $asset; nothing was installed"
     }
     # INSTALL-STEP
-    $dest = Join-Path $env:LOCALAPPDATA 'unrealengine-cli\bin'
+    $dest = if ($env:UNREALENGINE_CLI_INSTALL_DIR) { $env:UNREALENGINE_CLI_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'unrealengine-cli\bin' }
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     Expand-Archive "$tmp\$asset" -DestinationPath $tmp -Force
     Copy-Item "$tmp\unrealengine-cli.exe" (Join-Path $dest 'unrealengine-cli.exe') -Force
     $path = [Environment]::GetEnvironmentVariable('Path', 'User')
-    if (($path -split ';') -notcontains $dest) {
+    if (-not $env:UNREALENGINE_CLI_NO_MODIFY_PATH -and ($path -split ';') -notcontains $dest) {
         [Environment]::SetEnvironmentVariable('Path', "$path;$dest", 'User')
     }
     Write-Host "installed: $dest\unrealengine-cli.exe (open a new terminal to refresh PATH)"

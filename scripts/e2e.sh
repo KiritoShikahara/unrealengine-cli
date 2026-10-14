@@ -11,7 +11,10 @@ cargo build -q || exit 1
 $U editor close --force >/dev/null 2>&1 || true
 bash scripts/dev-build.sh "$VER" || { echo "plugin build failed for $VER"; exit 1; }
 bash scripts/run-automation.sh "$VER" || { echo "automation tests failed for $VER"; exit 1; }
-$U editor open --null-rhi --output json >/dev/null || { echo "editor did not start"; exit 1; }
+# UNREALENGINE_CLI_E2E_RENDER=1 opens a rendering editor and also runs PIE and Blueprint actor spawning.
+MODE=--null-rhi
+[ "${UNREALENGINE_CLI_E2E_RENDER:-}" = 1 ] && MODE=""
+$U editor open $MODE --wait 2400 --output json >/dev/null || { echo "editor did not start"; exit 1; }
 UNREALENGINE_CLI_E2E=1 cargo test -q --test e2e_editor --test e2e_mcp_editor -- --test-threads=1 2>&1 | tail -n 30
 CODE=${PIPESTATUS[0]}
 $U editor close --force >/dev/null 2>&1 || true

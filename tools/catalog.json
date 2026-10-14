@@ -2001,8 +2001,8 @@
  {
   "name": "niagara_input_set",
   "group": "niagara",
-  "summary": "Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned.",
-  "description": "Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned.",
+  "summary": "Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs.",
+  "description": "Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -2027,15 +2027,20 @@
     "input": {
      "type": "string"
     },
-    "value": {}
+    "value": {},
+    "link": {
+     "type": "string"
+    },
+    "dynamicInput": {
+     "type": "string"
+    }
    },
    "required": [
     "system",
     "emitter",
     "stage",
     "module",
-    "input",
-    "value"
+    "input"
    ]
   },
   "mutating": true,

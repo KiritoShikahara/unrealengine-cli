@@ -433,6 +433,27 @@ fn e2e_08_niagara_sequencer_audio_landscape() {
         json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Nope", "value": 1}),
     );
     assert_eq!(err, "niagara.input_not_found");
+    let link = call(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Drag", "link": "Particles.NormalizedAge"}),
+    );
+    assert_eq!(link["mode"], "link", "{link}");
+    let dynamic = call(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Drag", "dynamicInput": "/Niagara/DynamicInputs/UniformRange/UniformRangedFloat"}),
+    );
+    assert_eq!(dynamic["mode"], "dynamicInput", "{dynamic}");
+    assert!(!dynamic["node"].as_str().unwrap().is_empty(), "{dynamic}");
+    let back = call(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Drag", "value": 1.5}),
+    );
+    assert_eq!(back["mode"], "value", "{back}");
+    let (_, err) = fails(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Drag"}),
+    );
+    assert_eq!(err, "niagara.no_value");
     let listed = call("niagara_emitters_list", json!({"system": ns}));
     assert_eq!(listed["emitters"], e["emitters"]);
 

@@ -17,7 +17,7 @@ Use when creating Niagara systems, adding emitters and modules, and setting modu
 2. Find templates: `unrealengine-cli asset search Fountain --path /Niagara`.
 3. `emitter_add` system/emitter.
 4. `niagara_module_add` stage + module script; keep the returned `module` name.
-5. `niagara_input_set` stage, module, input, value (number, bool, or [x,y,z(,w)]).
+5. `niagara_input_set` stage, module, input and one of: `value` (number, bool, or [x,y,z(,w)]), `link` (e.g. `Particles.NormalizedAge`, `User.Speed`), `dynamicInput` (script under /Niagara/DynamicInputs). A dynamic input returns `node`; pass it as `module` to set its own inputs.
 6. `niagara_emitters_list` to check.
 
 ## Verify

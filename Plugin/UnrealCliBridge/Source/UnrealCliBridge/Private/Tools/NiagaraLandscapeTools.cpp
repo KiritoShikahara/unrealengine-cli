@@ -20,6 +20,7 @@
 #include "LandscapeLayerInfoObject.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "NiagaraCommon.h"
+#include "EdGraphSchema_Niagara.h"
 #include "NiagaraParameterMapHistory.h"
 #include "ViewModels/Stack/NiagaraParameterHandle.h"
 
@@ -82,6 +83,56 @@ namespace
 		if (Type == FNiagaraTypeDefinition::GetVec4Def()) { const FVector4f X(At(0), At(1), At(2), At(3)); Put(&X, sizeof X); TypeName = TEXT("vec4"); return true; }
 		if (Type == FNiagaraTypeDefinition::GetColorDef()) { const FLinearColor X(At(0), At(1), At(2), N.Num() > 3 ? At(3) : 1.f); Put(&X, sizeof X); TypeName = TEXT("color"); return true; }
 		return false;
+	}
+
+	bool IsParameterMapPin(const UEdGraphPin* P)
+	{
+		return UEdGraphSchema_Niagara::PinToTypeDefinition(P) == FNiagaraTypeDefinition::GetParameterMapDef();
+	}
+
+	// The override pin for a module input lives on the map-set node feeding the module's parameter map input.
+	UEdGraphPin* FindOverridePin(UNiagaraNodeFunctionCall& Fn, const FName PinName)
+	{
+		for (UEdGraphPin* In : Fn.Pins)
+		{
+			if (In->Direction != EGPD_Input || !IsParameterMapPin(In)) continue;
+			for (UEdGraphPin* L : In->LinkedTo)
+			{
+				for (UEdGraphPin* P : L->GetOwningNode()->Pins)
+				{
+					if (P->Direction == EGPD_Input && P->PinName == PinName) return P;
+				}
+			}
+		}
+		return nullptr;
+	}
+
+	// Removes a node that no longer feeds anything, and then its now-unused inputs (never the shared parameter map chain).
+	void DestroyIfOrphan(UEdGraphNode* Node)
+	{
+		for (UEdGraphPin* P : Node->Pins)
+		{
+			if (P->Direction == EGPD_Output && P->LinkedTo.Num() > 0) return;
+		}
+		TArray<UEdGraphNode*> Upstream;
+		for (UEdGraphPin* P : Node->Pins)
+		{
+			if (P->Direction != EGPD_Input || IsParameterMapPin(P)) continue;
+			for (UEdGraphPin* L : P->LinkedTo) Upstream.AddUnique(L->GetOwningNode());
+		}
+		Node->Modify();
+		Node->BreakAllNodeLinks();
+		Node->DestroyNode();
+		for (UEdGraphNode* U : Upstream) DestroyIfOrphan(U);
+	}
+
+	// Drops whatever currently drives an override pin (a link or a dynamic input).
+	void ClearOverride(UEdGraphPin& Pin)
+	{
+		TArray<UEdGraphNode*> Upstream;
+		for (UEdGraphPin* L : Pin.LinkedTo) Upstream.AddUnique(L->GetOwningNode());
+		Pin.BreakAllPinLinks(true);
+		for (UEdGraphNode* U : Upstream) DestroyIfOrphan(U);
 	}
 
 	ALandscape* FindLandscape(const FString& Label)
@@ -165,8 +216,8 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
-	R.Add(TEXT("niagara_input_set"), TEXT("niagara"), TEXT("Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned."),
-		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"stage":{"type":"string","enum":["EmitterSpawn","EmitterUpdate","ParticleSpawn","ParticleUpdate"]},"module":{"type":"string"},"input":{"type":"string"},"value":{}},"required":["system","emitter","stage","module","input","value"]})"),
+	R.Add(TEXT("niagara_input_set"), TEXT("niagara"), TEXT("Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs."),
+		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"stage":{"type":"string","enum":["EmitterSpawn","EmitterUpdate","ParticleSpawn","ParticleUpdate"]},"module":{"type":"string"},"input":{"type":"string"},"value":{},"link":{"type":"string"},"dynamicInput":{"type":"string"}},"required":["system","emitter","stage","module","input"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
 		{
@@ -210,6 +261,49 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 				Call->Fail(TEXT("niagara.input_not_found"), FString::Printf(TEXT("module '%s' has no input '%s'"), *ModuleName, *Call->GetString(TEXT("input"))), FString::Printf(TEXT("inputs: %s"), *FString::Join(Names, TEXT(", "))));
 				return;
 			}
+			const FNiagaraParameterHandle Aliased = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(FNiagaraParameterHandle(Input->GetName()), Fn);
+			if (Call->Has(TEXT("link")) || Call->Has(TEXT("dynamicInput")))
+			{
+				UNiagaraScript* Dynamic = nullptr;
+				if (Call->Has(TEXT("dynamicInput")))
+				{
+					Dynamic = LoadObject<UNiagaraScript>(nullptr, *BP::ObjectPath(Call->GetString(TEXT("dynamicInput"))), nullptr, LOAD_NoWarn | LOAD_Quiet);
+					if (!Dynamic)
+					{
+						Call->Fail(TEXT("niagara.dynamic_input_not_found"), FString::Printf(TEXT("no dynamic input script at '%s'"), *Call->GetString(TEXT("dynamicInput"))), TEXT("search: asset_search class=NiagaraScript pathPrefix=/Niagara/DynamicInputs"));
+						return;
+					}
+				}
+				S->Modify();
+				Source->NodeGraph->Modify();
+				UEdGraphPin& Pin = FNiagaraStackGraphUtilities::GetOrCreateStackFunctionInputOverridePin(*Fn, Aliased, Input->GetType(), FGuid(), FGuid());
+				ClearOverride(Pin);
+				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+				if (Dynamic)
+				{
+					UNiagaraNodeFunctionCall* DynamicNode = nullptr;
+					FNiagaraStackGraphUtilities::SetDynamicInputForFunctionInput(Pin, Dynamic, DynamicNode);
+					O->SetStringField(TEXT("mode"), TEXT("dynamicInput"));
+					O->SetStringField(TEXT("node"), DynamicNode ? DynamicNode->GetFunctionName() : FString());
+				}
+				else
+				{
+					const FNiagaraVariableBase Linked(Input->GetType(), FName(*Call->GetString(TEXT("link"))));
+					FNiagaraStackGraphUtilities::SetLinkedParameterValueForFunctionInput(Pin, Linked, TSet<FNiagaraVariableBase>());
+					O->SetStringField(TEXT("mode"), TEXT("link"));
+					O->SetStringField(TEXT("link"), Linked.GetName().ToString());
+				}
+				Source->NodeGraph->NotifyGraphChanged();
+				S->RequestCompile(false);
+				S->MarkPackageDirty();
+				Call->Succeed(O);
+				return;
+			}
+			if (!Call->Has(TEXT("value")))
+			{
+				Call->Fail(TEXT("niagara.no_value"), TEXT("pass one of value, link or dynamicInput"));
+				return;
+			}
 			TArray<uint8> Bytes;
 			FString TypeName;
 			if (!EncodeValue(Input->GetType(), Call->Args->TryGetField(TEXT("value")), Bytes, TypeName))
@@ -217,7 +311,6 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 				Call->Fail(TEXT("niagara.unsupported_input_type"), FString::Printf(TEXT("input '%s' has type %s, which this tool cannot set (or the value has the wrong shape)"), *Wanted, *Input->GetType().GetName()), TEXT("use python with the Niagara editor API"));
 				return;
 			}
-			const FNiagaraParameterHandle Aliased = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(FNiagaraParameterHandle(Input->GetName()), Fn);
 			const FNiagaraVariable Rapid(Input->GetType(), FName(*FNiagaraUtilities::CreateRapidIterationConstantName(Aliased.GetParameterHandleString(), *Handle->GetUniqueInstanceName(), Usage)));
 			TArray<UNiagaraScript*> Scripts;
 			if (Usage == ENiagaraScriptUsage::EmitterSpawnScript || Usage == ENiagaraScriptUsage::EmitterUpdateScript)
@@ -234,6 +327,16 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 				}
 			}
 			S->Modify();
+			// A link or dynamic input set earlier would win over the local value: remove that override.
+			if (UEdGraphPin* Override = FindOverridePin(*Fn, Aliased.GetParameterHandleString()))
+			{
+				Source->NodeGraph->Modify();
+				ClearOverride(*Override);
+				UEdGraphNode* Owner = Override->GetOwningNode();
+				Owner->Modify();
+				Owner->RemovePin(Override);
+				Source->NodeGraph->NotifyGraphChanged();
+			}
 			for (UNiagaraScript* Script : Scripts)
 			{
 				if (!Script) continue;
@@ -243,6 +346,7 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 			S->RequestCompile(false);
 			S->MarkPackageDirty();
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("mode"), TEXT("value"));
 			O->SetStringField(TEXT("parameter"), Rapid.GetName().ToString());
 			O->SetStringField(TEXT("type"), TypeName);
 			O->SetNumberField(TEXT("scripts"), Scripts.Num());

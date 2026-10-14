@@ -151,7 +151,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 |---|---|---|
 | `emitter_add` | yes | Add an emitter asset (e.g. a template under /Niagara/DefaultAssets/Templates/Emitters) to a Niagara System. |
 | `niagara_emitters_list` |  | Emitters of a Niagara System. |
-| `niagara_input_set` | yes | Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned. |
+| `niagara_input_set` | yes | Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs. |
 | `niagara_module_add` | yes | Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn / EmitterUpdate / ParticleSpawn / ParticleUpdate. |
 | `niagara_system_create` | yes | Create an empty Niagara System asset. |
 

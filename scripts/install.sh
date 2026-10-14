@@ -22,7 +22,7 @@ if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
   exit 1
 fi
 # INSTALL-STEP
-DEST="$HOME/.local/share/unrealengine-cli/bin"
+DEST="${UNREALENGINE_CLI_INSTALL_DIR:-$HOME/.local/share/unrealengine-cli/bin}"
 mkdir -p "$DEST" "$HOME/.local/bin"
 tar -xzf "$TMP/$ASSET" -C "$TMP"
 install -m 0755 "$TMP/unrealengine-cli" "$DEST/unrealengine-cli"

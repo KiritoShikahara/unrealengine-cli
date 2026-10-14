@@ -13,4 +13,5 @@ Differences from the planned list:
 * Added: `editor_quit`, `level_info`, `asset_list`, `material_recompile`, `niagara_emitters_list`, `landscape_info`,
   `package_status`.
 * `cook_content` is a BuildCookRun cook only.
-* `niagara_input_set` sets local values only (float, int, bool, vectors, color), not linked or dynamic inputs.
+* `niagara_input_set` sets a local value (float, int, bool, vectors, color), a link to a parameter, or a dynamic input;
+  setting one replaces the previous override.

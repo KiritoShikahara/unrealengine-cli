@@ -171,8 +171,8 @@ pub fn maybe_spawn_auto_update(args: &[String]) {
     };
     let _ = std::fs::remove_file(exe.with_extension("old"));
     let argv: Vec<&str> = args.iter().map(String::as_str).collect();
-    let opted_out = std::env::var_os("UNREALENGINE_CLI_NO_AUTO_UPDATE").is_some()
-        || std::env::var_os("CI").is_some();
+    let set = |k: &str| std::env::var_os(k).is_some_and(|v| !v.is_empty());
+    let opted_out = set("UNREALENGINE_CLI_NO_AUTO_UPDATE") || set("CI");
     if !auto_update_eligible(&exe, opted_out, &argv) {
         return;
     }

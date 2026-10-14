@@ -1,6 +1,6 @@
 # Tool catalog
 
-113 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+116 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema with `unreal-cli tool describe <name>`.
 
@@ -114,6 +114,8 @@ Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema
 |---|---|---|
 | `landscape_create` | yes | Create a flat landscape: components x components, each 63 quads, at location with scale. |
 | `landscape_info` |  | Landscapes in the level with size, component count and material. |
+| `landscape_layer_add` | yes | Add a paint layer to a landscape, creating its LayerInfo asset (default /Game/LandscapeLayers/<layer>_LayerInfo) or reusing an existing one. |
+| `landscape_paint` | yes | Paint a layer (added with landscape_layer_add) over a circular area; strength 0..1 with smooth falloff. |
 | `landscape_sculpt` | yes | Raise (positive height, cm) or lower a circular area of a landscape with smooth falloff. |
 
 ## level
@@ -149,6 +151,7 @@ Call any tool with `unreal-cli tool call <name> --args '<json>'`; see its schema
 |---|---|---|
 | `emitter_add` | yes | Add an emitter asset (e.g. a template under /Niagara/DefaultAssets/Templates/Emitters) to a Niagara System. |
 | `niagara_emitters_list` |  | Emitters of a Niagara System. |
+| `niagara_input_set` | yes | Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned. |
 | `niagara_module_add` | yes | Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn / EmitterUpdate / ParticleSpawn / ParticleUpdate. |
 | `niagara_system_create` | yes | Create an empty Niagara System asset. |
 

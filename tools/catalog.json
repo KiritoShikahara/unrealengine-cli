@@ -1579,6 +1579,66 @@
   "minEngine": "5.5"
  },
  {
+  "name": "landscape_layer_add",
+  "group": "landscape",
+  "summary": "Add a paint layer to a landscape, creating its LayerInfo asset (default /Game/LandscapeLayers/<layer>_LayerInfo) or reusing an existing one.",
+  "description": "Add a paint layer to a landscape, creating its LayerInfo asset (default /Game/LandscapeLayers/<layer>_LayerInfo) or reusing an existing one.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "layer": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "layer"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "landscape_paint",
+  "group": "landscape",
+  "summary": "Paint a layer (added with landscape_layer_add) over a circular area; strength 0..1 with smooth falloff.",
+  "description": "Paint a layer (added with landscape_layer_add) over a circular area; strength 0..1 with smooth falloff.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    },
+    "layer": {
+     "type": "string"
+    },
+    "center": {
+     "type": "array"
+    },
+    "radius": {
+     "type": "number"
+    },
+    "strength": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "layer",
+    "center",
+    "radius"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "landscape_sculpt",
   "group": "landscape",
   "summary": "Raise (positive height, cm) or lower a circular area of a landscape with smooth falloff.",
@@ -1935,6 +1995,50 @@
    ]
   },
   "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "niagara_input_set",
+  "group": "niagara",
+  "summary": "Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned.",
+  "description": "Set a module input's local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors). module is the name niagara_module_add returned.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    },
+    "stage": {
+     "type": "string",
+     "enum": [
+      "EmitterSpawn",
+      "EmitterUpdate",
+      "ParticleSpawn",
+      "ParticleUpdate"
+     ]
+    },
+    "module": {
+     "type": "string"
+    },
+    "input": {
+     "type": "string"
+    },
+    "value": {}
+   },
+   "required": [
+    "system",
+    "emitter",
+    "stage",
+    "module",
+    "input",
+    "value"
+   ]
+  },
+  "mutating": true,
   "longRunning": false,
   "minEngine": "5.5"
  },

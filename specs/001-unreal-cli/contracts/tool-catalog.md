@@ -12,5 +12,5 @@ Differences from the planned list:
 * `class_create` is a CLI command (`unreal-cli code class-create`), not an editor tool.
 * Added: `editor_quit`, `level_info`, `asset_list`, `material_recompile`, `niagara_emitters_list`, `landscape_info`,
   `package_status`.
-* Not implemented: `landscape_paint`, `landscape_layer_add`, `niagara_input_set`, `cook_content`
-  is a BuildCookRun cook only.
+* `cook_content` is a BuildCookRun cook only.
+* `niagara_input_set` sets local values only (float, int, bool, vectors, color), not linked or dynamic inputs.

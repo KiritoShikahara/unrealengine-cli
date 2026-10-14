@@ -421,6 +421,16 @@ fn e2e_08_niagara_sequencer_audio_landscape() {
         json!({"system": ns, "emitter": "Nope", "stage": "ParticleUpdate", "module": "/Niagara/Modules/Update/Forces/Drag"}),
     );
     assert_eq!(err, "niagara.emitter_not_found");
+    let set = call(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Drag", "value": 2.5}),
+    );
+    assert_eq!(set["type"], "float", "{set}");
+    let (_, err) = fails(
+        "niagara_input_set",
+        json!({"system": ns, "emitter": emitter, "stage": "ParticleUpdate", "module": module["module"], "input": "Nope", "value": 1}),
+    );
+    assert_eq!(err, "niagara.input_not_found");
     let listed = call("niagara_emitters_list", json!({"system": ns}));
     assert_eq!(listed["emitters"], e["emitters"]);
 
@@ -464,6 +474,22 @@ fn e2e_08_niagara_sequencer_audio_landscape() {
         json!({"label": "E2E_Land", "center": [3200, 3200], "radius": 1000, "height": 300}),
     );
     assert!(s["vertices"].as_u64().unwrap() > 0);
+    let layer = call(
+        "landscape_layer_add",
+        json!({"label": "E2E_Land", "layer": "Grass", "path": root("LI_Grass")}),
+    );
+    assert_eq!(layer["layer"], "Grass");
+    let p = call(
+        "landscape_paint",
+        json!({"label": "E2E_Land", "layer": "Grass", "center": [3200, 3200], "radius": 1000, "strength": 1.0}),
+    );
+    assert!(p["vertices"].as_u64().unwrap() > 0, "{p}");
+    assert!(p["centerWeight"].as_u64().unwrap() > 0, "{p}");
+    let (_, err) = fails(
+        "landscape_paint",
+        json!({"label": "E2E_Land", "layer": "Nope", "center": [0, 0], "radius": 100}),
+    );
+    assert_eq!(err, "landscape.layer_not_found");
     let info = call("landscape_info", json!({}));
     assert!(
         info.as_array()

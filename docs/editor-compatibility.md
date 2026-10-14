@@ -14,6 +14,11 @@ Results are filled in by `scripts/e2e.sh <version>`; the latest run is recorded 
 * `--null-rhi`: spawning actors with mesh primitives (StaticMeshActor, Blueprint actors) and starting PIE crash
   the engine (`EXCEPTION_INT_DIVIDE_BY_ZERO` in UnrealEditor-Engine). E2E therefore skips PIE unless
   `UNREALENGINE_CLI_E2E_RENDER=1` with a rendering editor.
+* On some machines a Live Coding compile never finishes (the Live Coding console stops after starting UBA) and the
+  engine blocks the editor's game thread while it waits. `code apply` gives up after 6 minutes; with `--force` it closes
+  the editor, rebuilds and reopens it (with the level that was open), so the change still lands. Seen on the
+  development machine with UE 5.7.4; `bAllowUBAExecutor=false` in the project's BuildConfiguration.xml did not help.
+  Live Coding's lock is per engine install: while it runs, other builds with the same engine fail.
 * Machines with an XGE / Incredibuild controller may never finish shader compilation; set
   `r.XGEShaderCompile=0` under `[ConsoleVariables]` in the project's DefaultEngine.ini.
 

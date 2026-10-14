@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "unreal-cli envelope",
+  "type": "object",
+  "required": ["ok", "command", "warnings", "meta"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "command": { "type": "string" },
+    "data": {},
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z_]+\\.[a-z_]+$" },
+        "message": { "type": "string" },
+        "hint": { "type": "string" },
+        "details": {}
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "meta": {
+      "type": "object",
+      "required": ["durationMs", "cliVersion"],
+      "properties": {
+        "durationMs": { "type": "integer" },
+        "cliVersion": { "type": "string" },
+        "instance": { "type": "string" }
+      }
+    }
+  },
+  "if": { "properties": { "ok": { "const": false } } },
+  "then": { "required": ["error"] }
+}

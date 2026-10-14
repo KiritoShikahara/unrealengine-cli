@@ -1,0 +1,12 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.7",
+  "Category": "",
+  "Description": "E2E project for unreal-cli",
+  "Modules": [
+    { "Name": "TestProject", "Type": "Runtime", "LoadingPhase": "Default" }
+  ],
+  "Plugins": [
+    { "Name": "UnrealCliBridge", "Enabled": true }
+  ]
+}

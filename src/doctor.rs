@@ -83,6 +83,21 @@ pub fn run(uproject: Option<&Path>) -> Value {
             "if shader compilation never finishes, add r.XGEShaderCompile=0 under [ConsoleVariables] in Config/DefaultEngine.ini",
         ));
     }
+    let upd = crate::update::check();
+    let newer = upd["updateAvailable"] == true;
+    checks.push(check(
+        "update",
+        !newer,
+        if newer {
+            format!("{} available", upd["latest"].as_str().unwrap_or_default())
+        } else {
+            upd.get("reason")
+                .and_then(|r| r.as_str())
+                .unwrap_or("up to date")
+                .to_string()
+        },
+        "unreal-cli self update",
+    ));
     let Some(up) = uproject else {
         checks.push(check(
             "project",

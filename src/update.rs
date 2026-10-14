@@ -90,6 +90,60 @@ fn extract(archive: &Path, dest: &Path) -> Result<(), CliError> {
     }
 }
 
+/// Tag of the latest release (from the `releases/latest` redirect), or None when offline.
+pub fn latest_tag() -> Option<String> {
+    let repo = std::env::var("UNREAL_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
+    let out = Command::new("curl")
+        .args([
+            "-fsSI",
+            "-m",
+            "3",
+            &format!("https://github.com/{repo}/releases/latest"),
+        ])
+        .output()
+        .ok()?;
+    parse_latest_location(&String::from_utf8_lossy(&out.stdout))
+}
+
+/// Extracts `vX.Y.Z` from a `location: .../releases/tag/vX.Y.Z` response header.
+pub fn parse_latest_location(headers: &str) -> Option<String> {
+    headers.lines().find_map(|l| {
+        let (k, v) = l.split_once(':')?;
+        if !k.trim().eq_ignore_ascii_case("location") {
+            return None;
+        }
+        v.trim()
+            .rsplit_once("/tag/")
+            .map(|(_, t)| t.trim().to_string())
+    })
+}
+
+/// True when `tag` (vX.Y.Z) is newer than this binary.
+pub fn is_newer(tag: &str) -> bool {
+    let parse = |s: &str| -> Vec<u64> {
+        s.trim_start_matches('v')
+            .split('.')
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
+    parse(tag) > parse(env!("CARGO_PKG_VERSION"))
+}
+
+/// Update check honouring UNREAL_CLI_NO_AUTO_UPDATE.
+pub fn check() -> Value {
+    if std::env::var_os("UNREAL_CLI_NO_AUTO_UPDATE").is_some() {
+        return json!({ "checked": false, "reason": "UNREAL_CLI_NO_AUTO_UPDATE is set" });
+    }
+    match latest_tag() {
+        Some(t) => {
+            json!({ "checked": true, "current": env!("CARGO_PKG_VERSION"), "latest": t, "updateAvailable": is_newer(&t) })
+        }
+        None => {
+            json!({ "checked": false, "reason": "no release information (offline or no releases)" })
+        }
+    }
+}
+
 pub fn self_update(version: Option<&str>, dry_run: bool) -> Result<Value, CliError> {
     let repo = std::env::var("UNREAL_CLI_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_string());
     let base = match version {

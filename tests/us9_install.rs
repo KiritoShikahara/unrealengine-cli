@@ -1,4 +1,14 @@
-use unreal_cli::update::{sha256_hex, verify};
+use unreal_cli::update::{is_newer, parse_latest_location, sha256_hex, verify};
+
+#[test]
+fn release_redirect_and_version_compare() {
+    let h = "HTTP/1.1 302 Found\r\nLocation: https://github.com/o/unreal-cli/releases/tag/v9.1.0\r\n\r\n";
+    assert_eq!(parse_latest_location(h).as_deref(), Some("v9.1.0"));
+    assert_eq!(parse_latest_location("HTTP/1.1 404\r\n"), None);
+    assert!(is_newer("v9.1.0"));
+    assert!(!is_newer("v0.0.1"));
+    assert!(!is_newer(concat!("v", env!("CARGO_PKG_VERSION"))));
+}
 
 #[test]
 fn checksum_match_and_mismatch() {

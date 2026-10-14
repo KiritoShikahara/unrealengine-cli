@@ -8,3 +8,4 @@ Measured 2026-10-14 on Windows 11, release build, UE 5.7.4 (editor started with 
 | `unreal-cli ping` against a running editor (process start, connect, handshake, call) | 50 | 16.2 ms | 26.8 ms | 300 ms (SC-002) |
 
 `tests/perf.rs` checks the same paths against a mock bridge on every `cargo test` (debug build, looser limits).
+| Fresh project: `setup --add-code-module --build` → `editor open --null-rhi` → `ping` (SC-001) | 1 | 70 s total | - | 10 min |

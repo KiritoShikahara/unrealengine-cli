@@ -227,6 +227,9 @@ pub enum SelfAction {
         /// Release tag (default: latest)
         #[arg(long)]
         version: Option<String>,
+        /// Only report whether a newer release exists
+        #[arg(long)]
+        check: bool,
     },
 }
 
@@ -440,7 +443,8 @@ fn dispatch(
             }
         },
         Command::SelfCmd { action } => match action {
-            SelfAction::Update { version } => (
+            SelfAction::Update { check: true, .. } => ("self update", Ok(crate::update::check())),
+            SelfAction::Update { version, .. } => (
                 "self update",
                 crate::update::self_update(version.as_deref(), ctx.global.dry_run),
             ),

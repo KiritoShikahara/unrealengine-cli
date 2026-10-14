@@ -1,6 +1,6 @@
 # Tool catalog
 
-134 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+136 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -243,7 +243,9 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | Tool | Changes | Summary |
 |---|---|---|
 | `widget_add` | yes | Add a widget (TextBlock, Button, Image, VerticalBox, ...) under a panel (default: root). |
+| `widget_animation_add` | yes | Add (or extend) a widget animation: track opacity / translation / scale / angle on a widget with keys [[seconds, value]] (translation/scale values are [x,y]). After bp_compile the animation is a variable; play it with PlayAnimation. |
 | `widget_bind` | yes | Create a bound event node for a widget delegate (e.g. Button OnClicked) in the event graph. |
 | `widget_create` | yes | Create a Widget Blueprint (UserWidget) with an optional root panel class (default CanvasPanel). |
+| `widget_layout` | yes | Lay out a widget in its parent. Canvas children: anchor (TopLeft, TopCenter, TopRight, CenterLeft, Center, CenterRight, BottomLeft, BottomCenter, BottomRight, TopFill, BottomFill, LeftFill, RightFill, Fill or [minX,minY,maxX,maxY]), position [x,y], size [w,h], alignment [x,y] (0..1 pivot), autoSize, zOrder. Box/overlay children: padding (number or [l,t,r,b]), hAlign (Left/Center/Right/Fill), vAlign (Top/Center/Bottom/Fill), fill (share of the remaining space). |
 | `widget_set_prop` | yes | Set a widget property by reflection (UE text form); prefix 'Slot.' targets the slot (e.g. Slot.Padding). |
 | `widget_tree_get` |  | Widgets of a Widget Blueprint with parent, slot and variable flags. |

@@ -20,7 +20,7 @@ using namespace UCli;
 
 namespace
 {
-	constexpr uint32 MaxFrame = 64u * 1024u * 1024u;
+	constexpr uint32 MaxFrameBytes = 64u * 1024u * 1024u;
 
 	bool RecvExact(FSocket* S, uint8* Out, int32 Len, const TAtomic<bool>& bStop)
 	{
@@ -72,7 +72,7 @@ namespace
 			return false;
 		}
 		const uint32 Len = (uint32(Header[0]) << 24) | (uint32(Header[1]) << 16) | (uint32(Header[2]) << 8) | uint32(Header[3]);
-		if (Len > MaxFrame)
+		if (Len > MaxFrameBytes)
 		{
 			return false;
 		}

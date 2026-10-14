@@ -13,7 +13,8 @@ public class UnrealCliBridge : ModuleRules
             "AssetRegistry", "AssetTools", "LevelEditor", "PythonScriptPlugin", "Slate", "SlateCore",
             "EditorSubsystem", "ToolMenus", "AnimGraph", "AnimGraphRuntime", "UMG", "UMGEditor",
             "Niagara", "NiagaraEditor", "Landscape", "Foliage", "EnhancedInput", "InputCore",
-            "AIModule", "AIGraph", "BehaviorTreeEditor", "NavigationSystem", "GameplayTasks"
+            "AIModule", "AIGraph", "BehaviorTreeEditor", "NavigationSystem", "GameplayTasks",
+            "MovieScene", "MovieSceneTracks"
         });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

@@ -3222,6 +3222,48 @@
   "minEngine": "5.5"
  },
  {
+  "name": "widget_animation_add",
+  "group": "umg",
+  "summary": "Add (or extend) a widget animation: track opacity | translation | scale | angle on a widget with keys [[seconds, value]] (translation/scale values are [x,y]). After bp_compile the animation is a variable; play it with PlayAnimation.",
+  "description": "Add (or extend) a widget animation: track opacity | translation | scale | angle on a widget with keys [[seconds, value]] (translation/scale values are [x,y]). After bp_compile the animation is a variable; play it with PlayAnimation.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "widget": {
+     "type": "string"
+    },
+    "track": {
+     "type": "string",
+     "enum": [
+      "opacity",
+      "translation",
+      "scale",
+      "angle"
+     ]
+    },
+    "keys": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path",
+    "name",
+    "widget",
+    "track",
+    "keys"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "widget_bind",
   "group": "umg",
   "summary": "Create a bound event node for a widget delegate (e.g. Button OnClicked) in the event graph.",
@@ -3266,6 +3308,68 @@
    },
    "required": [
     "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "widget_layout",
+  "group": "umg",
+  "summary": "Lay out a widget in its parent. Canvas children: anchor (TopLeft, TopCenter, TopRight, CenterLeft, Center, CenterRight, BottomLeft, BottomCenter, BottomRight, TopFill, BottomFill, LeftFill, RightFill, Fill or [minX,minY,maxX,maxY]), position [x,y], size [w,h], alignment [x,y] (0..1 pivot), autoSize, zOrder. Box/overlay children: padding (number or [l,t,r,b]), hAlign (Left|Center|Right|Fill), vAlign (Top|Center|Bottom|Fill), fill (share of the remaining space).",
+  "description": "Lay out a widget in its parent. Canvas children: anchor (TopLeft, TopCenter, TopRight, CenterLeft, Center, CenterRight, BottomLeft, BottomCenter, BottomRight, TopFill, BottomFill, LeftFill, RightFill, Fill or [minX,minY,maxX,maxY]), position [x,y], size [w,h], alignment [x,y] (0..1 pivot), autoSize, zOrder. Box/overlay children: padding (number or [l,t,r,b]), hAlign (Left|Center|Right|Fill), vAlign (Top|Center|Bottom|Fill), fill (share of the remaining space).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "widget": {
+     "type": "string"
+    },
+    "anchor": {},
+    "position": {
+     "type": "array"
+    },
+    "size": {
+     "type": "array"
+    },
+    "alignment": {
+     "type": "array"
+    },
+    "autoSize": {
+     "type": "boolean"
+    },
+    "zOrder": {
+     "type": "integer"
+    },
+    "padding": {},
+    "hAlign": {
+     "type": "string",
+     "enum": [
+      "Left",
+      "Center",
+      "Right",
+      "Fill"
+     ]
+    },
+    "vAlign": {
+     "type": "string",
+     "enum": [
+      "Top",
+      "Center",
+      "Bottom",
+      "Fill"
+     ]
+    },
+    "fill": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "path",
+    "widget"
    ]
   },
   "mutating": true,

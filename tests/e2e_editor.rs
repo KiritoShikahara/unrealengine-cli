@@ -978,3 +978,74 @@ fn e2e_13_ai_behavior_tree_and_navigation() {
     assert_eq!(path["valid"], true, "{path}");
     assert!(path["length"].as_f64().unwrap() > 900.0, "{path}");
 }
+
+#[test]
+fn e2e_14_umg_layout_and_animation() {
+    if !enabled() {
+        return;
+    }
+    let w = root("WBP_Hud");
+    call("widget_create", json!({"path": w}));
+    call(
+        "widget_add",
+        json!({"path": w, "class": "TextBlock", "name": "Score"}),
+    );
+    let laid = call(
+        "widget_layout",
+        json!({"path": w, "widget": "Score", "anchor": "TopRight",
+               "position": [-220, 20], "size": [200, 40], "alignment": [0, 0], "zOrder": 2}),
+    );
+    let layout = laid["layout"].as_str().unwrap();
+    assert!(layout.contains("Minimum=(X=1.000000,Y=0.000000)"), "{laid}");
+    assert!(layout.contains("Left=-220"), "{laid}");
+    call(
+        "widget_add",
+        json!({"path": w, "class": "VerticalBox", "name": "Menu"}),
+    );
+    call(
+        "widget_layout",
+        json!({"path": w, "widget": "Menu", "anchor": "Center", "alignment": [0.5, 0.5], "autoSize": true}),
+    );
+    call(
+        "widget_add",
+        json!({"path": w, "class": "Button", "name": "Start", "parent": "Menu"}),
+    );
+    let boxed = call(
+        "widget_layout",
+        json!({"path": w, "widget": "Start", "padding": [8, 4, 8, 4], "hAlign": "Fill", "fill": 1}),
+    );
+    assert!(
+        boxed["layout"].as_str().unwrap().contains("HAlign_Fill"),
+        "{boxed}"
+    );
+    let (_, err) = fails(
+        "widget_layout",
+        json!({"path": w, "widget": "Start", "anchor": "Center"}),
+    );
+    assert_eq!(err, "args.invalid");
+    let fade = call(
+        "widget_animation_add",
+        json!({"path": w, "name": "FadeIn", "widget": "Score", "track": "opacity",
+               "keys": [[0, 0], [0.5, 1]]}),
+    );
+    assert_eq!(fade["seconds"], 0.5, "{fade}");
+    call(
+        "widget_animation_add",
+        json!({"path": w, "name": "FadeIn", "widget": "Score", "track": "translation",
+               "keys": [[0, [0, -40]], [0.75, [0, 0]]]}),
+    );
+    let (_, err) = fails(
+        "widget_animation_add",
+        json!({"path": w, "name": "FadeIn", "widget": "Score", "track": "scale", "keys": [[0, 1]]}),
+    );
+    assert_eq!(err, "args.invalid");
+    ok(&["blueprint", "compile", &w]);
+    let construct = node(&w, "Event", Some("Construct"), json!({}));
+    let anim = node(&w, "VariableGet", Some("FadeIn"), json!({}));
+    let play = node(&w, "CallFunction", Some("PlayAnimation"), json!({}));
+    pin_link(&w, &construct, "then", &play, "execute");
+    pin_link(&w, &anim, "FadeIn", &play, "InAnimation");
+    let compiled = ok(&["blueprint", "compile", &w]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &w]);
+}

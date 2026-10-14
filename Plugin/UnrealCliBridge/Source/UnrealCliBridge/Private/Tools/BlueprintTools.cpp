@@ -368,7 +368,18 @@ namespace
 		UBlueprint* B = Load(Path);
 		if (!B)
 		{
-			Call->Fail(TEXT("blueprint.not_found"), FString::Printf(TEXT("no Blueprint or map at '%s'"), *Path), TEXT("search: asset_search query=<name> class=Blueprint (a map path edits its Level Blueprint)"));
+			// Diagnostics for intermittent misses: is the package in memory, and what does it hold?
+			TSharedPtr<FJsonObject> D = MakeShared<FJsonObject>();
+			const FString PackageName = Path.Contains(TEXT(".")) ? FPackageName::ObjectPathToPackageName(Path) : Path;
+			UPackage* Pkg = FindPackage(nullptr, *PackageName);
+			D->SetBoolField(TEXT("packageInMemory"), Pkg != nullptr);
+			D->SetBoolField(TEXT("packageOnDisk"), FPackageName::DoesPackageExist(PackageName));
+			if (UObject* Found = Pkg ? StaticFindObject(UObject::StaticClass(), Pkg, *FPackageName::GetShortName(PackageName)) : nullptr)
+			{
+				D->SetStringField(TEXT("object"), Found->GetClass()->GetName());
+				D->SetBoolField(TEXT("garbage"), !IsValid(Found));
+			}
+			Call->Fail(TEXT("blueprint.not_found"), FString::Printf(TEXT("no Blueprint or map at '%s'"), *Path), TEXT("search: asset_search query=<name> class=Blueprint (a map path edits its Level Blueprint)"), Obj(D));
 		}
 		return B;
 	}

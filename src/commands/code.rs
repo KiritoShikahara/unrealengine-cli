@@ -50,10 +50,23 @@ pub enum CodeCmd {
         /// Only report the decision
         #[arg(long)]
         plan: bool,
-        /// Rebuild even with unsaved assets (they are lost)
+        /// Rebuild even with unsaved assets (they are lost); also ends a stuck editor and falls back to a
+        /// rebuild when Live Coding fails
         #[arg(long)]
         force: bool,
+        /// Always close, rebuild and reopen (e.g. after deleting source files)
+        #[arg(long)]
+        rebuild: bool,
     },
+}
+
+/// What `code apply` does: Live Coding needs a running editor; --rebuild always rebuilds.
+pub fn apply_action(changed: &'static str, editor_running: bool, rebuild: bool) -> &'static str {
+    match changed {
+        _ if rebuild => "rebuild",
+        "live" if !editor_running => "rebuild",
+        other => other,
+    }
 }
 
 fn project_dir(ctx: &Ctx) -> Result<(PathBuf, PathBuf), CliError> {
@@ -162,7 +175,11 @@ pub fn run(ctx: &mut Ctx, cmd: CodeCmd) -> Result<Value, CliError> {
             parent,
             module,
         } => class_create(ctx, &name, &parent, module.as_deref()),
-        CodeCmd::Apply { plan, force } => apply(ctx, plan, force),
+        CodeCmd::Apply {
+            plan,
+            force,
+            rebuild,
+        } => apply(ctx, plan, force, rebuild),
     }
 }
 
@@ -336,18 +353,16 @@ pub fn decide(changed: &[PathBuf]) -> &'static str {
     if only_cpp { "live" } else { "rebuild" }
 }
 
-fn apply(ctx: &mut Ctx, plan: bool, force: bool) -> Result<Value, CliError> {
+fn apply(ctx: &mut Ctx, plan: bool, force: bool, rebuild: bool) -> Result<Value, CliError> {
     let (up, dir) = project_dir(ctx)?;
     let changed = changed_files(&dir);
     let names: Vec<String> = changed.iter().map(|p| rel(&dir, p)).collect();
     let running = editor::running_for(&up);
-    let mut action = decide(&changed);
-    if action == "live" && running.is_none() {
-        action = "rebuild";
-    }
-    let reason = match action {
+    let action = apply_action(decide(&changed), running.is_some(), rebuild);
+    let mut reason = match action {
         "none" => "no source changed since the last build",
         "live" => ".cpp files only: Live Coding patches the running editor",
+        _ if rebuild => "--rebuild: close, rebuild, reopen",
         _ if running.is_none() => "the editor is not running: build directly",
         _ => "headers, build rules or descriptors changed: close, rebuild, reopen",
     };
@@ -356,11 +371,25 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool) -> Result<Value, CliError> {
             json!({ "action": action, "reason": reason, "changedFiles": names, "applied": false }),
         );
     }
+    let mut live_error = Value::Null;
     if action == "live" {
-        let live = ctx.call_with_timeout("code_live_compile", json!({}), 600_000)?;
-        return Ok(
-            json!({ "action": action, "reason": reason, "changedFiles": names, "live": live }),
-        );
+        match ctx.call_with_timeout("code_live_compile", json!({}), 600_000) {
+            Ok(live) => {
+                return Ok(
+                    json!({ "action": action, "reason": reason, "changedFiles": names, "live": live }),
+                );
+            }
+            // Live Coding failed or got stuck: with --force, end the editor and rebuild instead.
+            Err(e) if force && e.code != "code.compile_failed" => {
+                live_error = json!({ "code": e.code, "message": e.message });
+                reason = "Live Coding did not finish: closed the editor and rebuilt instead";
+            }
+            Err(e) => {
+                return Err(e.with_hint(
+                    "fix compile errors and retry; if Live Coding is stuck: unrealengine-cli code apply --rebuild --force",
+                ));
+            }
+        }
     }
     let engine = locate::resolve(&up)?;
     if let Some(inst) = &running {
@@ -385,6 +414,6 @@ fn apply(ctx: &mut Ctx, plan: bool, force: bool) -> Result<Value, CliError> {
         None
     };
     Ok(
-        json!({ "action": action, "reason": reason, "changedFiles": names, "rebuild": built, "reopened": reopened }),
+        json!({ "action": if live_error.is_null() { action } else { "rebuild" }, "reason": reason, "changedFiles": names, "rebuild": built, "reopened": reopened, "liveError": live_error }),
     )
 }

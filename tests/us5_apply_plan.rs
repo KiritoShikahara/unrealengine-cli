@@ -53,3 +53,38 @@ fn only_files_newer_than_binaries_count() {
     assert!(changed[0].ends_with("New.cpp"));
     assert_eq!(decide(&changed), "live");
 }
+
+#[test]
+fn stuck_editors_can_be_terminated_with_their_children() {
+    use unrealengine_cli::engine::editor::{kill_process_tree, process_alive};
+    let mut child = if cfg!(windows) {
+        std::process::Command::new("ping")
+            .args(["-n", "60", "127.0.0.1"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap()
+    } else {
+        std::process::Command::new("sleep")
+            .arg("60")
+            .spawn()
+            .unwrap()
+    };
+    let pid = child.id();
+    assert!(process_alive(pid));
+    kill_process_tree(pid);
+    let _ = child.wait();
+    assert!(!process_alive(pid));
+}
+
+#[test]
+fn apply_action_rebuild_flag_and_missing_editor() {
+    use unrealengine_cli::commands::code::apply_action;
+    assert_eq!(apply_action("live", true, false), "live");
+    assert_eq!(apply_action("live", false, false), "rebuild");
+    assert_eq!(
+        apply_action("none", true, true),
+        "rebuild",
+        "--rebuild covers deleted files"
+    );
+    assert_eq!(apply_action("none", true, false), "none");
+}

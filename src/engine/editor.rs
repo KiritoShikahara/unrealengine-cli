@@ -103,16 +103,27 @@ pub fn open(
     ))
 }
 
-/// Asks the editor to quit and waits for its instance to disappear.
+/// Asks the editor to quit and waits for its instance to disappear. With `force`, an editor that does not
+/// answer (game thread stuck) or does not exit is terminated with its child processes; unsaved work is lost.
 pub fn close(inst: &Instance, force: bool, timeout: Duration) -> Result<Value, CliError> {
-    let mut c = BridgeClient::connect(inst.addr(), &inst.token, timeout)?;
-    let data = c.call(
-        "editor_quit",
-        json!({ "force": force }),
-        false,
-        timeout.as_millis() as u64,
-    )?;
-    drop(c);
+    let quit = BridgeClient::connect(inst.addr(), &inst.token, timeout).and_then(|mut c| {
+        c.call(
+            "editor_quit",
+            json!({ "force": force }),
+            false,
+            timeout.as_millis() as u64,
+        )
+    });
+    let data = match quit {
+        Ok(d) => d,
+        Err(e) if e.code == "editor.unsaved_changes" => return Err(e),
+        Err(_) if force => return terminate(inst),
+        Err(e) => {
+            return Err(e.with_hint(
+                "the editor does not answer; `unrealengine-cli editor close --force` ends the process (unsaved work is lost)",
+            ));
+        }
+    };
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(60) {
         if !instances::list().iter().any(|i| i.pid == inst.pid) {
@@ -120,8 +131,61 @@ pub fn close(inst: &Instance, force: bool, timeout: Duration) -> Result<Value, C
         }
         std::thread::sleep(Duration::from_millis(500));
     }
+    if force {
+        return terminate(inst);
+    }
     Err(CliError::timeout(
         "editor.close_timeout",
         format!("editor {} is still running", inst.pid),
+    )
+    .with_hint("`unrealengine-cli editor close --force` ends the process"))
+}
+
+fn terminate(inst: &Instance) -> Result<Value, CliError> {
+    kill_process_tree(inst.pid);
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_secs(30) {
+        if !process_alive(inst.pid) {
+            let _ = std::fs::remove_file(
+                crate::core::paths::instances_dir().join(format!("{}.json", inst.pid)),
+            );
+            return Ok(json!({ "closed": true, "pid": inst.pid, "terminated": true }));
+        }
+        std::thread::sleep(Duration::from_millis(300));
+    }
+    Err(CliError::editor(
+        "editor.kill_failed",
+        format!("could not end editor process {}", inst.pid),
     ))
+}
+
+/// Ends a process and its children (Live Coding console, shader workers).
+pub fn kill_process_tree(pid: u32) {
+    let pid = pid.to_string();
+    let _ = if cfg!(windows) {
+        std::process::Command::new("taskkill")
+            .args(["/PID", &pid, "/T", "/F"])
+            .output()
+    } else {
+        std::process::Command::new("kill")
+            .args(["-9", &pid])
+            .output()
+    };
+}
+
+/// True while a process with this id exists.
+pub fn process_alive(pid: u32) -> bool {
+    if cfg!(windows) {
+        std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/NH", "/FO", "CSV"])
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).contains(&format!("\"{pid}\"")))
+            .unwrap_or(false)
+    } else {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
 }

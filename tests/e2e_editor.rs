@@ -1389,3 +1389,102 @@ fn e2e_18_blueprint_interfaces() {
         assert_eq!(pie["endedReason"], "log", "{pie}");
     }
 }
+
+#[test]
+fn e2e_19_save_game_round_trip() {
+    if !enabled() {
+        return;
+    }
+    let save = root("BP_ProgressSave");
+    ok(&["blueprint", "create", &save, "--parent", "SaveGame"]);
+    call(
+        "bp_add_variable",
+        json!({"path": save, "name": "BestScore", "type": "int"}),
+    );
+    assert_eq!(ok(&["blueprint", "compile", &save])["errors"], 0);
+    ok(&["blueprint", "save", &save]);
+
+    let map = root("L_Save");
+    ok(&["level", "new", &map]);
+    let g = |ty: &str, m: Option<&str>, extra: Value| node(&map, ty, m, extra);
+    let begin = g("Event", Some("BeginPlay"), json!({}));
+    let create = g("CallFunction", Some("CreateSaveGameObject"), json!({}));
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        create["id"].as_str().unwrap(),
+        "SaveGameClass",
+        &save,
+    ]);
+    let cast = g("Cast", Some(&save), json!({}));
+    let set = g(
+        "VariableSet",
+        Some("BestScore"),
+        json!({"memberParent": save}),
+    );
+    let write = g("CallFunction", Some("SaveGameToSlot"), json!({}));
+    let read = g("CallFunction", Some("LoadGameFromSlot"), json!({}));
+    let cast2 = g("Cast", Some(&save), json!({}));
+    let get = g(
+        "VariableGet",
+        Some("BestScore"),
+        json!({"memberParent": save}),
+    );
+    let text = g("CallFunction", Some("Conv_IntToString"), json!({}));
+    let say = g("CallFunction", Some("PrintString"), json!({}));
+    pin_link(&map, &begin, "then", &create, "execute");
+    pin_link(&map, &create, "then", &cast, "execute");
+    pin_link(&map, &create, "ReturnValue", &cast, "Object");
+    pin_link(&map, &cast, "then", &set, "execute");
+    let cast_out = cast["pins"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"].as_str().unwrap().starts_with("As"))
+        .unwrap()["name"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    pin_link(&map, &cast, &cast_out, &set, "self");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        set["id"].as_str().unwrap(),
+        "BestScore",
+        "4242",
+    ]);
+    pin_link(&map, &set, "then", &write, "execute");
+    pin_link(&map, &create, "ReturnValue", &write, "SaveGameObject");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        write["id"].as_str().unwrap(),
+        "SlotName",
+        "E2ESlot",
+    ]);
+    pin_link(&map, &write, "then", &read, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &map,
+        read["id"].as_str().unwrap(),
+        "SlotName",
+        "E2ESlot",
+    ]);
+    pin_link(&map, &read, "then", &cast2, "execute");
+    pin_link(&map, &read, "ReturnValue", &cast2, "Object");
+    pin_link(&map, &cast2, &cast_out, &get, "self");
+    pin_link(&map, &get, "BestScore", &text, "InInt");
+    pin_link(&map, &cast2, "then", &say, "execute");
+    pin_link(&map, &text, "ReturnValue", &say, "InString");
+    let compiled = ok(&["blueprint", "compile", &map]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &map]);
+    if render_enabled() {
+        let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "4242"]);
+        assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
+    }
+}

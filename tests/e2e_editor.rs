@@ -316,7 +316,13 @@ fn e2e_05_input_and_data() {
     );
     assert_eq!(err, "data.abstract_class");
     let settings = root("BP_SettingsData");
-    ok(&["blueprint", "create", &settings, "--parent", "PrimaryDataAsset"]);
+    ok(&[
+        "blueprint",
+        "create",
+        &settings,
+        "--parent",
+        "PrimaryDataAsset",
+    ]);
     ok(&["blueprint", "save", &settings]);
     let d = call("data_asset_create", json!({"path": da, "class": settings}));
     assert_eq!(d["class"], "BP_SettingsData_C");

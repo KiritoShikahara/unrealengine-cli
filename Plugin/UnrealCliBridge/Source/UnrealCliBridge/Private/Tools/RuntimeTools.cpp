@@ -166,7 +166,13 @@ void UCli::RegisterRuntimeTools(FToolRegistry& R)
 			}
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 			O->SetBoolField(TEXT("stopped"), bWas);
-			Call->Succeed(O);
+			const double Deadline = FPlatformTime::Seconds() + 10.0;
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, O, Deadline](float)
+			{
+				if (GEditor->PlayWorld && FPlatformTime::Seconds() < Deadline) return true;
+				Call->Succeed(O);
+				return false;
+			}), 0.05f);
 		});
 
 	R.Add(TEXT("pie_status"), TEXT("runtime"), TEXT("Whether a play session is running and its world."),

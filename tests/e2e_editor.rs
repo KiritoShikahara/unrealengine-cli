@@ -636,3 +636,90 @@ fn e2e_10_python_and_dry_run() {
     let status = ok(&["code", "apply", "--plan"]);
     assert!(["none", "live", "rebuild"].contains(&status["action"].as_str().unwrap()));
 }
+
+fn render_enabled() -> bool {
+    enabled() && std::env::var("UNREALENGINE_CLI_E2E_RENDER").as_deref() == Ok("1")
+}
+
+fn dist(a: &Value, b: &Value) -> f64 {
+    let d = |k: &str| a[k].as_f64().unwrap() - b[k].as_f64().unwrap();
+    (d("x").powi(2) + d("y").powi(2) + d("z").powi(2)).sqrt()
+}
+
+#[test]
+fn e2e_11_play_session_input_and_observation() {
+    if !enabled() {
+        return;
+    }
+    let (_, err) = fails("pie_input", json!({"key": "W"}));
+    assert_eq!(err, "pie.not_running");
+    if !render_enabled() {
+        eprintln!(
+            "play-session E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Play"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let ia = root("IA_Jump");
+    call(
+        "input_action_create",
+        json!({"path": ia, "valueType": "Boolean"}),
+    );
+    let started = call("pie_start", json!({}));
+    assert!(!started["pawn"].as_str().unwrap().is_empty(), "{started}");
+    let actors = call("pie_actors", json!({}));
+    assert!(
+        actors
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["player"] == true),
+        "{actors}"
+    );
+    let before = call("pie_get", json!({"actor": "player"}));
+    call("pie_input", json!({"key": "W", "seconds": 1.0}));
+    let after = call("pie_get", json!({"actor": "player"}));
+    assert!(
+        dist(&before["location"], &after["location"]) > 50.0,
+        "W did not move the pawn: {before} -> {after}"
+    );
+    let injected = call(
+        "pie_input",
+        json!({"action": ia, "value": true, "seconds": 0.2}),
+    );
+    assert_eq!(injected["seconds"], 0.2);
+    let (_, err) = fails("pie_input", json!({"key": "NotAKey"}));
+    assert_eq!(err, "pie.input_invalid");
+    let waited = call("pie_wait", json!({"seconds": 0.2}));
+    assert_eq!(waited["endedReason"], "duration");
+    let shot = call("pie_screenshot", json!({}));
+    assert!(shot["width"].as_u64().unwrap() > 0, "{shot}");
+    assert_eq!(
+        shot["blank"], false,
+        "lit template level rendered blank: {shot}"
+    );
+    assert!(std::path::Path::new(shot["path"].as_str().unwrap()).is_file());
+    call(
+        "pie_call",
+        json!({"actor": "player", "command": "SetActorHiddenInGame true"}),
+    );
+    let hidden = call(
+        "pie_get",
+        json!({"actor": "player", "properties": ["bHidden"]}),
+    );
+    assert_eq!(hidden["properties"]["bHidden"], "True", "{hidden}");
+    let (_, err) = fails(
+        "pie_call",
+        json!({"actor": "player", "command": "NoSuchFunction"}),
+    );
+    assert_eq!(err, "pie.function_not_found");
+    call("pie_exec", json!({"command": "slomo 1"}));
+    ok(&["pie", "stop"]);
+    assert_eq!(ok(&["pie", "status"])["playing"], false);
+}

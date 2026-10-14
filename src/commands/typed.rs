@@ -217,8 +217,57 @@ pub enum PieCmd {
         #[arg(long = "stop-on-log")]
         stop_on_log: Option<String>,
     },
+    /// Start a play session and return once the player exists (drive it with input/wait/screenshot)
+    Start,
     Stop,
     Status,
+    /// Send a key (W, SpaceBar, Gamepad_LeftX, ...) or an Input Action (--action <asset>) for --seconds
+    Input {
+        /// Key name
+        key: Option<String>,
+        #[arg(long)]
+        action: Option<String>,
+        /// Action value (JSON: true, 0.5, [1,0]) or key axis amount
+        #[arg(long)]
+        value: Option<String>,
+        #[arg(long, default_value_t = 0.1)]
+        seconds: f64,
+    },
+    /// Let the game run for --seconds or until a log line contains --until-log
+    Wait {
+        #[arg(long, default_value_t = 1.0)]
+        seconds: f64,
+        #[arg(long = "until-log")]
+        until_log: Option<String>,
+    },
+    /// Capture the game viewport to a PNG
+    Screenshot {
+        #[arg(long)]
+        path: Option<String>,
+    },
+    /// Actors of the play world with location and velocity
+    Actors {
+        #[arg(long = "class")]
+        class_filter: Option<String>,
+        #[arg(long = "name")]
+        name_filter: Option<String>,
+    },
+    /// Read an actor's transform and properties (actor "player" = the player's pawn)
+    Get {
+        actor: String,
+        properties: Vec<String>,
+        #[arg(long)]
+        component: Option<String>,
+    },
+    /// Call a function or custom event: pie call player "TakeHit 25"
+    Call {
+        actor: String,
+        command: String,
+    },
+    /// Run a console command in the play world
+    Exec {
+        command: String,
+    },
 }
 
 pub fn level(ctx: &mut Ctx, cmd: LevelCmd) -> Result<Value, CliError> {
@@ -452,7 +501,70 @@ pub fn pie(ctx: &mut Ctx, cmd: PieCmd) -> Result<Value, CliError> {
                 .done();
             ctx.call_with_timeout("pie_run", args, ((seconds + 90.0) * 1000.0) as u64)
         }
+        PieCmd::Start => ctx.call_with_timeout("pie_start", json!({}), 90_000),
         PieCmd::Stop => ctx.call("pie_stop", json!({})),
         PieCmd::Status => ctx.call("pie_status", json!({})),
+        PieCmd::Input {
+            key,
+            action,
+            value,
+            seconds,
+        } => {
+            let value = match value {
+                Some(v) => Some(serde_json::from_str::<Value>(&v).map_err(|e| {
+                    CliError::usage("args.value", format!("--value is not JSON: {e}"))
+                })?),
+                None => None,
+            };
+            let args = Args::new()
+                .put("key", key)
+                .put("action", action)
+                .put("value", value)
+                .put("seconds", seconds)
+                .done();
+            ctx.call_with_timeout("pie_input", args, ((seconds + 30.0) * 1000.0) as u64)
+        }
+        PieCmd::Wait { seconds, until_log } => {
+            let args = Args::new()
+                .put("seconds", seconds)
+                .put("untilLog", until_log)
+                .done();
+            ctx.call_with_timeout("pie_wait", args, ((seconds + 30.0) * 1000.0) as u64)
+        }
+        PieCmd::Screenshot { path } => {
+            ctx.call("pie_screenshot", Args::new().put("path", path).done())
+        }
+        PieCmd::Actors {
+            class_filter,
+            name_filter,
+        } => ctx.call(
+            "pie_actors",
+            Args::new()
+                .put("classFilter", class_filter)
+                .put("nameFilter", name_filter)
+                .done(),
+        ),
+        PieCmd::Get {
+            actor,
+            properties,
+            component,
+        } => ctx.call(
+            "pie_get",
+            Args::new()
+                .put("actor", actor)
+                .put("properties", properties)
+                .put("component", component)
+                .done(),
+        ),
+        PieCmd::Call { actor, command } => ctx.call(
+            "pie_call",
+            Args::new()
+                .put("actor", actor)
+                .put("command", command)
+                .done(),
+        ),
+        PieCmd::Exec { command } => {
+            ctx.call("pie_exec", Args::new().put("command", command).done())
+        }
     }
 }

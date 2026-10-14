@@ -12,7 +12,7 @@ public class UnrealCliBridge : ModuleRules
             "Json", "JsonUtilities", "Projects", "BlueprintGraph", "Kismet", "KismetCompiler",
             "AssetRegistry", "AssetTools", "LevelEditor", "PythonScriptPlugin", "Slate", "SlateCore",
             "EditorSubsystem", "ToolMenus", "AnimGraph", "AnimGraphRuntime", "UMG", "UMGEditor",
-            "Niagara", "NiagaraEditor", "Landscape", "Foliage"
+            "Niagara", "NiagaraEditor", "Landscape", "Foliage", "EnhancedInput", "InputCore"
         });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

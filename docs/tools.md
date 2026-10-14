@@ -1,6 +1,6 @@
 # Tool catalog
 
-116 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+124 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -196,9 +196,17 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 |---|---|---|
 | `automation_list` |  | List Automation tests whose full path contains filter. |
 | `automation_run` |  | Run Automation tests matching filter as a job; the result lists each test with its errors. |
+| `pie_actors` |  | Actors of the play world (filter by class or label/name substring) with location, rotation and velocity; the player's pawn is flagged. |
+| `pie_call` |  | Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command="SetActorHiddenInGame true" or command="TakeHit 25". |
+| `pie_exec` |  | Run a console command in the play world (e.g. "slomo 0.5", "show collision", "ce MyEvent"). |
+| `pie_get` |  | Read properties of a play-world actor (or one of its components): actor is a label, name or "player"; without properties returns its transform and velocity. |
+| `pie_input` |  | Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release. |
 | `pie_run` |  | Play In Editor for durationSeconds (or until a log line contains stopOnLog), then stop and report errors. |
+| `pie_screenshot` |  | Capture the play session's game viewport to a PNG (default under Saved/UnrealCli/Screenshots) and return its path; blank=true means a single flat colour (unlit level or camera sees nothing). View the image to check what the player sees. |
+| `pie_start` |  | Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. |
 | `pie_status` |  | Whether a play session is running and its world. |
 | `pie_stop` |  | Stop the running play session. |
+| `pie_wait` |  | Let the play session run for seconds, or until a log line contains untilLog (whichever comes first). |
 
 ## sequencer
 

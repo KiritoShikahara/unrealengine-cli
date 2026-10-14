@@ -1093,6 +1093,9 @@ fn e2e_15_blueprint_component_properties() {
         &format!("[\"{mat}\"]"),
     ]);
     assert!(mats["value"].to_string().contains("M_Crate"), "{mats}");
+    // Physics flags of a Blueprint template live in its BodyInstance.
+    let phys = ok(&["prop", "set", &comp, "SimulatePhysics", "true"]);
+    assert_eq!(phys["value"], true, "{phys}");
     // Inherited components are reachable by name too.
     let speed = ok(&[
         "prop",

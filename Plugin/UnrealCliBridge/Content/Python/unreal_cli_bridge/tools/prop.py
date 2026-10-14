@@ -82,18 +82,27 @@ def _primitive_setter(obj, name):
     def enabled(v):
         obj.set_collision_enabled(from_json(v, obj.get_collision_enabled()))
         return str(obj.get_collision_enabled())
-    def flag(setter, getter):
+    def flag(setter, body_field=None, own_field=None):
         def apply(v):
-            getattr(obj, setter)(bool(v) if not isinstance(v, str) else v.lower() in ("true", "1", "yes"))
-            return getattr(obj, getter)() if getter else True
+            on = bool(v) if not isinstance(v, str) else v.lower() in ("true", "1", "yes")
+            if hasattr(obj, setter):
+                getattr(obj, setter)(on)
+            # Setters only act on registered components; Blueprint templates keep the value in their BodyInstance.
+            if body_field:
+                body = obj.get_editor_property("body_instance")
+                body.set_editor_property(body_field, on)
+                obj.set_editor_property("body_instance", body)
+                return obj.get_editor_property("body_instance").get_editor_property(body_field)
+            obj.set_editor_property(own_field, on)
+            return obj.get_editor_property(own_field)
         return apply
     return {
         "CollisionProfileName": profile,
         "CollisionEnabled": enabled,
-        "GenerateOverlapEvents": flag("set_generate_overlap_events", "get_generate_overlap_events"),
-        "SimulatePhysics": flag("set_simulate_physics", "is_simulating_physics"),
-        "NotifyRigidBodyCollision": flag("set_notify_rigid_body_collision", None),
-        "EnableGravity": flag("set_enable_gravity", "is_gravity_enabled"),
+        "GenerateOverlapEvents": flag("set_generate_overlap_events", own_field="generate_overlap_events"),
+        "SimulatePhysics": flag("set_simulate_physics", body_field="simulate_physics"),
+        "NotifyRigidBodyCollision": flag("set_notify_rigid_body_collision", body_field="notify_rigid_body_collision"),
+        "EnableGravity": flag("set_enable_gravity", body_field="enable_gravity"),
     }.get(name)
 
 

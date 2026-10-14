@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1
+
+- Command renamed to `unrealengine-cli` (environment variables `UNREALENGINE_CLI_*`).
+- New tools: `landscape_layer_add`, `landscape_paint`, `niagara_input_set` (local value, parameter link or dynamic input).
+- Installed binaries update themselves in the background once a day (`UNREALENGINE_CLI_NO_AUTO_UPDATE=1` or `CI` disables it).
+- `pie_run` replies after the session has ended; empty log lines are no longer reported as errors.
+- Install scripts: `UNREALENGINE_CLI_INSTALL_DIR`, `UNREALENGINE_CLI_NO_MODIFY_PATH`.
+
+## 0.1.0
 
 ### CLI
 

@@ -1,6 +1,6 @@
 # winget manifest template; version and sha256 are filled in by the release process.
 PackageIdentifier: KiritoShikahara.unrealengine-cli
-PackageVersion: 0.1.0
+PackageVersion: 0.1.1
 PackageName: unrealengine-cli
 Publisher: KiritoShikahara
 License: MIT
@@ -11,7 +11,7 @@ Installers:
     NestedInstallerType: portable
     NestedInstallerFiles:
       - RelativeFilePath: unrealengine-cli.exe
-    InstallerUrl: https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.1.0/unrealengine-cli-x86_64-pc-windows-msvc.zip
+    InstallerUrl: https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.1.1/unrealengine-cli-x86_64-pc-windows-msvc.zip
     InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
 ManifestType: singleton
 ManifestVersion: 1.6.0

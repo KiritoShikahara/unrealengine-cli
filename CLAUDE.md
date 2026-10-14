@@ -26,4 +26,4 @@ bash scripts/e2e.sh 5.7   # Windows + UE 5.7
 - エンジン API を使う前に、該当ヘッダーを grep してシグネチャを確認する
 - 他製品のコードや名前を持ち込まない(`tests/independence.rs` が検査する)
 - Windows で `setup` / `install` を名前に含むテストバイナリは UAC に止められるので使わない
-- `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする
+- `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。PIE の E2E は `UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.7`(描画あり)で回す

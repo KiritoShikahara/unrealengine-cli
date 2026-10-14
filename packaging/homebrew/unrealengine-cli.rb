@@ -2,13 +2,13 @@
 class UnrealengineCli < Formula
   desc "CLI that lets AI agents drive Unreal Editor"
   homepage "https://github.com/KiritoShikahara/unrealengine-cli"
-  version "0.1.1"
+  version "0.2.0"
   on_arm do
-    url "https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.1.1/unrealengine-cli-aarch64-apple-darwin.tar.gz"
+    url "https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.2.0/unrealengine-cli-aarch64-apple-darwin.tar.gz"
     sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   end
   on_intel do
-    url "https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.1.1/unrealengine-cli-x86_64-apple-darwin.tar.gz"
+    url "https://github.com/KiritoShikahara/unrealengine-cli/releases/download/v0.2.0/unrealengine-cli-x86_64-apple-darwin.tar.gz"
     sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   end
 

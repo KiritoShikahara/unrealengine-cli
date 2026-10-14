@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - Play-testing: `pie_start`, `pie_input` (keys and Enhanced Input actions), `pie_wait`, `pie_screenshot` (scene + UMG, `blank` flag),
   `pie_actors`, `pie_get`, `pie_call`, `pie_exec`; CLI `pie start|input|wait|screenshot|actors|get|call|exec`.

@@ -1,6 +1,6 @@
 # Tool catalog
 
-145 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+149 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -73,6 +73,8 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `bp_save` | yes | Save the Blueprint package. Refused when it does not compile unless force=true. |
 | `bp_search_nodes` |  | Find callable functions / overridable events / macros by name for bp_add_node. |
 | `bp_set_pin` | yes | Set an input pin's literal default value. |
+| `bp_set_replication` | yes | Replicate a member variable as the Details panel does: mode replicated / notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) / none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults). |
+| `bp_set_rpc` | yes | Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery. |
 
 ## code
 
@@ -171,6 +173,13 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `mi_create` | yes | Create a Material Instance of a parent material. |
 | `mi_set_param` | yes | Set a scalar, vector [r,g,b,a] or texture (asset path) parameter on a Material Instance. |
 
+## net
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `net_assert` |  | Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name. |
+| `net_emulate` |  | Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session. |
+
 ## niagara
 
 | Tool | Changes | Summary |
@@ -226,7 +235,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `pie_call` |  | Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command="SetActorHiddenInGame true" or command="TakeHit 25". |
 | `pie_click` |  | Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets). |
 | `pie_exec` |  | Run a console command in the play world (e.g. "slomo 0.5", "show collision", "ce MyEvent"). |
-| `pie_get` |  | Read properties of a play-world actor (or one of its components): actor is a label, name or "player"; without properties returns its transform and velocity. |
+| `pie_get` |  | Read properties of a play-world actor (or one of its components): actor is a label, name, "player" (the pawn) or "controller" (its player controller); without properties returns its transform and velocity. |
 | `pie_input` |  | Send input to the running play session: a key (W, SpaceBar, LeftMouseButton, Gamepad_LeftX, ...) or an Enhanced Input action asset with a value (bool, number, [x,y] or [x,y,z]). Held for seconds (0 = one press/injection); replies after release. |
 | `pie_run` |  | Play In Editor for durationSeconds (or until a log line contains stopOnLog), then stop and report errors. |
 | `pie_screenshot` |  | Capture the play session's game viewport to a PNG (default under Saved/UnrealCli/Screenshots) and return its path; blank=true means a single flat colour (unlit level or camera sees nothing). View the image to check what the player sees. |

@@ -765,6 +765,13 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			{
 				if (!NeedMember()) return;
 				UFunction* F = ResolveFunction(B, Member, Parent);
+				// A function or custom event added to this Blueprint since its last compile is only in a fresh skeleton class.
+				const UClass* ParentClass = Parent.IsEmpty() ? nullptr : ResolveClass(Parent);
+				if (!F && (Parent.IsEmpty() || ParentClass == B->GeneratedClass || ParentClass == B->SkeletonGeneratedClass))
+				{
+					FKismetEditorUtilities::GenerateBlueprintSkeleton(B, true);
+					F = ResolveFunction(B, Member, FString());
+				}
 				if (!F)
 				{
 					Call->Fail(TEXT("blueprint.function_not_found"), FString::Printf(TEXT("no callable function '%s'"), *Member), TEXT("find it: bp_search_nodes query=<name>"));

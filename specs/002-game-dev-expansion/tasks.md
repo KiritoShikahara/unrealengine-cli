@@ -36,15 +36,15 @@
 - [x] T015 [US2] `bp_set_replication`(CPF_Net、CPF_RepNotify、RepNotifyFunc、ReplicationCondition、OnRep 関数の作成)を `Private/Tools/ReplicationTools.cpp` に実装する
 - [x] T016 [US2] `bp_set_rpc`(FUNC_Net* と Reliable)を実装する
 - [x] T017 [US2] `code_add_replicated_property` / `code_add_rpc` を実装する(`GetLifetimeReplicatedProps` と include の自動追加、差分の事前表示、dry-run)
-- [ ] T018 [US2] ネットワーク関連プロパティの別名(NetUpdateFrequency など)が prop で読み書きできることを E2E で確認し、足りなければ `tools/prop.py` に別名を追加する
+- [x] T018 [US2] ネットワーク関連プロパティの別名(NetUpdateFrequency など)が prop で読み書きできることを E2E で確認し、足りなければ `tools/prop.py` に別名を追加する
 
 ## Phase 5: US3 - 同期の検証 (P1)
 
-- [ ] T019 [P] [US3] `net assert` / `net emulate` のモックテストを書く(不一致時の `net.mismatch` と終了コード 4)
-- [ ] T020 [P] [US3] E2E `e2e_23_net_assert` を書く(一致、タイムアウト時の不一致、遅延 200ms でも一致まで待つ)
-- [ ] T021 [US3] `net_assert` を `Private/Tools/NetTools.cpp` に実装する(全ワールドで値を取り、ティッカーで一致を待つ)
-- [ ] T022 [US3] `net_emulate` を実装する(PIE 開始前は NetworkEmulationSettings、実行中は各 NetDriver の PacketSimulationSettings)
-- [ ] T023 [US3] `scripts/e2e-net.py` を作る(2 人のゲーム: 移動の同期、スコアのレプリケーション、Server RPC、遅延下の検証)。SC-001
+- [x] T019 [P] [US3] `net assert` / `net emulate` のモックテストを書く(不一致時の `net.mismatch` と終了コード 4)
+- [x] T020 [P] [US3] E2E `e2e_23_net_assert` を書く(一致、タイムアウト時の不一致、遅延 200ms でも一致まで待つ)
+- [x] T021 [US3] `net_assert` を `Private/Tools/NetTools.cpp` に実装する(全ワールドで値を取り、ティッカーで一致を待つ)
+- [x] T022 [US3] `net_emulate` を実装する(PIE 開始前は NetworkEmulationSettings、実行中は各 NetDriver の PacketSimulationSettings)
+- [x] T023 [US3] `scripts/e2e-net.py` を作る(2 人のゲーム: 移動の同期、スコアのレプリケーション、Server RPC、遅延下の検証)。SC-001
 
 ## Phase 6: US4 - 専用サーバー (P2)
 

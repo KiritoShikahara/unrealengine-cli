@@ -5,6 +5,7 @@
 #include "Editor.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/NetDriver.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "UObject/StrongObjectPtr.h"
 #include "EngineUtils.h"
@@ -142,6 +143,50 @@ namespace
 		}
 		Call->Fail(TEXT("pie.actor_not_found"), FString::Printf(TEXT("no actor '%s' in the play world"), *Id), TEXT("list them: pie_actors (\"player\" is the player's pawn, \"controller\" its player controller)"));
 		return nullptr;
+	}
+
+	/** An actor of World by label or name, else the first of a class with that name (with or without _C). */
+	AActor* FindActorIn(UWorld* World, const FString& Id)
+	{
+		AActor* ByClass = nullptr;
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			if (It->GetActorLabel() == Id || It->GetName() == Id) return *It;
+			const FString C = It->GetClass()->GetName();
+			if (!ByClass && (C == Id || C == Id + TEXT("_C"))) ByClass = *It;
+		}
+		return ByClass;
+	}
+
+	/** Exports Property (Name or Component.Name) of A as UE text. */
+	bool ReadActorProperty(AActor* A, const FString& Path, FString& Out, FString& Error)
+	{
+		UObject* Target = A;
+		FString Name = Path;
+		FString Component, Rest;
+		if (Path.Split(TEXT("."), &Component, &Rest))
+		{
+			for (UActorComponent* C : A->GetComponents())
+			{
+				if (C && C->GetName() == Component) { Target = C; Name = Rest; break; }
+			}
+		}
+		FProperty* P = Target->GetClass()->FindPropertyByName(FName(*Name));
+		if (!P)
+		{
+			Error = FString::Printf(TEXT("%s has no property '%s'"), *Target->GetClass()->GetName(), *Name);
+			return false;
+		}
+		P->ExportTextItem_Direct(Out, P->ContainerPtrToValuePtr<void>(Target), nullptr, Target, PPF_None);
+		return true;
+	}
+
+	/** Text equality, with numbers compared numerically ("5" == "5.000000"). */
+	bool SameValue(const FString& A, const FString& B)
+	{
+		if (A == B) return true;
+		if (A.IsNumeric() && B.IsNumeric()) return FMath::IsNearlyEqual(FCString::Atod(*A), FCString::Atod(*B), 1e-4);
+		return A.Equals(B, ESearchCase::IgnoreCase);
 	}
 
 	TSharedPtr<FJsonObject> PlayVectorJson(const FVector& V)
@@ -283,6 +328,122 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				Items.Add(Obj(O));
 			}
 			Call->Succeed(Arr(Items));
+		});
+
+	R.Add(TEXT("net_assert"), TEXT("net"), TEXT("Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name."),
+		TEXT(R"({"type":"object","properties":{"actor":{"type":"string"},"property":{"type":"string"},"expect":{"type":"string"},"timeoutSeconds":{"type":"number"}},"required":["actor","property"]})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			if (!RequirePlayWorld(Call)) return;
+			const FString Actor = Call->GetString(TEXT("actor"));
+			const FString Property = Call->GetString(TEXT("property"));
+			const bool bExpect = Call->Has(TEXT("expect"));
+			const FString Expect = Call->GetString(TEXT("expect"));
+			const double Limit = FMath::Max(0.0, Call->GetNumber(TEXT("timeoutSeconds"), 5.0));
+			const double Start = FPlatformTime::Seconds();
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Actor, Property, bExpect, Expect, Limit, Start](float)
+			{
+				if (!GEditor->PlayWorld)
+				{
+					Call->Fail(TEXT("pie.not_running"), TEXT("the play session ended"));
+					return false;
+				}
+				TArray<TSharedPtr<FJsonValue>> Worlds;
+				TArray<FString> Values;
+				bool bAllFound = true;
+				FString Problem;
+				for (const FPieWorld& W : PieWorlds())
+				{
+					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+					O->SetStringField(TEXT("id"), W.Id);
+					FString Value;
+					AActor* A = FindActorIn(W.World, Actor);
+					if (!A)
+					{
+						bAllFound = false;
+						O->SetField(TEXT("value"), MakeShared<FJsonValueNull>());
+						O->SetStringField(TEXT("problem"), TEXT("actor not found (not replicated or not relevant to this world?)"));
+					}
+					else if (!ReadActorProperty(A, Property, Value, Problem))
+					{
+						Call->Fail(TEXT("prop.not_found"), Problem, TEXT("list properties: prop_list"));
+						return false;
+					}
+					else
+					{
+						O->SetStringField(TEXT("value"), Value);
+						Values.Add(Value);
+					}
+					Worlds.Add(Obj(O));
+				}
+				bool bOk = bAllFound && Values.Num() > 0;
+				for (const FString& V : Values)
+				{
+					bOk &= SameValue(V, bExpect ? Expect : Values[0]);
+				}
+				const double Waited = FPlatformTime::Seconds() - Start;
+				if (bOk)
+				{
+					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+					O->SetBoolField(TEXT("ok"), true);
+					O->SetArrayField(TEXT("worlds"), Worlds);
+					O->SetNumberField(TEXT("waitedSeconds"), Waited);
+					Call->Succeed(O);
+					return false;
+				}
+				if (Waited >= Limit || Call->bCancelled)
+				{
+					TSharedPtr<FJsonObject> D = MakeShared<FJsonObject>();
+					D->SetArrayField(TEXT("worlds"), Worlds);
+					if (bExpect) D->SetStringField(TEXT("expect"), Expect);
+					Call->Fail(TEXT("net.mismatch"), FString::Printf(TEXT("%s.%s %s after %.1f s"), *Actor, *Property,
+						bExpect ? *FString::Printf(TEXT("is not %s in every world"), *Expect) : TEXT("differs between worlds"), Waited),
+						TEXT("is the actor replicated (bReplicates) and the variable replicated? changes made on a client do not reach the server; use a Server RPC"), Obj(D));
+					return false;
+				}
+				return true;
+			}), 0.02f);
+		});
+
+	R.Add(TEXT("net_emulate"), TEXT("net"), TEXT("Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session."),
+		TEXT(R"({"type":"object","properties":{"latencyMs":{"type":"integer"},"jitterMs":{"type":"integer"},"lossPercent":{"type":"integer"},"target":{"type":"string","enum":["all","server","clients"]},"off":{"type":"boolean"}}})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			if (!RequirePlayWorld(Call)) return;
+#if DO_ENABLE_NET_TEST
+			FPacketSimulationSettings S;
+			if (!Call->GetBool(TEXT("off")))
+			{
+				S.PktLag = static_cast<int32>(Call->GetNumber(TEXT("latencyMs"), 0));
+				S.PktLagVariance = static_cast<int32>(Call->GetNumber(TEXT("jitterMs"), 0));
+				S.PktLoss = FMath::Clamp(static_cast<int32>(Call->GetNumber(TEXT("lossPercent"), 0)), 0, 100);
+			}
+			const FString Target = Call->GetString(TEXT("target"), TEXT("all"));
+			TArray<FString> Applied;
+			for (const FPieWorld& W : PieWorlds())
+			{
+				const bool bServer = W.World->GetNetMode() == NM_ListenServer || W.World->GetNetMode() == NM_DedicatedServer;
+				if ((Target == TEXT("server") && !bServer) || (Target == TEXT("clients") && bServer)) continue;
+				if (UNetDriver* Driver = W.World->GetNetDriver())
+				{
+					Driver->SetPacketSimulationSettings(S);
+					Applied.Add(W.Id);
+				}
+			}
+			if (Applied.IsEmpty())
+			{
+				Call->Fail(TEXT("net.not_networked"), TEXT("no world of the play session has a network connection"), TEXT("start a multiplayer session: pie_start players=2 netMode=listen"));
+				return;
+			}
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetNumberField(TEXT("latencyMs"), S.PktLag);
+			O->SetNumberField(TEXT("jitterMs"), S.PktLagVariance);
+			O->SetNumberField(TEXT("lossPercent"), S.PktLoss);
+			O->SetArrayField(TEXT("worlds"), StrArray(Applied));
+			Call->Succeed(O);
+#else
+			Call->Fail(TEXT("engine.unsupported"), TEXT("network emulation is compiled out of this build"));
+#endif
 		});
 
 	R.Add(TEXT("input_default_context_add"), TEXT("input"), TEXT("Register an Input Mapping Context in Project Settings > Enhanced Input > Default Mapping Contexts so every player gets it at start (no Blueprint code needed); remove=true takes it out. Saved to DefaultInput.ini."),

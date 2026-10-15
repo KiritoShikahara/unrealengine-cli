@@ -147,6 +147,11 @@ pub enum Command {
         #[command(subcommand)]
         action: typed::PieCmd,
     },
+    /// Multiplayer checks: compare replicated values across worlds, simulate lag and loss
+    Net {
+        #[command(subcommand)]
+        action: typed::NetCmd,
+    },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
         #[command(subcommand)]
@@ -423,6 +428,7 @@ fn dispatch(
         Command::Prop { action } => ("prop", typed::prop(ctx, action)),
         Command::Pie { world, action } => ("pie", typed::pie(ctx, action, world)),
         Command::Fab { action } => ("fab", typed::fab(ctx, action)),
+        Command::Net { action } => ("net", typed::net(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),
         Command::Skills { action } => {

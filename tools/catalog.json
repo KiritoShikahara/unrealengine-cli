@@ -1175,6 +1175,78 @@
   "minEngine": "5.5"
  },
  {
+  "name": "bp_set_replication",
+  "group": "blueprint",
+  "summary": "Replicate a member variable as the Details panel does: mode replicated | notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) | none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults).",
+  "description": "Replicate a member variable as the Details panel does: mode replicated | notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) | none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "variable": {
+     "type": "string"
+    },
+    "mode": {
+     "type": "string",
+     "enum": [
+      "replicated",
+      "notify",
+      "none"
+     ]
+    },
+    "condition": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "variable"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_set_rpc",
+  "group": "blueprint",
+  "summary": "Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery.",
+  "description": "Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "event": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string",
+     "enum": [
+      "server",
+      "client",
+      "multicast",
+      "none"
+     ]
+    },
+    "reliable": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "event",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "bt_add_node",
   "group": "ai",
   "summary": "Add to a Behavior Tree: kind composite (Selector, Sequence, SimpleParallel) or task (MoveTo, Wait, RunBehavior, PlaySound, a Blueprint task path...) as the last child of parent (\"root\" or a node id), or kind decorator (Blackboard, Cooldown, Loop, TimeLimit...) / service (DefaultFocus, RunEQS, a Blueprint service...) attached to parent. properties: {Name: value}; Blackboard key selectors take a key name; value-or-key properties take a value or \"key:<KeyName>\".",
@@ -2440,6 +2512,70 @@
   "minEngine": "5.5"
  },
  {
+  "name": "net_assert",
+  "group": "net",
+  "summary": "Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name.",
+  "description": "Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "actor": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "expect": {
+     "type": "string"
+    },
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "actor",
+    "property"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "net_emulate",
+  "group": "net",
+  "summary": "Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session.",
+  "description": "Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "latencyMs": {
+     "type": "integer"
+    },
+    "jitterMs": {
+     "type": "integer"
+    },
+    "lossPercent": {
+     "type": "integer"
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "all",
+      "server",
+      "clients"
+     ]
+    },
+    "off": {
+     "type": "boolean"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "niagara_emitters_list",
   "group": "niagara",
   "summary": "Emitters of a Niagara System.",
@@ -2729,8 +2865,8 @@
  {
   "name": "pie_get",
   "group": "runtime",
-  "summary": "Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity.",
-  "description": "Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity.",
+  "summary": "Read properties of a play-world actor (or one of its components): actor is a label, name, \"player\" (the pawn) or \"controller\" (its player controller); without properties returns its transform and velocity.",
+  "description": "Read properties of a play-world actor (or one of its components): actor is a label, name, \"player\" (the pawn) or \"controller\" (its player controller); without properties returns its transform and velocity.",
   "inputSchema": {
    "type": "object",
    "properties": {

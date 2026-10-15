@@ -1673,6 +1673,9 @@ fn e2e_22_replication_and_rpc() {
     ]);
     assert_eq!(rpc["type"], "server", "{rpc}");
     assert_eq!(rpc["reliable"], true, "{rpc}");
+    // A custom event added since the last compile can be called right away.
+    let caller = node(&pc, "CallFunction", Some("ServerSetScore"), json!({}));
+    assert!(caller["id"].is_string(), "{caller}");
     let set = node(&pc, "VariableSet", Some("Score"), json!({}));
     pin_link(&pc, &event, "then", &set, "execute");
     call(
@@ -1748,5 +1751,72 @@ fn e2e_22_replication_and_rpc() {
         host["properties"]["Score"], "0",
         "the host's controller changed: {host}"
     );
+    call("pie_stop", json!({}));
+}
+
+#[test]
+fn e2e_23_net_assert_and_emulation() {
+    if !render_enabled() {
+        eprintln!("net E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    // A replicated level actor with a replicated Count that two events set on the server.
+    let bx = root("BP_NetBox");
+    ok(&["blueprint", "create", &bx, "--parent", "Actor"]);
+    ok(&["prop", "set", &bx, "bReplicates", "true"]);
+    ok(&["prop", "set", &bx, "bAlwaysRelevant", "true"]);
+    ok(&["blueprint", "add-variable", &bx, "Count", "--type", "int"]);
+    ok(&["blueprint", "replicate", &bx, "Count"]);
+    for (event, value) in [("Bump", "5"), ("Bump9", "9")] {
+        let e = node(&bx, "CustomEvent", Some(event), json!({}));
+        let set = node(&bx, "VariableSet", Some("Count"), json!({}));
+        pin_link(&bx, &e, "then", &set, "execute");
+        call(
+            "bp_set_pin",
+            json!({"path": bx, "node": set["id"], "pin": "Count", "value": value}),
+        );
+    }
+    let compiled = ok(&["blueprint", "compile", &bx]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &bx]);
+    ok(&[
+        "level",
+        "new",
+        &root("L_Sync"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let spawned = call("actor_spawn", json!({"actorClass": bx}));
+    let label = spawned["label"].as_str().unwrap().to_string();
+
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    let same = ok(&["net", "assert", &label, "Count"]);
+    assert_eq!(same["worlds"].as_array().unwrap().len(), 2, "{same}");
+
+    call(
+        "pie_call",
+        json!({"world": "server", "actor": label, "command": "Bump"}),
+    );
+    let five = ok(&["net", "assert", &label, "Count", "--expect", "5", "--timeout", "3"]);
+    assert!(five["waitedSeconds"].as_f64().unwrap() < 1.0, "SC-002: {five}");
+    assert_eq!(five["worlds"][1]["value"], "5", "{five}");
+
+    let (code, v) = cli(&["net", "assert", &label, "Count", "--expect", "6", "--timeout", "1"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "net.mismatch");
+    assert_eq!(v["error"]["details"]["worlds"][0]["value"], "5", "{v}");
+
+    let lag = ok(&["net", "emulate", "--latency", "400"]);
+    assert_eq!(lag["latencyMs"], 400, "{lag}");
+    call(
+        "pie_call",
+        json!({"world": "server", "actor": label, "command": "Bump9"}),
+    );
+    let nine = ok(&["net", "assert", &label, "Count", "--expect", "9", "--timeout", "5"]);
+    assert!(
+        nine["waitedSeconds"].as_f64().unwrap() >= 0.3,
+        "the simulated latency had no effect: {nine}"
+    );
+    ok(&["net", "emulate", "--off"]);
     call("pie_stop", json!({}));
 }

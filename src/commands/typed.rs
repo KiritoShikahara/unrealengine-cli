@@ -715,3 +715,72 @@ pub fn fab(ctx: &mut Ctx, cmd: FabCmd) -> Result<Value, CliError> {
         }
     }
 }
+
+#[derive(Debug, Subcommand)]
+pub enum NetCmd {
+    /// Wait until an actor's property has the same value in every world of the play session (or --expect)
+    Assert {
+        /// Actor label or name (the same in every world for level actors), or a class name
+        actor: String,
+        /// Property, or Component.Property
+        property: String,
+        /// Expected value in UE text form (default: all worlds agree)
+        #[arg(long)]
+        expect: Option<String>,
+        /// Seconds to wait for agreement
+        #[arg(long)]
+        timeout: Option<f64>,
+    },
+    /// Simulate network conditions in the running multiplayer session
+    Emulate {
+        #[arg(long)]
+        latency: Option<u32>,
+        #[arg(long)]
+        jitter: Option<u32>,
+        /// Packet loss in percent
+        #[arg(long)]
+        loss: Option<u32>,
+        /// all, server or clients
+        #[arg(long, value_parser = ["all", "server", "clients"])]
+        target: Option<String>,
+        /// Remove the simulation
+        #[arg(long, conflicts_with_all = ["latency", "jitter", "loss"])]
+        off: bool,
+    },
+}
+
+pub fn net(ctx: &mut Ctx, cmd: NetCmd) -> Result<Value, CliError> {
+    match cmd {
+        NetCmd::Assert {
+            actor,
+            property,
+            expect,
+            timeout,
+        } => {
+            let args = Args::new()
+                .put("actor", actor)
+                .put("property", property)
+                .put("expect", expect)
+                .put("timeoutSeconds", timeout)
+                .done();
+            let wait = timeout.unwrap_or(5.0);
+            ctx.call_with_timeout("net_assert", args, ((wait + 15.0) * 1000.0) as u64)
+        }
+        NetCmd::Emulate {
+            latency,
+            jitter,
+            loss,
+            target,
+            off,
+        } => {
+            let args = Args::new()
+                .put("latencyMs", latency)
+                .put("jitterMs", jitter)
+                .put("lossPercent", loss)
+                .put("target", target)
+                .flag("off", off)
+                .done();
+            ctx.call("net_emulate", args)
+        }
+    }
+}

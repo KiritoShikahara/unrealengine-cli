@@ -330,3 +330,67 @@ fn code_net_dry_run_changes_nothing() {
     assert_eq!(read(&proj, h), HEADER);
     assert_eq!(read(&proj, "Source/Game/Private/NetActor.cpp"), SOURCE);
 }
+
+#[test]
+fn net_commands_map_to_tools() {
+    let home = tempfile::tempdir().unwrap();
+    let m = echo(&["net_assert", "net_emulate"]);
+    write_instance(home.path(), &m, "p");
+    let cases: Vec<(Vec<&str>, serde_json::Value)> = vec![
+        (
+            vec!["net", "assert", "BP_Box", "Count"],
+            json!({"actor": "BP_Box", "property": "Count"}),
+        ),
+        (
+            vec![
+                "net",
+                "assert",
+                "BP_Box",
+                "Count",
+                "--expect",
+                "5",
+                "--timeout",
+                "2",
+            ],
+            json!({"actor": "BP_Box", "property": "Count", "expect": "5", "timeoutSeconds": 2.0}),
+        ),
+        (
+            vec![
+                "net",
+                "emulate",
+                "--latency",
+                "200",
+                "--jitter",
+                "20",
+                "--loss",
+                "5",
+            ],
+            json!({"latencyMs": 200, "jitterMs": 20, "lossPercent": 5}),
+        ),
+        (vec!["net", "emulate", "--off"], json!({"off": true})),
+    ];
+    for (args, expected) in cases {
+        let (code, v) = run_json(home.path(), home.path(), &args);
+        assert_eq!(code, 0, "{args:?}: {v}");
+        assert_eq!(v["data"], expected, "{args:?}");
+    }
+}
+
+#[test]
+fn net_mismatch_exits_4() {
+    let home = tempfile::tempdir().unwrap();
+    let m = MockBuilder::new()
+        .tool("net_assert", |_| {
+            Err(json!({"code": "net.mismatch", "message": "Count differs", "details": [{"id": "server", "value": "5"}, {"id": "client:1", "value": "0"}]}))
+        })
+        .start();
+    write_instance(home.path(), &m, "p");
+    let (code, v) = run_json(
+        home.path(),
+        home.path(),
+        &["net", "assert", "BP_Box", "Count"],
+    );
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "net.mismatch");
+    assert_eq!(v["error"]["details"][1]["value"], "0");
+}

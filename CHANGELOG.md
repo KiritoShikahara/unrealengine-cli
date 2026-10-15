@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - Visual checks: `visual baseline|compare|diff` (Tests/Visual/<name>.png, tolerance and threshold, red difference
   image, `visual.mismatch` exit 4). Performance: `perf measure` (frame/game/render/GPU ms avg/p95/max, hitches, draw

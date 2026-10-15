@@ -14,7 +14,7 @@
 | `code replicate <class> <prop> <type> [--notify] [--condition <c>]` | C++ のレプリケートするプロパティ | `code_add_replicated_property` |
 | `code rpc <class> <name> --type ... [--reliable] [--validate] [--param name:type]` | C++ の RPC | `code_add_rpc` |
 | `server target add` | Server ターゲットの作成 | CLI 内(ファイル操作) |
-| `server build [--config Development\|Shipping]` / `server package --output <dir>` | ビルドとパッケージ | CLI 内(UBT / UAT) |
+| `server build [--config Development\|Shipping]` / `server package --out-dir <dir>` | ビルドとパッケージ | CLI 内(UBT / UAT) |
 | `server start [--map <m>] [--port <p>] [-- <args>]` / `server list` / `server logs <pid>` / `server stop <pid>` | 専用サーバーの実行 | CLI 内(プロセス管理) |
 | `pie connect <host:port>` | PIE クライアントを外部サーバーへ接続 | `pie_connect` |
 | `online configure --subsystem null\|eos\|steam [--set key=value]` / `online check` | オンライン構成 | `online_configure`、`online_check` |

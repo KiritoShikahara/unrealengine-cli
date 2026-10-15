@@ -21,6 +21,10 @@
 #include "Misc/FileHelper.h"
 #include "Misc/OutputDeviceNull.h"
 #include "Misc/Paths.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSubsystemUtils.h"
 #include "Server/BridgeLog.h"
 #include "Server/JsonUtil.h"
 #include "Server/ToolRegistry.h"
@@ -241,6 +245,16 @@ namespace
 		}
 		return FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("UnrealCli/Screenshots") / FString::Printf(TEXT("pie-%s.png"), *FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S-%s"))));
 	}
+}
+
+UWorld* UCli::ResolvePlayWorld(const FToolCallRef& Call)
+{
+	return RequirePlayWorld(Call);
+}
+
+AActor* UCli::ResolvePlayActor(const FToolCallRef& Call)
+{
+	return FindPlayActor(Call);
 }
 
 void UCli::RegisterPlayTools(FToolRegistry& R)
@@ -812,6 +826,148 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				}
 			}
 			Call->Fail(TEXT("pie.widget_not_found"), FString::Printf(TEXT("no button '%s' on screen"), *Name), FString::Printf(TEXT("buttons: %s"), *FString::Join(Buttons, TEXT(", "))));
+		});
+
+	R.Add(TEXT("online_session"), TEXT("online"), TEXT("Session in a play world through the online subsystem (Null in PIE): create (sessionName, maxPlayers, lan), find (lists results with their index), join (index of the last find in that world; travel=true then moves the player to it), destroy. Waits up to timeoutSeconds (default 10) and fails with online.session_failed."),
+		TEXT(R"({"type":"object","properties":{"action":{"type":"string","enum":["create","find","join","destroy"]},"world":{"type":"string","description":"standalone, standalone:2, server, client:1, ... - see pie_worlds"},"sessionName":{"type":"string"},"maxPlayers":{"type":"integer"},"lan":{"type":"boolean"},"index":{"type":"integer"},"travel":{"type":"boolean"},"timeoutSeconds":{"type":"number"}},"required":["action"]})"), EToolFlags::Mutating | EToolFlags::NoUndo,
+		[](const FToolCallRef& Call)
+		{
+			UWorld* World = RequirePlayWorld(Call);
+			if (!World) return;
+			IOnlineSubsystem* Oss = Online::GetSubsystem(World);
+			IOnlineSessionPtr Sessions = Oss ? Oss->GetSessionInterface() : nullptr;
+			if (!Sessions.IsValid())
+			{
+				Call->Fail(TEXT("online.no_subsystem"), TEXT("the play world has no online session interface"), TEXT("configure one: unrealengine-cli online configure --subsystem null, then restart the editor"));
+				return;
+			}
+			const FString Action = Call->GetString(TEXT("action"));
+			const FName Name(Call->Has(TEXT("sessionName")) ? *Call->GetString(TEXT("sessionName")) : TEXT("GameSession"));
+			const bool bLan = !Call->Has(TEXT("lan")) || Call->GetBool(TEXT("lan"));
+			const double Limit = FMath::Max(0.5, Call->GetNumber(TEXT("timeoutSeconds"), 10.0));
+			const FString WorldKey = World->GetPathName();
+			static TMap<FString, TSharedPtr<FOnlineSessionSearch>> LastSearch;
+
+			struct FState { bool bDone = false; bool bOk = false; FString Detail; FDelegateHandle Handle; };
+			TSharedRef<FState> S = MakeShared<FState>();
+			TSharedPtr<FOnlineSessionSearch> Search;
+			bool bStarted = false;
+			if (Action == TEXT("create"))
+			{
+				FOnlineSessionSettings Settings;
+				Settings.NumPublicConnections = FMath::Max(1, (int32)Call->GetNumber(TEXT("maxPlayers"), 4));
+				Settings.bIsLANMatch = bLan;
+				Settings.bShouldAdvertise = true;
+				Settings.bAllowJoinInProgress = true;
+				Settings.bUsesPresence = !bLan;
+				Settings.bUseLobbiesIfAvailable = !bLan;
+				S->Handle = Sessions->AddOnCreateSessionCompleteDelegate_Handle(FOnCreateSessionCompleteDelegate::CreateLambda([S](FName, bool bOk) { S->bDone = true; S->bOk = bOk; }));
+				bStarted = Sessions->CreateSession(0, Name, Settings);
+				if (!bStarted) Sessions->ClearOnCreateSessionCompleteDelegate_Handle(S->Handle);
+			}
+			else if (Action == TEXT("find"))
+			{
+				Search = MakeShared<FOnlineSessionSearch>();
+				Search->bIsLanQuery = bLan;
+				Search->MaxSearchResults = 50;
+				S->Handle = Sessions->AddOnFindSessionsCompleteDelegate_Handle(FOnFindSessionsCompleteDelegate::CreateLambda([S](bool bOk) { S->bDone = true; S->bOk = bOk; }));
+				bStarted = Sessions->FindSessions(0, Search.ToSharedRef());
+				if (!bStarted) Sessions->ClearOnFindSessionsCompleteDelegate_Handle(S->Handle);
+			}
+			else if (Action == TEXT("join"))
+			{
+				const TSharedPtr<FOnlineSessionSearch>* Found = LastSearch.Find(WorldKey);
+				const int32 Index = (int32)Call->GetNumber(TEXT("index"), 0);
+				if (!Found || !(*Found).IsValid() || !(*Found)->SearchResults.IsValidIndex(Index))
+				{
+					Call->Fail(TEXT("online.no_result"), FString::Printf(TEXT("no find result %d in this world"), Index), TEXT("run online session find in the same world first"));
+					return;
+				}
+				S->Handle = Sessions->AddOnJoinSessionCompleteDelegate_Handle(FOnJoinSessionCompleteDelegate::CreateLambda([S](FName, EOnJoinSessionCompleteResult::Type Result)
+				{
+					S->bDone = true;
+					S->bOk = Result == EOnJoinSessionCompleteResult::Success;
+					S->Detail = LexToString(Result);
+				}));
+				bStarted = Sessions->JoinSession(0, Name, (*Found)->SearchResults[Index]);
+				if (!bStarted) Sessions->ClearOnJoinSessionCompleteDelegate_Handle(S->Handle);
+			}
+			else if (Action == TEXT("destroy"))
+			{
+				bStarted = Sessions->DestroySession(Name, FOnDestroySessionCompleteDelegate::CreateLambda([S](FName, bool bOk) { S->bDone = true; S->bOk = bOk; }));
+			}
+			else
+			{
+				Call->Fail(TEXT("tool.invalid_args"), FString::Printf(TEXT("unknown action '%s'"), *Action), TEXT("use create, find, join or destroy"));
+				return;
+			}
+			if (!bStarted)
+			{
+				Call->Fail(TEXT("online.session_failed"), FString::Printf(TEXT("%s of session '%s' was refused by the %s subsystem"), *Action, *Name.ToString(), *Oss->GetSubsystemName().ToString()),
+					Action == TEXT("create") ? TEXT("does a session with this name already exist? destroy it first") : TEXT("check the log: unrealengine-cli logs --severity warning"));
+				return;
+			}
+			const bool bTravel = Call->GetBool(TEXT("travel"));
+			const double Start = FPlatformTime::Seconds();
+			TWeakObjectPtr<UWorld> WeakWorld(World);
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, S, Sessions, Search, Action, Name, Limit, Start, WorldKey, bTravel, WeakWorld, Oss](float)
+			{
+				const double Waited = FPlatformTime::Seconds() - Start;
+				if (!S->bDone && Waited < Limit && !Call->bCancelled) return true;
+				if (Action == TEXT("create")) Sessions->ClearOnCreateSessionCompleteDelegate_Handle(S->Handle);
+				else if (Action == TEXT("find")) Sessions->ClearOnFindSessionsCompleteDelegate_Handle(S->Handle);
+				else if (Action == TEXT("join")) Sessions->ClearOnJoinSessionCompleteDelegate_Handle(S->Handle);
+				if (!S->bDone || !S->bOk)
+				{
+					Call->Fail(TEXT("online.session_failed"), S->bDone
+						? FString::Printf(TEXT("%s of session '%s' failed%s"), *Action, *Name.ToString(), S->Detail.IsEmpty() ? TEXT("") : *(TEXT(": ") + S->Detail))
+						: FString::Printf(TEXT("%s of session '%s' did not finish within %.1f s"), *Action, *Name.ToString(), Limit),
+						TEXT("check the log: unrealengine-cli logs --severity warning"));
+					return false;
+				}
+				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+				O->SetStringField(TEXT("action"), Action);
+				O->SetStringField(TEXT("sessionName"), Name.ToString());
+				O->SetStringField(TEXT("subsystem"), Oss->GetSubsystemName().ToString());
+				O->SetNumberField(TEXT("seconds"), Waited);
+				if (Action == TEXT("find"))
+				{
+					LastSearch.Add(WorldKey, Search);
+					TArray<TSharedPtr<FJsonValue>> Results;
+					for (int32 i = 0; i < Search->SearchResults.Num(); ++i)
+					{
+						const FOnlineSessionSearchResult& Res = Search->SearchResults[i];
+						TSharedPtr<FJsonObject> E = MakeShared<FJsonObject>();
+						E->SetNumberField(TEXT("index"), i);
+						E->SetStringField(TEXT("id"), Res.GetSessionIdStr());
+						E->SetStringField(TEXT("owner"), Res.Session.OwningUserName);
+						E->SetNumberField(TEXT("pingMs"), Res.PingInMs);
+						E->SetNumberField(TEXT("maxPlayers"), Res.Session.SessionSettings.NumPublicConnections);
+						E->SetNumberField(TEXT("openSlots"), Res.Session.NumOpenPublicConnections);
+						Results.Add(Obj(E));
+					}
+					O->SetArrayField(TEXT("results"), Results);
+				}
+				else if (Action != TEXT("destroy"))
+				{
+					FString Connect;
+					if (Sessions->GetResolvedConnectString(Name, Connect)) O->SetStringField(TEXT("connectString"), Connect);
+					if (const FNamedOnlineSession* Named = Sessions->GetNamedSession(Name))
+					{
+						O->SetStringField(TEXT("id"), Named->GetSessionIdStr());
+						O->SetNumberField(TEXT("maxPlayers"), Named->SessionSettings.NumPublicConnections);
+						O->SetBoolField(TEXT("lan"), Named->SessionSettings.bIsLANMatch);
+					}
+					if (Action == TEXT("join") && bTravel && !Connect.IsEmpty())
+					{
+						APlayerController* PC = WeakWorld.IsValid() ? WeakWorld->GetFirstPlayerController() : nullptr;
+						if (PC) PC->ClientTravel(Connect, TRAVEL_Absolute);
+						O->SetBoolField(TEXT("travelling"), PC != nullptr);
+					}
+				}
+				Call->Succeed(O);
+				return false;
+			}), 0.02f);
 		});
 
 	R.Add(TEXT("pie_exec"), TEXT("runtime"), TEXT("Run a console command in the play world (e.g. \"slomo 0.5\", \"show collision\", \"ce MyEvent\")."),

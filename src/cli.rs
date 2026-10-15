@@ -3,7 +3,9 @@ use std::time::Instant;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use crate::commands::{Ctx, basic, blueprint, code, project, test_runner, typed};
+use crate::commands::{
+    Ctx, basic, blueprint, code, gas, online, project, server, test_runner, typed,
+};
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
 
@@ -151,6 +153,26 @@ pub enum Command {
     Net {
         #[command(subcommand)]
         action: typed::NetCmd,
+    },
+    /// Dedicated servers: Server target, build, package, start, list, logs, stop
+    Server {
+        #[command(subcommand)]
+        action: server::ServerCmd,
+    },
+    /// Online subsystem (Null, EOS, Steam): configure, check, and sessions in PIE
+    Online {
+        #[command(subcommand)]
+        action: online::OnlineCmd,
+    },
+    /// Gameplay Ability System: enable, AttributeSet C++, effects, abilities, cues, and runtime in PIE
+    Gas {
+        #[command(subcommand)]
+        action: gas::GasCmd,
+    },
+    /// Gameplay Tags: list, add, rename, remove
+    Tags {
+        #[command(subcommand)]
+        action: gas::TagsCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -429,6 +451,10 @@ fn dispatch(
         Command::Pie { world, action } => ("pie", typed::pie(ctx, action, world)),
         Command::Fab { action } => ("fab", typed::fab(ctx, action)),
         Command::Net { action } => ("net", typed::net(ctx, action)),
+        Command::Server { action } => ("server", server::run(ctx, action)),
+        Command::Online { action } => ("online", online::run(ctx, action)),
+        Command::Gas { action } => ("gas", gas::run(ctx, action)),
+        Command::Tags { action } => ("tags", gas::tags(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),
         Command::Skills { action } => {

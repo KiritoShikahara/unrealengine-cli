@@ -277,6 +277,10 @@ pub enum PieCmd {
     Exec {
         command: String,
     },
+    /// Join a server from the play world: pie --world client:1 connect 127.0.0.1:7777
+    Connect {
+        address: String,
+    },
     /// On-screen UI: user widgets with their children and texts
     Widgets,
     /// Click an on-screen button by widget name
@@ -593,6 +597,11 @@ pub fn pie(ctx: &mut Ctx, cmd: PieCmd, world: Option<String>) -> Result<Value, C
             0,
         ),
         PieCmd::Exec { command } => ("pie_exec", Args::new().put("command", command).done(), 0),
+        PieCmd::Connect { address } => (
+            "pie_exec",
+            Args::new().put("command", format!("open {address}")).done(),
+            0,
+        ),
         PieCmd::Widgets => ("pie_widgets", json!({}), 0),
         PieCmd::Click { widget } => ("pie_click", Args::new().put("widget", widget).done(), 0),
     };

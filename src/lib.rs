@@ -7,6 +7,7 @@ pub mod engine;
 pub mod instances;
 pub mod mcp;
 pub mod reference;
+pub mod servers;
 pub mod setup;
 pub mod skills;
 pub mod transport;

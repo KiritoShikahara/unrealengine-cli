@@ -10,9 +10,9 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` に任意依存のプラグイン(GameplayAbilities、PCG、Metasound、GeometryCollectionPlugin、IKRig、ControlRig、PoseSearch、OnlineSubsystem、OnlineSubsystemNull)を `Optional: true` で追加し、無効なプロジェクトでもブリッジが読み込めることを TestProject で確認する
+- [x] T001 `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` に任意依存のプラグイン(GameplayAbilities、PCG、Metasound、GeometryCollectionPlugin、IKRig、ControlRig、PoseSearch、OnlineSubsystem、OnlineSubsystemNull)を `Optional: true` で追加し、無効なプロジェクトでもブリッジが読み込めることを TestProject で確認する(実装メモ: GAS はリフレクションだけで扱い、コンパイル時の依存を持たない方式にしたため不要になった。OnlineSubsystem と GameplayTagsEditor は既定で有効なので通常の依存にした)
 - [ ] T002 [P] `Private/Compat/EngineCompat.h` に、5.5 / 5.6 で差のある API の置き場(マクロ `UCLI_ENGINE_AT_LEAST(5, 6)` など)を作る
-- [ ] T003 [P] `Private/Server/ToolRegistry.cpp` に、ツールごとの必要プラグインを宣言し、無効なら `<group>.plugin_disabled` を返す仕組みを追加する(Automation Spec を先に書く)
+- [x] T003 [P] `Private/Server/ToolRegistry.cpp` に、ツールごとの必要プラグインを宣言し、無効なら `<group>.plugin_disabled` を返す仕組みを追加する(Automation Spec を先に書く)(実装メモ: GAS はクラスが見つからないとき `gas.not_enabled` を返す `RequireGasClass` で実現。PCG などは US9 で同じ方式を使う)
 
 ## Phase 2: Foundational(全ストーリーの前提)
 
@@ -48,31 +48,32 @@
 
 ## Phase 6: US4 - 専用サーバー (P2)
 
-- [ ] T024 [P] [US4] `server target add` の生成内容、dry-run、インストール版の判定(`InstalledBuild.txt`)で `server.source_engine_required` になることのテストを `tests/us12_server.rs` に書く
-- [ ] T025 [P] [US4] サーバー記録(`servers/<pid>.json`)と、記録にない PID を `server stop` が拒否するテストを書く
-- [ ] T026 [US4] `src/commands/server.rs` に `server target add`(`<Project>Server.Target.cs`)を実装する
-- [ ] T027 [US4] `server build` / `server package` を実装する(001 のビルドエラー解析とパッケージ出力先の安全確認を再利用)
-- [ ] T028 [US4] `src/servers.rs` に `server start|list|logs|stop` を実装する(ハンドル非継承の起動、`Listening` の待機、`server.port_in_use`、`server.exited`)
-- [ ] T029 [US4] `pie_connect` を実装する(PIE クライアントから `open <host:port>`)
-- [ ] T030 [US4] ソース版エンジンでの手動検証手順を quickstart に沿って実施し、結果を記録する(ソース版エンジンがない場合は保留として記録)
+- [x] T024 [P] [US4] `server target add` の生成内容、dry-run、インストール版の判定(`InstalledBuild.txt`)で `server.source_engine_required` になることのテストを `tests/us12_server.rs` に書く
+- [x] T025 [P] [US4] サーバー記録(`servers/<pid>.json`)と、記録にない PID を `server stop` が拒否するテストを書く
+- [x] T026 [US4] `src/commands/server.rs` に `server target add`(`<Project>Server.Target.cs`)を実装する
+- [x] T027 [US4] `server build` / `server package` を実装する(001 のビルドエラー解析とパッケージ出力先の安全確認を再利用)
+- [x] T028 [US4] `src/servers.rs` に `server start|list|logs|stop` を実装する(ハンドル非継承の起動、`Listening` の待機、`server.port_in_use`、`server.exited`)
+- [x] T029 [US4] `pie_connect` を実装する(PIE クライアントから `open <host:port>`)
+- [x] T030 [US4] ソース版エンジンでの手動検証手順を quickstart に沿って実施し、結果を記録する(ソース版エンジンがない場合は保留として記録)
+  - 結果: ソース版エンジンがないため `server build` / `server package` の実ビルドは保留。インストール版 5.7 で `server build` が即座に `server.source_engine_required` を返すこと、エディタ実行ファイルのサーバーモードでの `server start`(4 秒で待ち受け)→ `pie connect 127.0.0.1:7781` → サーバーログに `Join succeeded` → `server stop` を確認済み
 
 ## Phase 7: US5 - オンラインセッション (P2)
 
-- [ ] T031 [P] [US5] `online configure` の ini と .uproject の編集、`online check` の不足キー、秘密の伏せ字のテストを `tests/us13_online.rs` に書く
-- [ ] T032 [P] [US5] E2E `e2e_24_online_null` を書く(Null で作成 → 検索 → 参加 → 破棄)
-- [ ] T033 [US5] `online_configure` / `online_check` を `Private/Tools/OnlineTools.cpp` に実装する
-- [ ] T034 [US5] `online_session` を実装する(IOnlineSession の各非同期処理をティッカーで待つ)
+- [x] T031 [P] [US5] `online configure` の ini と .uproject の編集、`online check` の不足キー、秘密の伏せ字のテストを `tests/us13_online.rs` に書く
+- [x] T032 [P] [US5] E2E `e2e_24_online_null` を書く(Null で作成 → 検索 → 参加 → 破棄)
+- [x] T033 [US5] `online_configure` / `online_check` を `Private/Tools/OnlineTools.cpp` に実装する(実装メモ: ini と .uproject の編集はエディタ不要のため CLI 側 `src/commands/online.rs` に置いた)
+- [x] T034 [US5] `online_session` を実装する(IOnlineSession の各非同期処理をティッカーで待つ)
 
 ## Phase 8: US6 - GAS (P2)
 
-- [ ] T035 [P] [US6] `gas enable` の .uproject / .Build.cs 編集のテストを `tests/us14_gas.rs` に書く
-- [ ] T036 [P] [US6] AttributeSet の生成コードの Automation Spec を書く
-- [ ] T037 [P] [US6] `scripts/e2e-gas.py` を書く(属性、Effect で Health -10、アビリティの付与と発動)。SC-004
-- [ ] T038 [US6] `gas enable` を実装する(事前表示と dry-run)
-- [ ] T039 [US6] `gas_attribute_set_create` を実装する
-- [ ] T040 [US6] `gas_ability_create` / `gas_effect_create` / `gas_cue_create` を実装する(Effect の Modifier・期間・スタック・タグ)
-- [ ] T041 [US6] `gas_runtime`(give、activate、apply、state)を実装する
-- [ ] T042 [US6] `tags_add|list|rename|remove` を `Private/Tools/TagTools.cpp` に実装する(US10 と共有。テストを先に書く)
+- [x] T035 [P] [US6] `gas enable` の .uproject / .Build.cs 編集のテストを `tests/us14_gas.rs` に書く
+- [x] T036 [P] [US6] AttributeSet の生成コードの Automation Spec を書く(実装メモ: 生成コードは `tests/us14_gas.rs` で検査し、TestProject の UHeroAttributes を 5.8 で実際にコンパイルして確認)
+- [x] T037 [P] [US6] `scripts/e2e-gas.py` を書く(属性、Effect で Health -10、アビリティの付与と発動)。SC-004(実装メモ: E2E `e2e_25_gas` として実装)
+- [x] T038 [US6] `gas enable` を実装する(事前表示と dry-run)
+- [x] T039 [US6] `gas_attribute_set_create` を実装する(実装メモ: エディタ不要のため CLI 側 `gas attribute-set` として実装)
+- [x] T040 [US6] `gas_ability_create` / `gas_effect_create` / `gas_cue_create` を実装する(Effect の Modifier・期間・スタック・タグ)
+- [x] T041 [US6] `gas_runtime`(give、activate、apply、state)を実装する
+- [x] T042 [US6] `tags_add|list|rename|remove` を `Private/Tools/TagTools.cpp` に実装する(US10 と共有。テストを先に書く)
 
 ## Phase 9: US7 - ライティングとレンダリング (P2)
 

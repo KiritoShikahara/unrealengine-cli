@@ -19,6 +19,9 @@
     { "Name": "PythonScriptPlugin", "Enabled": true },
     { "Name": "EditorScriptingUtilities", "Enabled": true },
     { "Name": "EnhancedInput", "Enabled": true },
-    { "Name": "Niagara", "Enabled": true }
+    { "Name": "Niagara", "Enabled": true },
+    { "Name": "OnlineSubsystem", "Enabled": true },
+    { "Name": "OnlineSubsystemUtils", "Enabled": true },
+    { "Name": "GameplayTagsEditor", "Enabled": true }
   ]
 }

@@ -1,6 +1,9 @@
 #pragma once
 
-class FToolRegistry;
+#include "Server/ToolRegistry.h"
+
+class AActor;
+class UWorld;
 
 namespace UCli
 {
@@ -23,4 +26,10 @@ namespace UCli
 	void RegisterPlayTools(FToolRegistry& Registry);
 	void RegisterAiTools(FToolRegistry& Registry);
 	void RegisterFabTools(FToolRegistry& Registry);
+	void RegisterGasTools(FToolRegistry& Registry);
+
+	/** The play world named by the call's optional "world" argument, or fails the call. */
+	UWorld* ResolvePlayWorld(const FToolCallRef& Call);
+	/** The play-world actor named by the call's "actor" argument (label, name, class or "player"), or fails the call. */
+	AActor* ResolvePlayActor(const FToolCallRef& Call);
 }

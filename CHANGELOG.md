@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- Dedicated servers: `server start [--map] [--port] [-- <args>]` runs the project's Server build, or the editor binary in
+  server mode (works with Launcher engines), and returns once it listens; `server list|logs|stop` manage servers it
+  started (others are refused). `server target add|build|package --out-dir` create, build and package the Server target
+  on engines built from source (`server.source_engine_required` on Launcher engines).
+- `pie connect <host:port>` joins a server from the play world.
+- Online: `online configure --subsystem null|eos|steam [--set KEY=VALUE]` enables the plugins and writes
+  DefaultEngine.ini (EOS artifact, Steam app id); `online check` lists missing keys and never prints secrets
+  (`ClientSecret`, `EncryptionKey` show as `***`). `online session create|find|join|destroy [--world]` runs sessions in
+  PIE through the online subsystem (tool `online_session`, tested with Null).
+- Gameplay Ability System: `gas enable` (plugin and module dependencies), `gas attribute-set <Name> --attr Health=100`
+  (C++ with accessors, replication and OnRep), `gas effect` (modifiers, duration, period, stacking, granted tags),
+  `gas ability` (commit, apply an effect to the owner, end; cost, cooldown, tags), `gas cue`, `gas component` (an
+  AbilitySystemComponent with starting attribute sets and a table of starting values), and in PIE `gas give|activate|apply|state`.
+  The bridge reaches GameplayAbilities through reflection, so it still loads in projects without GAS.
+- Gameplay Tags: `tags list|add|rename|remove`.
+- New skill `unreal-gas`.
+
 ## 0.4.0
 
 - Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`

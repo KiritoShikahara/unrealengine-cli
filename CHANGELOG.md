@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 - Dedicated servers: `server start [--map] [--port] [-- <args>]` runs the project's Server build, or the editor binary in
   server mode (works with Launcher engines), and returns once it listens; `server list|logs|stop` manage servers it

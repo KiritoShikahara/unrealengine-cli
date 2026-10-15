@@ -1797,11 +1797,32 @@ fn e2e_23_net_assert_and_emulation() {
         "pie_call",
         json!({"world": "server", "actor": label, "command": "Bump"}),
     );
-    let five = ok(&["net", "assert", &label, "Count", "--expect", "5", "--timeout", "3"]);
-    assert!(five["waitedSeconds"].as_f64().unwrap() < 1.0, "SC-002: {five}");
+    let five = ok(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "5",
+        "--timeout",
+        "3",
+    ]);
+    assert!(
+        five["waitedSeconds"].as_f64().unwrap() < 1.0,
+        "SC-002: {five}"
+    );
     assert_eq!(five["worlds"][1]["value"], "5", "{five}");
 
-    let (code, v) = cli(&["net", "assert", &label, "Count", "--expect", "6", "--timeout", "1"]);
+    let (code, v) = cli(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "6",
+        "--timeout",
+        "1",
+    ]);
     assert_eq!(code, 4, "{v}");
     assert_eq!(v["error"]["code"], "net.mismatch");
     assert_eq!(v["error"]["details"]["worlds"][0]["value"], "5", "{v}");
@@ -1812,7 +1833,16 @@ fn e2e_23_net_assert_and_emulation() {
         "pie_call",
         json!({"world": "server", "actor": label, "command": "Bump9"}),
     );
-    let nine = ok(&["net", "assert", &label, "Count", "--expect", "9", "--timeout", "5"]);
+    let nine = ok(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "9",
+        "--timeout",
+        "5",
+    ]);
     assert!(
         nine["waitedSeconds"].as_f64().unwrap() >= 0.3,
         "the simulated latency had no effect: {nine}"

@@ -1507,10 +1507,143 @@ fn e2e_19_save_game_round_trip() {
     let compiled = ok(&["blueprint", "compile", &map]);
     assert_eq!(compiled["errors"], 0, "{compiled}");
     ok(&["blueprint", "save", &map]);
-    if render_enabled() {
-        let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "4242"]);
-        assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
+    if !render_enabled() {
+        return;
     }
+    let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "4242"]);
+    assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
+
+    // A later version of the game adds a field: the old save still loads, keeps BestScore
+    // and the new field takes its default (4242 + 4343 = 8585).
+    call(
+        "bp_add_variable",
+        json!({"path": save, "name": "Coins", "type": "int", "defaultValue": "4343"}),
+    );
+    assert_eq!(ok(&["blueprint", "compile", &save])["errors"], 0);
+    ok(&["blueprint", "save", &save]);
+    let v2 = root("L_SaveV2");
+    ok(&["level", "new", &v2]);
+    let h = |ty: &str, m: Option<&str>, extra: Value| node(&v2, ty, m, extra);
+    let begin = h("Event", Some("BeginPlay"), json!({}));
+    let read = h("CallFunction", Some("LoadGameFromSlot"), json!({}));
+    let cast = h("Cast", Some(&save), json!({}));
+    let best = h(
+        "VariableGet",
+        Some("BestScore"),
+        json!({"memberParent": save}),
+    );
+    let coins = h("VariableGet", Some("Coins"), json!({"memberParent": save}));
+    let add = h("CallFunction", Some("Add_IntInt"), json!({}));
+    let text = h("CallFunction", Some("Conv_IntToString"), json!({}));
+    let say = h("CallFunction", Some("PrintString"), json!({}));
+    pin_link(&v2, &begin, "then", &read, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &v2,
+        read["id"].as_str().unwrap(),
+        "SlotName",
+        "E2ESlot",
+    ]);
+    pin_link(&v2, &read, "then", &cast, "execute");
+    pin_link(&v2, &read, "ReturnValue", &cast, "Object");
+    pin_link(&v2, &cast, &cast_out, &best, "self");
+    pin_link(&v2, &cast, &cast_out, &coins, "self");
+    pin_link(&v2, &best, "BestScore", &add, "A");
+    pin_link(&v2, &coins, "Coins", &add, "B");
+    pin_link(&v2, &add, "ReturnValue", &text, "InInt");
+    pin_link(&v2, &cast, "then", &say, "execute");
+    pin_link(&v2, &text, "ReturnValue", &say, "InString");
+    assert_eq!(ok(&["blueprint", "compile", &v2])["errors"], 0);
+    ok(&["blueprint", "save", &v2]);
+    let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "8585"]);
+    assert_eq!(
+        pie["endedReason"], "log",
+        "old save loaded by the new version: {pie}"
+    );
+}
+
+#[test]
+fn e2e_30_localization() {
+    if !enabled() {
+        return;
+    }
+    // Text in a Blueprint, gathered from this run's folder only, translated to Japanese.
+    let bp = root("BP_Loc");
+    let source = format!("Hello traveller {}", run_id());
+    ok(&["blueprint", "create", &bp, "--parent", "Actor"]);
+    ok(&[
+        "blueprint",
+        "add-variable",
+        &bp,
+        "Greeting",
+        "--type",
+        "text",
+        "--default",
+        &source,
+    ]);
+    assert_eq!(ok(&["blueprint", "compile", &bp])["errors"], 0);
+    ok(&["blueprint", "save", &bp]);
+    let folder = format!("Content/E2E/{}", run_id());
+    let target = ok(&["loc", "target", "--culture", "ja", "--path", &folder]);
+    assert!(
+        target["cultures"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("ja")),
+        "{target}"
+    );
+    ok(&["loc", "gather"]);
+    let export = ok(&["loc", "export"]);
+    let ja = export["po"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["culture"] == "ja")
+        .unwrap()["file"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let po = std::fs::read_to_string(&ja).unwrap();
+    assert!(po.contains(&format!("msgid \"{source}\"")), "{po}");
+    let tr = ok(&[
+        "loc",
+        "translate",
+        "ja",
+        "--entry",
+        &format!("{source}=こんにちは旅人"),
+    ]);
+    assert_eq!(tr["filled"], json!([source]), "{tr}");
+    ok(&["loc", "import"]);
+    let compiled = ok(&["loc", "compile"]);
+    assert!(
+        compiled["locres"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["culture"] == "ja"),
+        "{compiled}"
+    );
+    let shown = ok(&[
+        "loc",
+        "preview",
+        "ja",
+        "--asset",
+        &bp,
+        "--property",
+        "Greeting",
+    ]);
+    assert_eq!(shown["text"], "こんにちは旅人", "{shown}");
+    let native = ok(&[
+        "loc",
+        "preview",
+        "off",
+        "--asset",
+        &bp,
+        "--property",
+        "Greeting",
+    ]);
+    assert_eq!(native["text"], json!(source), "{native}");
 }
 
 #[test]
@@ -2035,4 +2168,280 @@ fn e2e_25_gas() {
     assert_eq!(code, 4, "{v}");
     assert_eq!(v["error"]["code"], "gas.no_component");
     call("pie_stop", json!({}));
+}
+
+#[test]
+fn e2e_29_visual_perf() {
+    if !render_enabled() {
+        eprintln!("visual E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Visual"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let name = format!("e2e-{}", run_id());
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let base = ok(&["visual", "baseline", &name]);
+    assert!(base["width"].as_u64().unwrap() > 0, "{base}");
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    let same = ok(&["visual", "compare", &name, "--threshold", "2"]);
+    assert!(same["diffPercent"].as_f64().unwrap() <= 2.0, "{same}");
+
+    let trace = ok(&["perf", "trace", "start"]);
+    let perf = ok(&["perf", "measure", "--seconds", "3"]);
+    ok(&["perf", "trace", "stop"]);
+    let summary = ok(&[
+        "perf",
+        "trace",
+        "summary",
+        trace["file"].as_str().unwrap(),
+        "--top",
+        "5",
+    ]);
+    assert!(
+        summary["timers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["name"] == "Frame"),
+        "{summary}"
+    );
+    assert!(perf["frames"].as_u64().unwrap() > 10, "{perf}");
+    assert!(perf["frameMs"]["p95"].as_f64().unwrap() > 0.0, "{perf}");
+    assert_eq!(perf["partial"], false, "{perf}");
+    call("pie_stop", json!({}));
+
+    // Without the sun and sky the same view is much darker.
+    let lights = call("actor_list", json!({"classFilter": "Light"}));
+    let mut labels: Vec<String> = Vec::new();
+    for class in [
+        "DirectionalLight",
+        "SkyLight",
+        "SkyAtmosphere",
+        "ExponentialHeightFog",
+    ] {
+        let found = call("actor_list", json!({"classFilter": class}));
+        for a in found.as_array().unwrap() {
+            labels.push(a["label"].as_str().unwrap().to_string());
+        }
+    }
+    assert!(!labels.is_empty(), "no lights in the template: {lights}");
+    call("actor_destroy", json!({"labels": labels}));
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let (code, v) = cli(&["visual", "compare", &name, "--threshold", "2"]);
+    call("pie_stop", json!({}));
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "visual.mismatch");
+    assert!(
+        v["error"]["details"]["diffPercent"].as_f64().unwrap() > 10.0,
+        "{v}"
+    );
+}
+
+#[test]
+fn e2e_27_lighting() {
+    if !render_enabled() {
+        eprintln!("lighting E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Lighting"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let outdoor = ok(&["light", "preset", "outdoor"]);
+    assert!(
+        outdoor["removed"].as_array().unwrap().len() >= 3,
+        "{outdoor}"
+    );
+    assert!(
+        outdoor["spawned"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("Sun")),
+        "{outdoor}"
+    );
+    let name = format!("e2e-light-{}", run_id());
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    ok(&["visual", "baseline", &name]);
+    call("pie_stop", json!({}));
+    let night = ok(&["light", "preset", "night"]);
+    assert!(
+        night["removed"].as_array().unwrap().contains(&json!("Sun")),
+        "{night}"
+    );
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let (code, v) = cli(&["visual", "compare", &name, "--threshold", "5"]);
+    call("pie_stop", json!({}));
+    assert_eq!(code, 4, "night should look different from day: {v}");
+
+    let settings = ok(&["render", "get"]);
+    for key in ["lumen", "virtualShadowMaps", "nanite", "antiAliasing"] {
+        assert!(settings["settings"][key].is_string(), "{settings}");
+    }
+    let (code, v) = cli(&["render", "set", "noSuchSetting", "1"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "render.unknown_setting");
+
+    // TestProject disables static lighting, so the build job ends with a clear failure.
+    let (code, v) = cli(&["light", "build"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "lighting.build_failed");
+}
+
+#[test]
+fn e2e_26_ik_retarget() {
+    if !enabled() {
+        return;
+    }
+    let ch = "/Engine/Tutorial/SubEditors/TutorialAssets/Character";
+    let mesh = format!("{ch}/TutorialTPP");
+    let (src, tgt, rtg) = (root("IK_Source"), root("IK_Target"), root("RTG_Tutorial"));
+    let rig = ok(&["anim", "ikrig", &src, "--mesh", &mesh]);
+    assert_eq!(rig["retargetRoot"], "pelvis", "{rig}");
+    assert!(rig["chains"].as_array().unwrap().len() >= 10, "{rig}");
+    assert!(rig["solvers"].as_u64().unwrap() >= 1, "{rig}");
+    ok(&["anim", "ikrig", &tgt, "--mesh", &mesh]);
+    let map = ok(&[
+        "anim",
+        "retargeter",
+        &rtg,
+        "--source",
+        &src,
+        "--target",
+        &tgt,
+    ]);
+    let mapping = map["mapping"].as_array().unwrap();
+    assert!(mapping.iter().all(|m| m["source"] == m["target"]), "{map}");
+    let out = ok(&[
+        "anim",
+        "retarget",
+        &rtg,
+        &format!("{ch}/Tutorial_Walk_Fwd"),
+        "--folder",
+        &root("Retargeted"),
+    ]);
+    let created = out["created"].as_array().unwrap();
+    assert_eq!(created.len(), 1, "{out}");
+    let asset = created[0].as_str().unwrap();
+    assert!(asset.ends_with("Tutorial_Walk_Fwd_Retargeted"), "{out}");
+    ok(&["asset", "deps", asset]);
+
+    let cr = ok(&["anim", "controlrig", &root("CR_Tutorial"), "--mesh", &mesh]);
+    assert!(cr["bones"].as_u64().unwrap() > 50, "{cr}");
+    // TestProject enables PoseSearch.
+    let ps = ok(&[
+        "anim",
+        "posesearch",
+        &root("PSD_Tutorial"),
+        "--skeleton",
+        &format!("{ch}/TutorialTPP_Skeleton"),
+        &format!("{ch}/Tutorial_Walk_Fwd"),
+        &format!("{ch}/Tutorial_Idle"),
+    ]);
+    assert_eq!(ps["animations"].as_array().unwrap().len(), 2, "{ps}");
+}
+
+#[test]
+fn e2e_28_audio_physics_pcg() {
+    if !enabled() {
+        return;
+    }
+    // MetaSound: a sine tone wired to the output with a set frequency.
+    let ms = root("MS_Tone");
+    let made = ok(&["audio", "metasound", "create", &ms]);
+    let out = made["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|o| o.as_str().unwrap())
+        .find(|o| o.contains("Audio"))
+        .unwrap()
+        .to_string();
+    let sine = ok(&["audio", "metasound", "node", &ms, "UE.Sine.Audio"]);
+    let id = sine["node"].as_str().unwrap().to_string();
+    assert!(
+        sine["inputs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["name"] == "Frequency"),
+        "{sine}"
+    );
+    ok(&[
+        "audio",
+        "metasound",
+        "connect",
+        &ms,
+        &format!("{id}:Audio"),
+        &format!("graph:{out}"),
+    ]);
+    let set = ok(&["audio", "metasound", "set", &ms, &id, "Frequency", "330"]);
+    assert_eq!(set["type"], "Float", "{set}");
+    let (code, v) = cli(&["audio", "metasound", "node", &ms, "UE.NoSuchNode.Audio"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "metasound.no_class");
+
+    // Chaos: a destructible from two meshes.
+    let gc = ok(&[
+        "physics",
+        "collection",
+        &root("GC_Shapes"),
+        "--mesh",
+        "/Engine/BasicShapes/Cube",
+        "--mesh",
+        "/Engine/BasicShapes/Sphere",
+    ]);
+    assert_eq!(gc["meshes"], 2, "{gc}");
+
+    // PCG: a 10 x 10 grid of cubes.
+    ok(&[
+        "level",
+        "new",
+        &root("L_PCG"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let graph = root("PCG_Grid");
+    ok(&["pcg", "create", &graph]);
+    let grid = ok(&[
+        "pcg",
+        "node",
+        &graph,
+        "CreatePointsGrid",
+        "--props",
+        r#"{"grid_extents":[500,500,0],"cell_size":[100,100,100]}"#,
+    ]);
+    let spawner = ok(&[
+        "pcg",
+        "node",
+        &graph,
+        "StaticMeshSpawner",
+        "--props",
+        r#"{"mesh":"/Engine/BasicShapes/Cube"}"#,
+    ]);
+    let (g, s) = (
+        grid["node"].as_str().unwrap(),
+        spawner["node"].as_str().unwrap(),
+    );
+    ok(&[
+        "pcg",
+        "connect",
+        &graph,
+        &format!("{g}:Out"),
+        &format!("{s}:In"),
+    ]);
+    ok(&["pcg", "connect", &graph, &format!("{s}:Out"), "output:Out"]);
+    let done = ok(&["pcg", "generate", &graph]);
+    assert_eq!(done["instances"], 100, "{done}");
 }

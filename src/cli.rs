@@ -4,7 +4,8 @@ use std::time::Instant;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::{
-    Ctx, basic, blueprint, code, gas, online, project, server, test_runner, typed,
+    Ctx, anim, basic, blueprint, code, fx, gas, light, loc, online, perf, project, server,
+    test_runner, typed, visual,
 };
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
@@ -173,6 +174,51 @@ pub enum Command {
     Tags {
         #[command(subcommand)]
         action: gas::TagsCmd,
+    },
+    /// Screenshot comparison against baselines (Tests/Visual/<name>.png) and image diffs
+    Visual {
+        #[command(subcommand)]
+        action: visual::VisualCmd,
+    },
+    /// Performance: measure a play session, Unreal Insights traces and their summary
+    Perf {
+        #[command(subcommand)]
+        action: perf::PerfCmd,
+    },
+    /// Lighting: presets, static lighting builds, HLOD builds
+    Light {
+        #[command(subcommand)]
+        action: light::LightCmd,
+    },
+    /// Project rendering settings: Lumen, virtual shadow maps, Nanite, anti-aliasing, ...
+    Render {
+        #[command(subcommand)]
+        action: light::RenderCmd,
+    },
+    /// Animation rigs: IK Rig, IK Retargeter and batch retargeting, Control Rig, Motion Matching
+    Anim {
+        #[command(subcommand)]
+        action: anim::AnimCmd,
+    },
+    /// Audio: MetaSound sources built node by node
+    Audio {
+        #[command(subcommand)]
+        action: fx::AudioCmd,
+    },
+    /// Chaos physics: Geometry Collections (destructibles)
+    Physics {
+        #[command(subcommand)]
+        action: fx::PhysicsCmd,
+    },
+    /// Procedural Content Generation graphs: create, add nodes, connect, generate in the level
+    Pcg {
+        #[command(subcommand)]
+        action: fx::PcgCmd,
+    },
+    /// Localization: target, gather, export / translate / import PO files, compile
+    Loc {
+        #[command(subcommand)]
+        action: loc::LocCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -454,6 +500,15 @@ fn dispatch(
         Command::Server { action } => ("server", server::run(ctx, action)),
         Command::Online { action } => ("online", online::run(ctx, action)),
         Command::Gas { action } => ("gas", gas::run(ctx, action)),
+        Command::Visual { action } => ("visual", visual::run(ctx, action)),
+        Command::Perf { action } => ("perf", perf::run(ctx, action)),
+        Command::Light { action } => ("light", light::run(ctx, action)),
+        Command::Anim { action } => ("anim", anim::run(ctx, action)),
+        Command::Loc { action } => ("loc", loc::run(ctx, action)),
+        Command::Audio { action } => ("audio", fx::audio(ctx, action)),
+        Command::Physics { action } => ("physics", fx::physics(ctx, action)),
+        Command::Pcg { action } => ("pcg", fx::pcg(ctx, action)),
+        Command::Render { action } => ("render", light::render(ctx, action)),
         Command::Tags { action } => ("tags", gas::tags(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),

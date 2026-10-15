@@ -3,9 +3,12 @@
 [日本語](README.ja.md)
 
 `unrealengine-cli` is a Rust CLI that lets AI agents (Claude Code, Codex, Cursor, ...) drive Unreal Editor 5.5–5.8.
-It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 159 editor tools:
+It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 181 editor tools:
 Blueprints, levels and actors, assets, reflected properties, C++ (Live Coding / rebuild), PIE, Automation tests,
-animation, UMG, materials, Niagara, landscapes, Enhanced Input, data assets, Sequencer, audio and packaging.
+animation, UMG, materials, Niagara, landscapes, Enhanced Input, data assets, Sequencer, audio and packaging;
+multiplayer (PIE worlds, replication, RPCs, dedicated servers, online sessions), GAS and gameplay tags, lighting and
+rendering settings, IK retargeting, Control Rig, Motion Matching, MetaSounds, Chaos, PCG, localization, screenshot
+comparison and performance measurement.
 
 ```text
 Agent -> skills (loaded on demand) -> unrealengine-cli -> TCP 127.0.0.1 -> UnrealCliBridge (Unreal Editor)
@@ -80,6 +83,8 @@ cargo clippy --all-targets -- -D warnings
 cargo test --all-targets
 cargo run -- skills lint --severity error
 bash scripts/e2e.sh 5.7     # plugin build + Automation tests + editor E2E (Windows)
+UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.8   # also PIE, multiplayer, GAS, lighting, visual and game E2Es
+UNREALENGINE_CLI_E2E_FAB=1 cargo test --test e2e_fab   # Fab downloads (signed-in editor; library items only)
 bash scripts/gen-catalog.sh # refresh tools/catalog.json from a running editor
 ```
 

@@ -217,8 +217,17 @@ pub enum PieCmd {
         #[arg(long = "stop-on-log")]
         stop_on_log: Option<String>,
     },
-    /// Start a play session and return once the player exists (drive it with input/wait/screenshot)
-    Start,
+    /// Start a play session and return once every player exists (drive it with input/wait/screenshot)
+    Start {
+        /// Number of players (1-4)
+        #[arg(long)]
+        players: Option<u32>,
+        /// standalone, listen (listen server + clients) or client (dedicated server + clients)
+        #[arg(long = "net-mode", value_parser = ["standalone", "listen", "client"])]
+        net_mode: Option<String>,
+    },
+    /// Worlds of the play session (standalone, server, client:1, ...) for --world
+    Worlds,
     Stop,
     Status,
     /// Send a key (W, SpaceBar, Gamepad_LeftX, ...) or an Input Action (--action <asset>) for --seconds
@@ -495,21 +504,30 @@ pub fn prop(ctx: &mut Ctx, cmd: PropCmd) -> Result<Value, CliError> {
     ctx.call(tool, args)
 }
 
-pub fn pie(ctx: &mut Ctx, cmd: PieCmd) -> Result<Value, CliError> {
-    match cmd {
+pub fn pie(ctx: &mut Ctx, cmd: PieCmd, world: Option<String>) -> Result<Value, CliError> {
+    let (tool, args, timeout_ms) = match cmd {
         PieCmd::Run {
             seconds,
             stop_on_log,
-        } => {
-            let args = Args::new()
+        } => (
+            "pie_run",
+            Args::new()
                 .put("durationSeconds", seconds)
                 .put("stopOnLog", stop_on_log)
-                .done();
-            ctx.call_with_timeout("pie_run", args, ((seconds + 90.0) * 1000.0) as u64)
-        }
-        PieCmd::Start => ctx.call_with_timeout("pie_start", json!({}), 90_000),
-        PieCmd::Stop => ctx.call("pie_stop", json!({})),
-        PieCmd::Status => ctx.call("pie_status", json!({})),
+                .done(),
+            ((seconds + 90.0) * 1000.0) as u64,
+        ),
+        PieCmd::Start { players, net_mode } => (
+            "pie_start",
+            Args::new()
+                .put("players", players)
+                .put("netMode", net_mode)
+                .done(),
+            120_000,
+        ),
+        PieCmd::Worlds => ("pie_worlds", json!({}), 0),
+        PieCmd::Stop => ("pie_stop", json!({}), 0),
+        PieCmd::Status => ("pie_status", json!({}), 0),
         PieCmd::Input {
             key,
             action,
@@ -522,58 +540,76 @@ pub fn pie(ctx: &mut Ctx, cmd: PieCmd) -> Result<Value, CliError> {
                 })?),
                 None => None,
             };
-            let args = Args::new()
-                .put("key", key)
-                .put("action", action)
-                .put("value", value)
-                .put("seconds", seconds)
-                .done();
-            ctx.call_with_timeout("pie_input", args, ((seconds + 30.0) * 1000.0) as u64)
+            (
+                "pie_input",
+                Args::new()
+                    .put("key", key)
+                    .put("action", action)
+                    .put("value", value)
+                    .put("seconds", seconds)
+                    .done(),
+                ((seconds + 30.0) * 1000.0) as u64,
+            )
         }
-        PieCmd::Wait { seconds, until_log } => {
-            let args = Args::new()
+        PieCmd::Wait { seconds, until_log } => (
+            "pie_wait",
+            Args::new()
                 .put("seconds", seconds)
                 .put("untilLog", until_log)
-                .done();
-            ctx.call_with_timeout("pie_wait", args, ((seconds + 30.0) * 1000.0) as u64)
-        }
-        PieCmd::Screenshot { path } => {
-            ctx.call("pie_screenshot", Args::new().put("path", path).done())
-        }
+                .done(),
+            ((seconds + 30.0) * 1000.0) as u64,
+        ),
+        PieCmd::Screenshot { path } => ("pie_screenshot", Args::new().put("path", path).done(), 0),
         PieCmd::Actors {
             class_filter,
             name_filter,
-        } => ctx.call(
+        } => (
             "pie_actors",
             Args::new()
                 .put("classFilter", class_filter)
                 .put("nameFilter", name_filter)
                 .done(),
+            0,
         ),
         PieCmd::Get {
             actor,
             properties,
             component,
-        } => ctx.call(
+        } => (
             "pie_get",
             Args::new()
                 .put("actor", actor)
                 .put("properties", properties)
                 .put("component", component)
                 .done(),
+            0,
         ),
-        PieCmd::Call { actor, command } => ctx.call(
+        PieCmd::Call { actor, command } => (
             "pie_call",
             Args::new()
                 .put("actor", actor)
                 .put("command", command)
                 .done(),
+            0,
         ),
-        PieCmd::Exec { command } => {
-            ctx.call("pie_exec", Args::new().put("command", command).done())
-        }
-        PieCmd::Widgets => ctx.call("pie_widgets", json!({})),
-        PieCmd::Click { widget } => ctx.call("pie_click", Args::new().put("widget", widget).done()),
+        PieCmd::Exec { command } => ("pie_exec", Args::new().put("command", command).done(), 0),
+        PieCmd::Widgets => ("pie_widgets", json!({}), 0),
+        PieCmd::Click { widget } => ("pie_click", Args::new().put("widget", widget).done(), 0),
+    };
+    let mut args = args;
+    // --world picks the server or a client of a multiplayer session; session-wide tools ignore it.
+    if let Some(w) = world
+        && !matches!(
+            tool,
+            "pie_run" | "pie_start" | "pie_worlds" | "pie_stop" | "pie_status"
+        )
+    {
+        args["world"] = json!(w);
+    }
+    if timeout_ms > 0 {
+        ctx.call_with_timeout(tool, args, timeout_ms)
+    } else {
+        ctx.call(tool, args)
     }
 }
 
@@ -676,6 +712,75 @@ pub fn fab(ctx: &mut Ctx, cmd: FabCmd) -> Result<Value, CliError> {
                     _ => std::thread::sleep(std::time::Duration::from_millis(500)),
                 }
             }
+        }
+    }
+}
+
+#[derive(Debug, Subcommand)]
+pub enum NetCmd {
+    /// Wait until an actor's property has the same value in every world of the play session (or --expect)
+    Assert {
+        /// Actor label or name (the same in every world for level actors), or a class name
+        actor: String,
+        /// Property, or Component.Property
+        property: String,
+        /// Expected value in UE text form (default: all worlds agree)
+        #[arg(long)]
+        expect: Option<String>,
+        /// Seconds to wait for agreement
+        #[arg(long)]
+        timeout: Option<f64>,
+    },
+    /// Simulate network conditions in the running multiplayer session
+    Emulate {
+        #[arg(long)]
+        latency: Option<u32>,
+        #[arg(long)]
+        jitter: Option<u32>,
+        /// Packet loss in percent
+        #[arg(long)]
+        loss: Option<u32>,
+        /// all, server or clients
+        #[arg(long, value_parser = ["all", "server", "clients"])]
+        target: Option<String>,
+        /// Remove the simulation
+        #[arg(long, conflicts_with_all = ["latency", "jitter", "loss"])]
+        off: bool,
+    },
+}
+
+pub fn net(ctx: &mut Ctx, cmd: NetCmd) -> Result<Value, CliError> {
+    match cmd {
+        NetCmd::Assert {
+            actor,
+            property,
+            expect,
+            timeout,
+        } => {
+            let args = Args::new()
+                .put("actor", actor)
+                .put("property", property)
+                .put("expect", expect)
+                .put("timeoutSeconds", timeout)
+                .done();
+            let wait = timeout.unwrap_or(5.0);
+            ctx.call_with_timeout("net_assert", args, ((wait + 15.0) * 1000.0) as u64)
+        }
+        NetCmd::Emulate {
+            latency,
+            jitter,
+            loss,
+            target,
+            off,
+        } => {
+            let args = Args::new()
+                .put("latencyMs", latency)
+                .put("jitterMs", jitter)
+                .put("lossPercent", loss)
+                .put("target", target)
+                .flag("off", off)
+                .done();
+            ctx.call("net_emulate", args)
         }
     }
 }

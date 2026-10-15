@@ -30,6 +30,7 @@ unrealengine-cli skills lint --severity error
 | `unreal-landscape` | Creating terrain, sculpting or painting a landscape |
 | `unreal-level-build` | Building or changing a level: creating maps, spawning, moving, attaching or deleting actors |
 | `unreal-material` | Creating materials, wiring material expressions or setting material instance parameters |
+| `unreal-multiplayer` | Making a game multiplayer or checking multiplayer behaviour: replicated actors and variables, RPCs, and play-testing a listen or dedicated server with clients in the editor |
 | `unreal-niagara` | Creating Niagara systems, adding emitters and modules, and setting module inputs |
 | `unreal-packaging` | Packaging or cooking the project |
 | `unreal-pie-testing` | Verifying behaviour by playing the game in the editor (input, screenshots, actor state) or running Automation tests |

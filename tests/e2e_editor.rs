@@ -1534,3 +1534,319 @@ fn e2e_20_parallel_clients() {
     assert!(codes.iter().all(|c| *c == 0), "exit codes: {codes:?}");
     assert_eq!(cli(&["ping"]).0, 0);
 }
+
+#[test]
+fn e2e_21_multiplayer_pie() {
+    if !enabled() {
+        return;
+    }
+    let (_, err) = fails("pie_actors", json!({"world": "client:1"}));
+    assert_eq!(err, "pie.not_running");
+    if !render_enabled() {
+        eprintln!(
+            "multiplayer E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Net"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let count_pcs = |world: &str| {
+        call(
+            "pie_actors",
+            json!({"world": world, "classFilter": "PlayerController"}),
+        )
+        .as_array()
+        .unwrap()
+        .len()
+    };
+
+    // Listen server with 2 players: the host's world and one client world.
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    let worlds = call("pie_worlds", json!({}));
+    let ids: Vec<&str> = worlds
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(ids, ["server", "client:1"], "{worlds}");
+    assert_eq!(worlds[0]["netMode"], "ListenServer", "{worlds}");
+    assert_eq!(worlds[1]["netMode"], "Client", "{worlds}");
+    assert_eq!(count_pcs("server"), 2, "the server sees every player");
+    assert_eq!(
+        count_pcs("client:1"),
+        1,
+        "a client sees only its own controller"
+    );
+    let own = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    assert_eq!(own["role"], "AutonomousProxy", "{own}");
+    let (_, err) = fails("pie_actors", json!({"world": "client:5"}));
+    assert_eq!(err, "pie.world_not_found");
+
+    // Input sent to client 1 moves only client 1's pawn.
+    let client_before = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    let host_before = call("pie_get", json!({"world": "server", "actor": "player"}));
+    call(
+        "pie_input",
+        json!({"world": "client:1", "key": "W", "seconds": 1.0}),
+    );
+    let client_after = call("pie_get", json!({"world": "client:1", "actor": "player"}));
+    let host_after = call("pie_get", json!({"world": "server", "actor": "player"}));
+    assert!(
+        dist(&client_before["location"], &client_after["location"]) > 50.0,
+        "W did not move client 1's pawn: {client_before} -> {client_after}"
+    );
+    assert!(
+        dist(&host_before["location"], &host_after["location"]) < 1.0,
+        "the host's pawn moved: {host_before} -> {host_after}"
+    );
+    call("pie_stop", json!({}));
+
+    // Client mode: a dedicated server in the editor process and 2 client worlds.
+    call("pie_start", json!({"players": 2, "netMode": "client"}));
+    let worlds = call("pie_worlds", json!({}));
+    let modes: Vec<&str> = worlds
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["netMode"].as_str().unwrap())
+        .collect();
+    assert_eq!(modes, ["DedicatedServer", "Client", "Client"], "{worlds}");
+    assert_eq!(count_pcs("server"), 2);
+    call("pie_stop", json!({}));
+}
+
+#[test]
+fn e2e_22_replication_and_rpc() {
+    if !enabled() {
+        return;
+    }
+    // A player controller with a RepNotify variable and a reliable Server RPC that sets it.
+    let pc = root("BP_NetPC");
+    ok(&["blueprint", "create", &pc, "--parent", "PlayerController"]);
+    ok(&["blueprint", "add-variable", &pc, "Score", "--type", "int"]);
+    let rep = ok(&["blueprint", "replicate", &pc, "Score", "--notify"]);
+    assert_eq!(rep["notifyFunction"], "OnRep_Score", "{rep}");
+    let graph = call("bp_graph_get", json!({"path": pc, "graph": "OnRep_Score"}));
+    let entry = graph["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["class"] == "K2Node_FunctionEntry")
+        .expect("OnRep_Score has an entry node")
+        .clone();
+    let print = node(
+        &pc,
+        "CallFunction",
+        Some("PrintString"),
+        json!({"graph": "OnRep_Score"}),
+    );
+    let f = format!("{}.then", entry["id"].as_str().unwrap());
+    let t = format!("{}.execute", print["id"].as_str().unwrap());
+    ok(&[
+        "blueprint",
+        "connect",
+        &pc,
+        &f,
+        &t,
+        "--graph",
+        "OnRep_Score",
+    ]);
+    call(
+        "bp_set_pin",
+        json!({"path": pc, "graph": "OnRep_Score", "node": print["id"], "pin": "InString", "value": "e2e OnRep Score"}),
+    );
+    let event = node(&pc, "CustomEvent", Some("ServerSetScore"), json!({}));
+    let rpc = ok(&[
+        "blueprint",
+        "rpc",
+        &pc,
+        "ServerSetScore",
+        "--type",
+        "server",
+        "--reliable",
+    ]);
+    assert_eq!(rpc["type"], "server", "{rpc}");
+    assert_eq!(rpc["reliable"], true, "{rpc}");
+    // A custom event added since the last compile can be called right away.
+    let caller = node(&pc, "CallFunction", Some("ServerSetScore"), json!({}));
+    assert!(caller["id"].is_string(), "{caller}");
+    let set = node(&pc, "VariableSet", Some("Score"), json!({}));
+    pin_link(&pc, &event, "then", &set, "execute");
+    call(
+        "bp_set_pin",
+        json!({"path": pc, "node": set["id"], "pin": "Score", "value": "7"}),
+    );
+    let compiled = ok(&["blueprint", "compile", &pc]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &pc]);
+    let (_, err) = fails(
+        "bp_set_rpc",
+        json!({"path": pc, "event": "NoSuchEvent", "type": "server"}),
+    );
+    assert_eq!(err, "blueprint.event_not_found");
+
+    if !render_enabled() {
+        eprintln!(
+            "replication PIE skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    let gm = root("BP_NetGM");
+    ok(&["blueprint", "create", &gm, "--parent", "GameModeBase"]);
+    let pc_class = format!("{pc}.BP_NetPC_C");
+    ok(&["prop", "set", &gm, "PlayerControllerClass", &pc_class]);
+    ok(&["blueprint", "compile", &gm]);
+    ok(&["blueprint", "save", &gm]);
+    ok(&[
+        "level",
+        "new",
+        &root("L_Rep"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let gm_class = format!("{gm}.BP_NetGM_C");
+    ok(&["prop", "set", "WorldSettings", "DefaultGameMode", &gm_class]);
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    // Client 1 calls the Server RPC on its own controller; the server sets Score, which replicates back.
+    // Replication can finish within the call, so read the log from before it.
+    let since = ok(&["logs", "--limit", "1"])["nextSince"]
+        .as_i64()
+        .unwrap()
+        .to_string();
+    call(
+        "pie_call",
+        json!({"world": "client:1", "actor": "controller", "command": "ServerSetScore"}),
+    );
+    call("pie_wait", json!({"seconds": 1}));
+    let logs = ok(&[
+        "logs",
+        "--since",
+        &since,
+        "--category",
+        "LogBlueprintUserMessages",
+    ]);
+    assert!(
+        logs["lines"].as_array().unwrap().iter().any(|l| l["text"]
+            .as_str()
+            .unwrap()
+            .contains("Client 1: e2e OnRep Score")),
+        "OnRep_Score did not run on client 1: {logs}"
+    );
+    let client = call(
+        "pie_get",
+        json!({"world": "client:1", "actor": "controller", "properties": ["Score"]}),
+    );
+    assert_eq!(client["properties"]["Score"], "7", "{client}");
+    let host = call(
+        "pie_get",
+        json!({"world": "server", "actor": "controller", "properties": ["Score"]}),
+    );
+    assert_eq!(
+        host["properties"]["Score"], "0",
+        "the host's controller changed: {host}"
+    );
+    call("pie_stop", json!({}));
+}
+
+#[test]
+fn e2e_23_net_assert_and_emulation() {
+    if !render_enabled() {
+        eprintln!("net E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    // A replicated level actor with a replicated Count that two events set on the server.
+    let bx = root("BP_NetBox");
+    ok(&["blueprint", "create", &bx, "--parent", "Actor"]);
+    ok(&["prop", "set", &bx, "bReplicates", "true"]);
+    ok(&["prop", "set", &bx, "bAlwaysRelevant", "true"]);
+    ok(&["blueprint", "add-variable", &bx, "Count", "--type", "int"]);
+    ok(&["blueprint", "replicate", &bx, "Count"]);
+    for (event, value) in [("Bump", "5"), ("Bump9", "9")] {
+        let e = node(&bx, "CustomEvent", Some(event), json!({}));
+        let set = node(&bx, "VariableSet", Some("Count"), json!({}));
+        pin_link(&bx, &e, "then", &set, "execute");
+        call(
+            "bp_set_pin",
+            json!({"path": bx, "node": set["id"], "pin": "Count", "value": value}),
+        );
+    }
+    let compiled = ok(&["blueprint", "compile", &bx]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &bx]);
+    ok(&[
+        "level",
+        "new",
+        &root("L_Sync"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let spawned = call("actor_spawn", json!({"actorClass": bx}));
+    let label = spawned["label"].as_str().unwrap().to_string();
+
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    let same = ok(&["net", "assert", &label, "Count"]);
+    assert_eq!(same["worlds"].as_array().unwrap().len(), 2, "{same}");
+
+    call(
+        "pie_call",
+        json!({"world": "server", "actor": label, "command": "Bump"}),
+    );
+    let five = ok(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "5",
+        "--timeout",
+        "3",
+    ]);
+    assert!(
+        five["waitedSeconds"].as_f64().unwrap() < 1.0,
+        "SC-002: {five}"
+    );
+    assert_eq!(five["worlds"][1]["value"], "5", "{five}");
+
+    let (code, v) = cli(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "6",
+        "--timeout",
+        "1",
+    ]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "net.mismatch");
+    assert_eq!(v["error"]["details"]["worlds"][0]["value"], "5", "{v}");
+
+    let lag = ok(&["net", "emulate", "--latency", "400"]);
+    assert_eq!(lag["latencyMs"], 400, "{lag}");
+    call(
+        "pie_call",
+        json!({"world": "server", "actor": label, "command": "Bump9"}),
+    );
+    let nine = ok(&[
+        "net",
+        "assert",
+        &label,
+        "Count",
+        "--expect",
+        "9",
+        "--timeout",
+        "5",
+    ]);
+    assert!(
+        nine["waitedSeconds"].as_f64().unwrap() >= 0.3,
+        "the simulated latency had no effect: {nine}"
+    );
+    ok(&["net", "emulate", "--off"]);
+    call("pie_stop", json!({}));
+}

@@ -8,6 +8,7 @@
 #include "FileHelpers.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_CustomEvent.h"
+#include "Net/UnrealNetwork.h"
 #include "K2Node_DynamicCast.h"
 #include "K2Node_Event.h"
 #include "K2Node_ExecutionSequence.h"
@@ -764,6 +765,13 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			{
 				if (!NeedMember()) return;
 				UFunction* F = ResolveFunction(B, Member, Parent);
+				// A function or custom event added to this Blueprint since its last compile is only in a fresh skeleton class.
+				const UClass* ParentClass = Parent.IsEmpty() ? nullptr : ResolveClass(Parent);
+				if (!F && (Parent.IsEmpty() || ParentClass == B->GeneratedClass || ParentClass == B->SkeletonGeneratedClass))
+				{
+					FKismetEditorUtilities::GenerateBlueprintSkeleton(B, true);
+					F = ResolveFunction(B, Member, FString());
+				}
 				if (!F)
 				{
 					Call->Fail(TEXT("blueprint.function_not_found"), FString::Printf(TEXT("no callable function '%s'"), *Member), TEXT("find it: bp_search_nodes query=<name>"));
@@ -1400,6 +1408,121 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 			O->SetStringField(TEXT("name"), Node->GetVariableName().ToString());
 			O->SetStringField(TEXT("class"), C->GetName());
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bp_set_replication"), TEXT("blueprint"), TEXT("Replicate a member variable as the Details panel does: mode replicated | notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) | none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"variable":{"type":"string"},"mode":{"type":"string","enum":["replicated","notify","none"]},"condition":{"type":"string"}},"required":["path","variable"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			const FName Var(*Call->GetString(TEXT("variable")));
+			const int32 Index = FBlueprintEditorUtils::FindNewVariableIndex(B, Var);
+			if (Index == INDEX_NONE)
+			{
+				TArray<FString> Names;
+				for (const FBPVariableDescription& V : B->NewVariables) Names.Add(V.VarName.ToString());
+				Call->Fail(TEXT("blueprint.variable_not_found"), FString::Printf(TEXT("no variable '%s'"), *Var.ToString()), FString::Printf(TEXT("variables: %s"), *FString::Join(Names, TEXT(", "))));
+				return;
+			}
+			const FString Mode = Call->GetString(TEXT("mode"), TEXT("replicated"));
+			ELifetimeCondition Condition = COND_None;
+			if (Call->Has(TEXT("condition")))
+			{
+				const UEnum* Enum = StaticEnum<ELifetimeCondition>();
+				FString Name = Call->GetString(TEXT("condition"));
+				if (!Name.StartsWith(TEXT("COND_"))) Name = TEXT("COND_") + Name;
+				const int64 Value = Enum->GetValueByNameString(Name);
+				if (Value == INDEX_NONE || Value == COND_Max)
+				{
+					TArray<FString> Valid;
+					for (int32 i = 0; i < Enum->NumEnums() - 1; ++i)
+					{
+						if (Enum->GetValueByIndex(i) != COND_Max) Valid.Add(Enum->GetNameStringByIndex(i).RightChop(5));
+					}
+					Call->Fail(TEXT("args.invalid"), FString::Printf(TEXT("'%s' is not a replication condition"), *Call->GetString(TEXT("condition"))), FString::Printf(TEXT("conditions: %s"), *FString::Join(Valid, TEXT(", "))));
+					return;
+				}
+				Condition = static_cast<ELifetimeCondition>(Value);
+			}
+			B->Modify();
+			FBPVariableDescription& V = B->NewVariables[Index];
+			FString NotifyFunction;
+			if (Mode == TEXT("none"))
+			{
+				V.PropertyFlags &= ~(CPF_Net | CPF_RepNotify);
+				V.RepNotifyFunc = NAME_None;
+				V.ReplicationCondition = COND_None;
+			}
+			else
+			{
+				V.PropertyFlags |= CPF_Net;
+				V.ReplicationCondition = Condition;
+				if (Mode == TEXT("notify"))
+				{
+					NotifyFunction = FString::Printf(TEXT("OnRep_%s"), *Var.ToString());
+					if (!FindObject<UEdGraph>(B, *NotifyFunction))
+					{
+						UEdGraph* Graph = FBlueprintEditorUtils::CreateNewGraph(B, FName(*NotifyFunction), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+						FBlueprintEditorUtils::AddFunctionGraph<UClass>(B, Graph, false, nullptr);
+					}
+					V.PropertyFlags |= CPF_RepNotify;
+					V.RepNotifyFunc = FName(*NotifyFunction);
+				}
+				else
+				{
+					V.PropertyFlags &= ~CPF_RepNotify;
+					V.RepNotifyFunc = NAME_None;
+				}
+			}
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(B);
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("variable"), Var.ToString());
+			O->SetStringField(TEXT("mode"), Mode);
+			O->SetStringField(TEXT("condition"), StaticEnum<ELifetimeCondition>()->GetNameStringByValue(V.ReplicationCondition).RightChop(5));
+			if (!NotifyFunction.IsEmpty()) O->SetStringField(TEXT("notifyFunction"), NotifyFunction);
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bp_set_rpc"), TEXT("blueprint"), TEXT("Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"event":{"type":"string"},"type":{"type":"string","enum":["server","client","multicast","none"]},"reliable":{"type":"boolean"}},"required":["path","event","type"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			const FString Event = Call->GetString(TEXT("event"));
+			TArray<UK2Node_CustomEvent*> Events;
+			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CustomEvent>(B, Events);
+			UK2Node_CustomEvent* Node = nullptr;
+			TArray<FString> Names;
+			for (UK2Node_CustomEvent* E : Events)
+			{
+				Names.Add(E->CustomFunctionName.ToString());
+				if (E->CustomFunctionName.ToString() == Event) Node = E;
+			}
+			if (!Node)
+			{
+				Call->Fail(TEXT("blueprint.event_not_found"), FString::Printf(TEXT("no custom event '%s'"), *Event),
+					Names.IsEmpty() ? FString(TEXT("add one: bp_add_node type=CustomEvent")) : FString::Printf(TEXT("custom events: %s"), *FString::Join(Names, TEXT(", "))));
+				return;
+			}
+			const FString Type = Call->GetString(TEXT("type"));
+			const uint32 Flag = Type == TEXT("server") ? FUNC_NetServer : Type == TEXT("client") ? FUNC_NetClient : Type == TEXT("multicast") ? FUNC_NetMulticast : 0;
+			Node->Modify();
+			Node->FunctionFlags &= ~(FUNC_Net | FUNC_NetServer | FUNC_NetClient | FUNC_NetMulticast | FUNC_NetReliable);
+			if (Flag)
+			{
+				Node->FunctionFlags |= FUNC_Net | Flag;
+				if (Call->GetBool(TEXT("reliable"))) Node->FunctionFlags |= FUNC_NetReliable;
+			}
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(B);
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("event"), Event);
+			O->SetStringField(TEXT("type"), Flag ? Type : FString(TEXT("none")));
+			O->SetBoolField(TEXT("reliable"), (Node->FunctionFlags & FUNC_NetReliable) != 0);
 			Call->Succeed(O);
 		});
 

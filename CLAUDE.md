@@ -22,6 +22,7 @@ bash scripts/e2e.sh 5.7   # Windows + UE 5.7
 
 ## ルール
 
+- ブランチ: `main` は安定版。作業は feature ブランチ(`002-game-dev-expansion` など)で行い、まとまった単位でプルリクエストを作り、CI が通ってから `main` にマージする。`main` へ直接 push しない。リリースのタグは `main` にだけ打つ
 - TDD: テストを先に書き、失敗を確認してから実装する
 - エンジン API を使う前に、該当ヘッダーを grep してシグネチャを確認する
 - 他製品のコードや名前を持ち込まない(`tests/independence.rs` が検査する)

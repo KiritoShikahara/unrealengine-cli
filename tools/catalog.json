@@ -1175,6 +1175,78 @@
   "minEngine": "5.5"
  },
  {
+  "name": "bp_set_replication",
+  "group": "blueprint",
+  "summary": "Replicate a member variable as the Details panel does: mode replicated | notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) | none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults).",
+  "description": "Replicate a member variable as the Details panel does: mode replicated | notify (adds an OnRep_<Var> function graph, called on clients when the value arrives) | none; condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, SimulatedOrPhysics, InitialOrOwner, Custom, ReplayOrOwner, ReplayOnly, SkipReplay, Dynamic, Never. The actor itself must replicate (bReplicates on its class defaults).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "variable": {
+     "type": "string"
+    },
+    "mode": {
+     "type": "string",
+     "enum": [
+      "replicated",
+      "notify",
+      "none"
+     ]
+    },
+    "condition": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "variable"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_set_rpc",
+  "group": "blueprint",
+  "summary": "Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery.",
+  "description": "Make a custom event a remote procedure call as the Details panel does: type server (runs on the server; call it from the owning client), client (runs on the owning client), multicast (runs on the server and every client; call it on the server) or none; reliable=true guarantees delivery.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "event": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string",
+     "enum": [
+      "server",
+      "client",
+      "multicast",
+      "none"
+     ]
+    },
+    "reliable": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "event",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "bt_add_node",
   "group": "ai",
   "summary": "Add to a Behavior Tree: kind composite (Selector, Sequence, SimpleParallel) or task (MoveTo, Wait, RunBehavior, PlaySound, a Blueprint task path...) as the last child of parent (\"root\" or a node id), or kind decorator (Blackboard, Cooldown, Loop, TimeLimit...) / service (DefaultFocus, RunEQS, a Blueprint service...) attached to parent. properties: {Name: value}; Blackboard key selectors take a key name; value-or-key properties take a value or \"key:<KeyName>\".",
@@ -2440,6 +2512,70 @@
   "minEngine": "5.5"
  },
  {
+  "name": "net_assert",
+  "group": "net",
+  "summary": "Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name.",
+  "description": "Wait until an actor's property has the same value in every world of the play session (or the expect value in all of them); fails with net.mismatch and each world's last value after timeoutSeconds (default 5). actor: label or name (level actors have the same one in every world) or a class name; property: Name or Component.Name.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "actor": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    },
+    "expect": {
+     "type": "string"
+    },
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "actor",
+    "property"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "net_emulate",
+  "group": "net",
+  "summary": "Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session.",
+  "description": "Simulate network conditions in the running play session: latencyMs (outgoing lag), jitterMs, lossPercent on the server, the clients or all worlds; off=true removes them. Ends with the session.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "latencyMs": {
+     "type": "integer"
+    },
+    "jitterMs": {
+     "type": "integer"
+    },
+    "lossPercent": {
+     "type": "integer"
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "all",
+      "server",
+      "clients"
+     ]
+    },
+    "off": {
+     "type": "boolean"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "niagara_emitters_list",
   "group": "niagara",
   "summary": "Emitters of a Niagara System.",
@@ -2631,6 +2767,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "classFilter": {
      "type": "string"
     },
@@ -2654,6 +2794,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "actor": {
      "type": "string"
     },
@@ -2678,6 +2822,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "widget": {
      "type": "string"
     }
@@ -2698,6 +2846,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "command": {
      "type": "string"
     }
@@ -2713,11 +2865,15 @@
  {
   "name": "pie_get",
   "group": "runtime",
-  "summary": "Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity.",
-  "description": "Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity.",
+  "summary": "Read properties of a play-world actor (or one of its components): actor is a label, name, \"player\" (the pawn) or \"controller\" (its player controller); without properties returns its transform and velocity.",
+  "description": "Read properties of a play-world actor (or one of its components): actor is a label, name, \"player\" (the pawn) or \"controller\" (its player controller); without properties returns its transform and velocity.",
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "actor": {
      "type": "string"
     },
@@ -2747,6 +2903,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "key": {
      "type": "string"
     },
@@ -2791,6 +2951,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "path": {
      "type": "string"
     }
@@ -2803,11 +2967,25 @@
  {
   "name": "pie_start",
   "group": "runtime",
-  "summary": "Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop.",
-  "description": "Start Play In Editor and return once the play world exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop.",
+  "summary": "Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds).",
+  "description": "Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds).",
   "inputSchema": {
    "type": "object",
-   "properties": {}
+   "properties": {
+    "players": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 4
+    },
+    "netMode": {
+     "type": "string",
+     "enum": [
+      "standalone",
+      "listen",
+      "client"
+     ]
+    }
+   }
   },
   "mutating": false,
   "longRunning": false,
@@ -2847,6 +3025,10 @@
   "inputSchema": {
    "type": "object",
    "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    },
     "seconds": {
      "type": "number"
     },
@@ -2864,6 +3046,24 @@
   "group": "runtime",
   "summary": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
   "description": "UI on screen in the play session: user widgets in the viewport with their child widgets (name, class, visible, text for text blocks).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "world": {
+     "type": "string",
+     "description": "server, client:1, ... (see pie_worlds); default: the primary play world"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pie_worlds",
+  "group": "runtime",
+  "summary": "Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers.",
+  "description": "Worlds of the running play session: id (standalone, server, client:1, ...; pass it as world to the other pie tools), netMode and the number of player controllers.",
   "inputSchema": {
    "type": "object",
    "properties": {}

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`
+  for every pie command; actors report `role`, `remoteRole` and `owner`.
+- Replication: `blueprint replicate <bp> <var> [--notify] [--condition]` (OnRep function included), `blueprint rpc <bp> <event>
+  --type server|client|multicast [--reliable]`, and for C++ `code replicate <header> <name> <type>` and `code rpc` (header,
+  GetLifetimeReplicatedProps, DOREPLIFETIME, _Implementation/_Validate). `pie get|call controller` targets the player controller.
+- `net assert <actor> <property> [--expect] [--timeout]` waits until every world of the play session agrees;
+  `net emulate --latency --jitter --loss` simulates bad networks. `scripts/e2e-net.py`: a two-player game E2E.
+- Fix: a CallFunction node for a function or custom event added since the Blueprint's last compile no longer fails
+  with `blueprint.function_not_found`.
+- New skill `unreal-multiplayer`.
+
 ## 0.3.2
 
 - Fix (#1): `fab` commands work with the Fab plugin shipped with UE 5.8 (no fixed `FabTab` tab). Fab is detected by its

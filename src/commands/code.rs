@@ -45,6 +45,34 @@ pub enum CodeCmd {
         #[arg(long)]
         module: Option<String>,
     },
+    /// Add a replicated property to a C++ class (header path; its .cpp is found under Private/)
+    Replicate {
+        header: String,
+        name: String,
+        /// C++ type, e.g. float, int32, FVector, TObjectPtr<AActor>
+        #[arg(name = "TYPE")]
+        cpp_type: String,
+        /// ReplicatedUsing = OnRep_<Name>, with an empty OnRep function
+        #[arg(long)]
+        notify: bool,
+        /// Replication condition (OwnerOnly, SkipOwner, InitialOnly, ...)
+        #[arg(long)]
+        condition: Option<String>,
+    },
+    /// Add a remote procedure call to a C++ class, with its _Implementation (and _Validate)
+    Rpc {
+        header: String,
+        name: String,
+        #[arg(long = "type", value_parser = ["server", "client", "multicast"])]
+        rpc_type: String,
+        #[arg(long)]
+        reliable: bool,
+        #[arg(long)]
+        validate: bool,
+        /// Parameter as Name:Type (repeatable)
+        #[arg(long = "param")]
+        params: Vec<String>,
+    },
     /// Apply changed sources: Live Coding for .cpp only, otherwise close, rebuild and reopen
     Apply {
         /// Only report the decision
@@ -150,6 +178,47 @@ pub fn run(ctx: &mut Ctx, cmd: CodeCmd) -> Result<Value, CliError> {
             let e = end.unwrap_or(lines.len()).min(lines.len());
             let body: Vec<String> = (s..=e).map(|i| format!("{i}\t{}", lines[i - 1])).collect();
             Ok(json!({ "path": path, "lines": lines.len(), "text": body.join("\n") }))
+        }
+        CodeCmd::Replicate {
+            header,
+            name,
+            cpp_type,
+            notify,
+            condition,
+        } => {
+            let (_, dir) = project_dir(ctx)?;
+            let f = super::code_net::load(inside(&dir, &header)?)?;
+            let (h, c) =
+                super::code_net::replicate(&f, &name, &cpp_type, notify, condition.as_deref())?;
+            let mut added = vec![format!("{cpp_type} {name}")];
+            if notify {
+                added.push(format!("OnRep_{name}()"));
+            }
+            super::code_net::finish(&f, &dir, h, c, ctx.global.dry_run, added)
+        }
+        CodeCmd::Rpc {
+            header,
+            name,
+            rpc_type,
+            reliable,
+            validate,
+            params,
+        } => {
+            let (_, dir) = project_dir(ctx)?;
+            let mut parsed = Vec::new();
+            for p in &params {
+                let (n, t) = p.split_once(':').ok_or_else(|| {
+                    CliError::usage("args.invalid", format!("--param {p}: use Name:Type"))
+                })?;
+                parsed.push((n.trim().to_string(), t.trim().to_string()));
+            }
+            let f = super::code_net::load(inside(&dir, &header)?)?;
+            let (h, c) = super::code_net::rpc(&f, &name, &rpc_type, reliable, validate, &parsed)?;
+            let mut added = vec![format!("{name}_Implementation")];
+            if validate {
+                added.push(format!("{name}_Validate"));
+            }
+            super::code_net::finish(&f, &dir, h, c, ctx.global.dry_run, added)
         }
         CodeCmd::Edit { path, old, new } => {
             let (_, dir) = project_dir(ctx)?;

@@ -193,7 +193,7 @@ fn package(ctx: &mut Ctx, output: &Path, config: &str) -> Result<Value, CliError
         ctx.cwd.join(output)
     };
     let project_dir = lexical(&paths::normalize(up.parent().unwrap_or(Path::new("."))));
-    let out_abs = lexical(&paths::normalize(&out));
+    let out_abs = normalize_partial(&lexical(&out));
     let key = |p: &Path| {
         let s = p.to_string_lossy().replace('\\', "/");
         if cfg!(windows) || cfg!(target_os = "macos") {
@@ -290,6 +290,30 @@ fn lexical(p: &Path) -> PathBuf {
             }
             other => out.push(other.as_os_str()),
         }
+    }
+    out
+}
+
+/// Like `paths::normalize` for a path that may not exist yet: canonicalizes its deepest existing
+/// ancestor (expanding 8.3 short names and links) and appends the rest.
+fn normalize_partial(p: &Path) -> PathBuf {
+    let mut existing = p.to_path_buf();
+    let mut rest = Vec::new();
+    while !existing.exists() {
+        match (
+            existing.file_name().map(|n| n.to_os_string()),
+            existing.parent(),
+        ) {
+            (Some(name), Some(parent)) => {
+                rest.push(name);
+                existing = parent.to_path_buf();
+            }
+            _ => return paths::normalize(p),
+        }
+    }
+    let mut out = paths::normalize(&existing);
+    for name in rest.iter().rev() {
+        out.push(name);
     }
     out
 }

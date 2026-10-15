@@ -21,6 +21,7 @@ namespace UCli
 		RegisterAiTools(Registry);
 		RegisterFabTools(Registry);
 		RegisterGasTools(Registry);
+		RegisterPerfTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

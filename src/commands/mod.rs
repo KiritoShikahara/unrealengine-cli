@@ -4,10 +4,12 @@ pub mod code;
 pub mod code_net;
 pub mod gas;
 pub mod online;
+pub mod perf;
 pub mod project;
 pub mod server;
 pub mod test_runner;
 pub mod typed;
+pub mod visual;
 
 use std::path::PathBuf;
 use std::time::Duration;

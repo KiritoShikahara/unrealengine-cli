@@ -10,3 +10,4 @@
 /Plugin/UnrealCliBridge/Binaries
 /Plugin/UnrealCliBridge/Intermediate
 __pycache__/
+/TestProject/Tests

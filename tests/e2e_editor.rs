@@ -2036,3 +2036,77 @@ fn e2e_25_gas() {
     assert_eq!(v["error"]["code"], "gas.no_component");
     call("pie_stop", json!({}));
 }
+
+#[test]
+fn e2e_29_visual_perf() {
+    if !render_enabled() {
+        eprintln!("visual E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Visual"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let name = format!("e2e-{}", run_id());
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let base = ok(&["visual", "baseline", &name]);
+    assert!(base["width"].as_u64().unwrap() > 0, "{base}");
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    let same = ok(&["visual", "compare", &name, "--threshold", "2"]);
+    assert!(same["diffPercent"].as_f64().unwrap() <= 2.0, "{same}");
+
+    let trace = ok(&["perf", "trace", "start"]);
+    let perf = ok(&["perf", "measure", "--seconds", "3"]);
+    ok(&["perf", "trace", "stop"]);
+    let summary = ok(&[
+        "perf",
+        "trace",
+        "summary",
+        trace["file"].as_str().unwrap(),
+        "--top",
+        "5",
+    ]);
+    assert!(
+        summary["timers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["name"] == "Frame"),
+        "{summary}"
+    );
+    assert!(perf["frames"].as_u64().unwrap() > 10, "{perf}");
+    assert!(perf["frameMs"]["p95"].as_f64().unwrap() > 0.0, "{perf}");
+    assert_eq!(perf["partial"], false, "{perf}");
+    call("pie_stop", json!({}));
+
+    // Without the sun and sky the same view is much darker.
+    let lights = call("actor_list", json!({"classFilter": "Light"}));
+    let mut labels: Vec<String> = Vec::new();
+    for class in [
+        "DirectionalLight",
+        "SkyLight",
+        "SkyAtmosphere",
+        "ExponentialHeightFog",
+    ] {
+        let found = call("actor_list", json!({"classFilter": class}));
+        for a in found.as_array().unwrap() {
+            labels.push(a["label"].as_str().unwrap().to_string());
+        }
+    }
+    assert!(!labels.is_empty(), "no lights in the template: {lights}");
+    call("actor_destroy", json!({"labels": labels}));
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let (code, v) = cli(&["visual", "compare", &name, "--threshold", "2"]);
+    call("pie_stop", json!({}));
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "visual.mismatch");
+    assert!(
+        v["error"]["details"]["diffPercent"].as_f64().unwrap() > 10.0,
+        "{v}"
+    );
+}

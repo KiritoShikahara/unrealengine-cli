@@ -103,11 +103,11 @@
 
 ## Phase 13: US11 - 見た目とパフォーマンス (P2)
 
-- [ ] T057 [P] [US11] 画像差分の単体テストを `tests/us15_visual.rs` に書く(同一画像で 0%、1 ピクセル変更、解像度違いで `visual.size_mismatch`、しきい値超えで終了コード 4)
-- [ ] T058 [P] [US11] E2E `e2e_29_visual_perf` を書く(基準と比較、ライトを消して `visual.mismatch`、10 秒の計測)
-- [ ] T059 [US11] `src/commands/visual.rs` に `visual baseline|compare|diff` を実装する(`image` クレート)
-- [ ] T060 [US11] `perf_measure` を `Private/Tools/PerfTools.cpp` に実装する(`partial` を含む)
-- [ ] T061 [US11] `perf_trace` と `perf trace summary`(Insights の CSV 出力の集計)を実装する
+- [x] T057 [P] [US11] 画像差分の単体テストを `tests/us15_visual.rs` に書く(同一画像で 0%、1 ピクセル変更、解像度違いで `visual.size_mismatch`、しきい値超えで終了コード 4)
+- [x] T058 [P] [US11] E2E `e2e_29_visual_perf` を書く(基準と比較、ライトを消して `visual.mismatch`、10 秒の計測)
+- [x] T059 [US11] `src/commands/visual.rs` に `visual baseline|compare|diff` を実装する(`image` クレート)
+- [x] T060 [US11] `perf_measure` を `Private/Tools/PerfTools.cpp` に実装する(`partial` を含む)
+- [x] T061 [US11] `perf_trace` と `perf trace summary`(Insights の CSV 出力の集計)を実装する
 
 ## Phase 14: US12 - 対応範囲 (P2)
 

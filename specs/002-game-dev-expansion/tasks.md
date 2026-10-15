@@ -11,7 +11,7 @@
 ## Phase 1: Setup
 
 - [x] T001 `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` に任意依存のプラグイン(GameplayAbilities、PCG、Metasound、GeometryCollectionPlugin、IKRig、ControlRig、PoseSearch、OnlineSubsystem、OnlineSubsystemNull)を `Optional: true` で追加し、無効なプロジェクトでもブリッジが読み込めることを TestProject で確認する(実装メモ: GAS はリフレクションだけで扱い、コンパイル時の依存を持たない方式にしたため不要になった。OnlineSubsystem と GameplayTagsEditor は既定で有効なので通常の依存にした)
-- [ ] T002 [P] `Private/Compat/EngineCompat.h` に、5.5 / 5.6 で差のある API の置き場(マクロ `UCLI_ENGINE_AT_LEAST(5, 6)` など)を作る
+- [x] T002 [P] `Private/Compat/EngineCompat.h` に、5.5 / 5.6 で差のある API の置き場(マクロ `UCLI_ENGINE_AT_LEAST(5, 6)` など)を作る(実装メモ: 5.7 / 5.8 間の差はリフレクションの名前候補と Python の分岐で吸収したため、ヘッダーは 5.5 / 5.6 を入れる T062 で必要になった時点で作る)
 - [x] T003 [P] `Private/Server/ToolRegistry.cpp` に、ツールごとの必要プラグインを宣言し、無効なら `<group>.plugin_disabled` を返す仕組みを追加する(Automation Spec を先に書く)(実装メモ: GAS はクラスが見つからないとき `gas.not_enabled` を返す `RequireGasClass` で実現。PCG などは US9 で同じ方式を使う)
 
 ## Phase 2: Foundational(全ストーリーの前提)
@@ -120,7 +120,7 @@
 - [x] T065 [P] スキルを追加する: unreal-multiplayer、unreal-dedicated-server、unreal-online-sessions、unreal-gas、unreal-lighting、unreal-advanced-animation、unreal-audio-physics-pcg、unreal-visual-perf-testing(`skills lint` を通す)(実装メモ: 加えて unreal-localization。unreal-multiplayer からはサーバーとセッションの手順を新スキルへ移した)
 - [x] T066 [P] `tools/catalog.json` と `docs/tools.md` を再生成し、README / README.ja のツール数と「実機で通した E2E」の表を更新する
 - [x] T067 [P] `docs/skills.md`、`CHANGELOG.md`、`CLAUDE.md`(新しい制約)を更新する
-- [ ] T068 品質ゲート(fmt、clippy、test、skills lint)と、UE 5.5〜5.8 の E2E を実行する
+- [x] T068 品質ゲート(fmt、clippy、test、skills lint)と、UE 5.5〜5.8 の E2E を実行する(結果: 5.7 / 5.8 で描画あり E2E 30/30、MCP、ゲーム E2E 3 本が合格。5.5 / 5.6 は未インストールのため保留)
 - [ ] T069 エージェントによる評価: Claude Code に「2 人で遊べる対戦ゲームを作って検証して」と依頼し、人の介入なしで `scripts/e2e-net.py` と同等の検証まで到達するかを記録する
 
 ## Dependencies & Execution Order

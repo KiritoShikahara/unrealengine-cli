@@ -77,9 +77,22 @@ def anim_retarget(retargeter, assets, folder=None, suffix="_Retargeted"):
     for a in assets:
         load_asset_or_fail(a, unreal.AnimationAsset)
         data.append(reg.get_asset_by_object_path(a if "." in a.rsplit("/", 1)[-1] else "%s.%s" % (a, a.rsplit("/", 1)[-1])))
-    out = unreal.IKRetargetBatchOperation.duplicate_and_retarget(
-        data, src_mesh, tgt_mesh, rtg, "", "", "", suffix or "", folder or "", not folder, False, False)
+    op = unreal.IKRetargetBatchOperation
+    copies = []
+    try:
+        out = op.duplicate_and_retarget(data, src_mesh, tgt_mesh, rtg, "", "", "", suffix or "", folder or "", not folder,
+                                        False, False)
+    except TypeError:
+        # Engines without a target folder argument write next to the inputs: retarget copies in the folder instead.
+        if folder:
+            for d in data:
+                dest = "%s/%s" % (folder, d.asset_name)
+                copies.append(unreal.EditorAssetLibrary.duplicate_asset(str(d.package_name), dest))
+            data = [reg.get_asset_by_object_path(c.get_path_name()) for c in copies]
+        out = op.duplicate_and_retarget(data, src_mesh, tgt_mesh, rtg, "", "", "", suffix or "", False, False)
     created = [str(d.package_name) for d in out]
+    for c in copies:
+        unreal.EditorAssetLibrary.delete_loaded_asset(c)
     if not created:
         raise ToolError("anim.retarget_failed", "nothing was retargeted",
                         hint="are the assets for the source IK Rig's skeleton? does a result with this suffix already exist?")

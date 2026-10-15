@@ -115,7 +115,9 @@ void UCli::RegisterPerfTools(FToolRegistry& R)
 				IFileManager::Get().MakeDirectory(*FPaths::GetPath(File), true);
 				const FString Channels = Call->GetString(TEXT("channels"), TEXT("cpu,gpu,frame,bookmark"));
 				GEngine->Exec(nullptr, TEXT("Trace.Stop"));
-				GEngine->Exec(nullptr, *FString::Printf(TEXT("Trace.File \"%s\" %s"), *File, *Channels));
+				// Older engines take the path literally (quotes included); quote only when it has spaces.
+				const FString Arg = File.Contains(TEXT(" ")) ? FString::Printf(TEXT("\"%s\""), *File) : File;
+				GEngine->Exec(nullptr, *FString::Printf(TEXT("Trace.File %s %s"), *Arg, *Channels));
 				O->SetStringField(TEXT("file"), File);
 				O->SetStringField(TEXT("channels"), Channels);
 			}

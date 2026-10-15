@@ -4,7 +4,14 @@ from .. import ToolError, tool
 from ..util import actors, create_asset, from_json, load_asset_or_fail
 
 
+def _require():
+    if not hasattr(unreal, "PCGGraph"):
+        raise ToolError("pcg.plugin_disabled", "the PCG plugin is not enabled",
+                        hint="add { \"Name\": \"PCG\", \"Enabled\": true } to the .uproject Plugins and restart the editor")
+
+
 def _graph(path):
+    _require()
     return load_asset_or_fail(path, unreal.PCGGraph)
 
 
@@ -65,6 +72,7 @@ def _apply(settings, props):
 @tool("pcg_create", "pcg", "Create an empty PCG graph (Input and Output nodes only).",
       {"path": {"type": "string"}}, ["path"], mutating=True, undoable=False)
 def pcg_create(path):
+    _require()
     g = create_asset(path, unreal.PCGGraph, unreal.PCGGraphFactory())
     unreal.EditorAssetLibrary.save_loaded_asset(g, False)
     return {"path": g.get_path_name(), "nodes": [n.get_name() for n in _nodes(g)]}

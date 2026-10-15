@@ -150,14 +150,46 @@ fn step(ctx: &mut Ctx, name: &str, s: &Step) -> Result<Value, CliError> {
         return Ok(json!({ "dryRun": true, "executable": exe, "args": args }));
     }
     let started = Instant::now();
-    let out = Command::new(&exe)
+    let mut child = Command::new(&exe)
         .args(&args)
         .stdin(std::process::Stdio::null())
-        .output()
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
         .map_err(|e| {
             CliError::internal("loc.spawn", format!("cannot run {}: {e}", exe.display()))
         })?;
-    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    let mut stdout = child.stdout.take();
+    let reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(o) = stdout.as_mut() {
+            let _ = std::io::Read::read_to_end(o, &mut buf);
+        }
+        buf
+    });
+    let status = loop {
+        if let Some(st) = child
+            .try_wait()
+            .map_err(|e| CliError::internal("loc.spawn", e.to_string()))?
+        {
+            break st;
+        }
+        if started.elapsed().as_secs() > s.timeout {
+            let _ = child.kill();
+            return Err(CliError::timeout(
+                "loc.timeout",
+                format!(
+                    "the {} step did not finish within {}s",
+                    name.to_lowercase(),
+                    s.timeout
+                ),
+            )
+            .with_hint("run it again; large projects need a larger --timeout"));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    };
+    let stdout_bytes = reader.join().unwrap_or_default();
+    let text = String::from_utf8_lossy(&stdout_bytes).to_string();
     let errors: Vec<&str> = text
         .lines()
         .filter(|l| l.contains(": Error: ") && !l.contains("LogSourceControl"))
@@ -166,7 +198,7 @@ fn step(ctx: &mut Ctx, name: &str, s: &Step) -> Result<Value, CliError> {
     let mut data = json!({
         "step": name.to_lowercase(),
         "target": s.target,
-        "succeeded": out.status.success(),
+        "succeeded": status.success(),
         "seconds": started.elapsed().as_secs(),
         "errors": errors,
     });
@@ -189,7 +221,7 @@ fn step(ctx: &mut Ctx, name: &str, s: &Step) -> Result<Value, CliError> {
         }
         _ => {}
     }
-    if out.status.success() {
+    if status.success() {
         Ok(data)
     } else {
         let tail: Vec<&str> = text
@@ -203,7 +235,7 @@ fn step(ctx: &mut Ctx, name: &str, s: &Step) -> Result<Value, CliError> {
         data["logTail"] = json!(tail);
         Err(CliError::editor(
             "loc.step_failed",
-            format!("the {} step failed ({})", name.to_lowercase(), out.status),
+            format!("the {} step failed ({})", name.to_lowercase(), status),
         )
         .with_hint("see details.errors and details.logTail")
         .with_details(data))

@@ -20,13 +20,20 @@ void UCli::RegisterLocTools(FToolRegistry& R)
 		[](const FToolCallRef& Call)
 		{
 			const FString Culture = Call->GetString(TEXT("culture"));
-			if (Culture.IsEmpty() || Culture == TEXT("off")) FTextLocalizationManager::Get().DisableGameLocalizationPreview();
-			else FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
+			// Reload the .locres files first (a compile since startup is otherwise not seen), then switch.
+			TSharedRef<bool> Loaded = MakeShared<bool>(false);
+			FTextLocalizationManager::Get().RefreshResources([Loaded]() { *Loaded = true; });
 			// The text refresh happens on the following frames; read afterwards.
 			TSharedRef<int32> Frames = MakeShared<int32>(0);
-			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Culture, Frames](float)
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Call, Culture, Frames, Loaded](float)
 			{
-				if (++*Frames < 3) return true;
+				if (!*Loaded) return true;
+				if (*Frames == 0)
+				{
+					if (Culture.IsEmpty() || Culture == TEXT("off")) FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+					else FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
+				}
+				if (++*Frames < 4) return true;
 				TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 				O->SetStringField(TEXT("culture"), Culture.IsEmpty() ? TEXT("off") : Culture);
 				if (Call->Has(TEXT("asset")))

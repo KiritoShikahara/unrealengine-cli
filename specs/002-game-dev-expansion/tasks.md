@@ -113,13 +113,13 @@
 
 - [ ] T062 [US12] UE 5.5 と 5.6 でプラグインをビルドし、コンパイルエラーを `Private/Compat/` の分岐で直す
 - [ ] T063 [US12] `scripts/e2e.sh 5.5` / `5.6` を全件成功させる。使えない機能は `MinEngine` と `engine.unsupported` にする
-- [ ] T064 [P] [US12] `tests/e2e_fab.rs` を作る(`UNREALENGINE_CLI_E2E_FAB=1` のときだけ。ライブラリ検索、パックと FBX の取り込み、保存、タブが閉じること)
+- [x] T064 [P] [US12] `tests/e2e_fab.rs` を作る(`UNREALENGINE_CLI_E2E_FAB=1` のときだけ。ライブラリ検索、パックと FBX の取り込み、保存、タブが閉じること)
 
 ## Phase 15: Polish
 
-- [ ] T065 [P] スキルを追加する: unreal-multiplayer、unreal-dedicated-server、unreal-online-sessions、unreal-gas、unreal-lighting、unreal-advanced-animation、unreal-audio-physics-pcg、unreal-visual-perf-testing(`skills lint` を通す)
-- [ ] T066 [P] `tools/catalog.json` と `docs/tools.md` を再生成し、README / README.ja のツール数と「実機で通した E2E」の表を更新する
-- [ ] T067 [P] `docs/skills.md`、`CHANGELOG.md`、`CLAUDE.md`(新しい制約)を更新する
+- [x] T065 [P] スキルを追加する: unreal-multiplayer、unreal-dedicated-server、unreal-online-sessions、unreal-gas、unreal-lighting、unreal-advanced-animation、unreal-audio-physics-pcg、unreal-visual-perf-testing(`skills lint` を通す)(実装メモ: 加えて unreal-localization。unreal-multiplayer からはサーバーとセッションの手順を新スキルへ移した)
+- [x] T066 [P] `tools/catalog.json` と `docs/tools.md` を再生成し、README / README.ja のツール数と「実機で通した E2E」の表を更新する
+- [x] T067 [P] `docs/skills.md`、`CHANGELOG.md`、`CLAUDE.md`(新しい制約)を更新する
 - [ ] T068 品質ゲート(fmt、clippy、test、skills lint)と、UE 5.5〜5.8 の E2E を実行する
 - [ ] T069 エージェントによる評価: Claude Code に「2 人で遊べる対戦ゲームを作って検証して」と依頼し、人の介入なしで `scripts/e2e-net.py` と同等の検証まで到達するかを記録する
 

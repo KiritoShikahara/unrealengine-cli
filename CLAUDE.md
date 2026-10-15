@@ -29,4 +29,8 @@ bash scripts/e2e.sh 5.7   # Windows + UE 5.7
 - Windows で `setup` / `install` を名前に含むテストバイナリは UAC に止められるので使わない
 - Live Coding のロックはエンジン単位(同じ UE バージョンの全プロジェクト共通)。動作中は同じエンジンのビルドが失敗する
 - 数十分かかる E2E(`scripts/e2e-cpp.py` など)はバックグラウンドで実行し、ログファイルを確認する(実行中は `cargo build` で CLI を上書きしない)
+- 同じエンジンの別プロジェクト(ユーザーのエディタ)で Live Coding が有効だと、そのエンジンのビルドが全部止まる。ユーザーのエディタは閉じず、別のエンジンバージョンで進めるか、閉じてもらう
+- 新しい Python ツールと C++ ツールの登録は起動時だけ。追加したらエディタを再起動する(Live Coding では反映されない)
+- C++ の raw 文字列 `TEXT(R"(...)")` の中に `)"` を書かない(JSON の説明に括弧つきの文字列を入れると文字列が途中で閉じる)
+- E2E の副産物(`TestProject/Content/Localization`、`Config/Localization`、`__ExternalActors__`、Fab の取り込み先)はコミットしない
 - `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。PIE の E2E は `UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.7`(描画あり)で回す

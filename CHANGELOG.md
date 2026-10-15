@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Visual checks: `visual baseline|compare|diff` (Tests/Visual/<name>.png, tolerance and threshold, red difference
+  image, `visual.mismatch` exit 4). Performance: `perf measure` (frame/game/render/GPU ms avg/p95/max, hitches, draw
+  calls, memory), `perf trace start|stop|summary` (Unreal Insights timers).
+- Lighting: `light preset outdoor|night|indoor`, `light build` (static lighting job), `light hlod <map>` (World
+  Partition HLODs); `render get|set` (Lumen, virtual shadow maps, Nanite, ray tracing, static lighting, AA, any
+  renderer setting).
+- Animation: `anim ikrig|retargeter|retarget|controlrig|posesearch`.
+- `audio metasound create|node|connect|set`, `physics collection` (Geometry Collections), `pcg create|node|connect|generate`.
+- Localization: `loc target|gather|export|translate|import|compile|preview`.
+- New skills: unreal-dedicated-server, unreal-online-sessions, unreal-lighting, unreal-advanced-animation,
+  unreal-audio-physics-pcg, unreal-visual-perf-testing, unreal-localization.
+- Fab: a library listing that was removed from Fab now says so instead of only "not found".
+
 ## 0.5.0
 
 - Dedicated servers: `server start [--map] [--port] [-- <args>]` runs the project's Server build, or the editor binary in

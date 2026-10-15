@@ -390,7 +390,7 @@ if(!m) throw new Error('fab.bad_listing: pass a listing id or a fab.com listing 
 const uid=m[0].toLowerCase();
 if(!await __me()) throw new Error('fab.not_signed_in: the Fab page is not signed in');
 const L=await get(`/i/listings/${uid}`);
-if(L.status!==200||!L.v) throw new Error(`fab.not_found: listing ${uid} was not found (HTTP ${L.status})`);
+if(L.status!==200||!L.v) throw new Error(`fab.not_found: listing ${uid} was not found (HTTP ${L.status}); a listing removed from Fab can stay in your library but cannot be downloaded here`);
 const listing=L.v;
 const codes=(listing.assetFormats||[]).map(f=>f.assetFormatType.code);
 const importable=['unreal-engine','gltf','glb','fbx'];

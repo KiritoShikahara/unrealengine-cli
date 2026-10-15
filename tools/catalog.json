@@ -195,6 +195,94 @@
   "minEngine": "5.5"
  },
  {
+  "name": "anim_ikrig_create",
+  "group": "anim",
+  "summary": "Create an IK Rig for a skeletal mesh. auto=true (default) adds the auto-generated retarget chains and a full-body IK solver. Returns the retarget root and chains (name, start, end).",
+  "description": "Create an IK Rig for a skeletal mesh. auto=true (default) adds the auto-generated retarget chains and a full-body IK solver. Returns the retarget root and chains (name, start, end).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "mesh": {
+     "type": "string"
+    },
+    "auto": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "mesh"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "anim_retarget",
+  "group": "anim",
+  "summary": "Retarget animation assets (sequences, montages, blend spaces) with an IK Retargeter into new assets for the target mesh: saved in folder (default next to the originals) with suffix (default _Retargeted).",
+  "description": "Retarget animation assets (sequences, montages, blend spaces) with an IK Retargeter into new assets for the target mesh: saved in folder (default next to the originals) with suffix (default _Retargeted).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "retargeter": {
+     "type": "string"
+    },
+    "assets": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "folder": {
+     "type": "string"
+    },
+    "suffix": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "retargeter",
+    "assets"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "anim_retargeter_create",
+  "group": "anim",
+  "summary": "Create an IK Retargeter from a source IK Rig to a target IK Rig and map their chains automatically (fuzzy name matching). Returns the chain mapping.",
+  "description": "Create an IK Retargeter from a source IK Rig to a target IK Rig and map their chains automatically (fuzzy name matching). Returns the chain mapping.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "source": {
+     "type": "string"
+    },
+    "target": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "source",
+    "target"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "animbp_create",
   "group": "anim",
   "summary": "Create an Animation Blueprint for a skeleton.",
@@ -1396,6 +1484,33 @@
   "minEngine": "5.5"
  },
  {
+  "name": "controlrig_create",
+  "group": "anim",
+  "summary": "Create a Control Rig Blueprint for a skeletal mesh with the mesh's bones imported into its hierarchy and the mesh as preview. Add controls and the Forward Solve graph in the Control Rig editor or with bp tools.",
+  "description": "Create a Control Rig Blueprint for a skeletal mesh with the mesh's bones imported into its hierarchy and the mesh as preview. Add controls and the Forward Solve graph in the Control Rig editor or with bp tools.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "mesh": {
+     "type": "string"
+    },
+    "modular": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "mesh"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "cook_content",
   "group": "packaging",
   "summary": "Start a content cook for a platform; returns the process id and log file.",
@@ -2074,6 +2189,33 @@
   "minEngine": "5.5"
  },
  {
+  "name": "geometry_collection_create",
+  "group": "physics",
+  "summary": "Create a Chaos Geometry Collection (destructible) asset from one or more static meshes, each piece a bone. Fracture it further in the Fracture editor mode (Fracture plugin); place it in a level with actor_spawn (GeometryCollectionActor) and set its RestCollection.",
+  "description": "Create a Chaos Geometry Collection (destructible) asset from one or more static meshes, each piece a bone. Fracture it further in the Fracture editor mode (Fracture plugin); place it in a level with actor_spawn (GeometryCollectionActor) and set its RestCollection.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "meshes": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "path",
+    "meshes"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "input_action_create",
   "group": "input",
   "summary": "Create an Enhanced Input Action (valueType: Boolean|Axis1D|Axis2D|Axis3D).",
@@ -2411,6 +2553,112 @@
   "minEngine": "5.5"
  },
  {
+  "name": "light_build",
+  "group": "lighting",
+  "summary": "Build static lighting (Lightmass) for the open level as a job: quality preview|medium|high|production (default preview). Fails with lighting.build_in_progress while another build runs; projects without static lighting (r.AllowStaticLighting=0, Lumen-only) have nothing to build.",
+  "description": "Build static lighting (Lightmass) for the open level as a job: quality preview|medium|high|production (default preview). Fails with lighting.build_in_progress while another build runs; projects without static lighting (r.AllowStaticLighting=0, Lumen-only) have nothing to build.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "quality": {
+     "type": "string",
+     "enum": [
+      "preview",
+      "medium",
+      "high",
+      "production"
+     ]
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": true,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "light_preset",
+  "group": "lighting",
+  "summary": "Light the open level with a preset: outdoor (sun, sky atmosphere, sky light, height fog, clouds, post process), night (moonlight, dark sky, fog) or indoor (no sun: sky light, a ceiling point light, post process with eye adaptation). replace=true (default) first removes the level's existing sun, sky, fog, cloud and post process actors.",
+  "description": "Light the open level with a preset: outdoor (sun, sky atmosphere, sky light, height fog, clouds, post process), night (moonlight, dark sky, fog) or indoor (no sun: sky light, a ceiling point light, post process with eye adaptation). replace=true (default) first removes the level's existing sun, sky, fog, cloud and post process actors.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "preset": {
+     "type": "string",
+     "enum": [
+      "outdoor",
+      "night",
+      "indoor"
+     ]
+    },
+    "replace": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "preset"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "loc_preview",
+  "group": "localization",
+  "summary": "Preview the game's compiled translations in the editor: culture (e.g. ja) switches the game text to it, empty or off goes back to the native text. With asset and property, returns how that text property (on the asset, or a Blueprint's defaults) reads now.",
+  "description": "Preview the game's compiled translations in the editor: culture (e.g. ja) switches the game text to it, empty or off goes back to the native text. With asset and property, returns how that text property (on the asset, or a Blueprint's defaults) reads now.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "culture": {
+     "type": "string"
+    },
+    "asset": {
+     "type": "string"
+    },
+    "property": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "loc_target",
+  "group": "localization",
+  "summary": "Create or update a game localization target (default Game, which the game loads): native culture (default en), cultures to translate into (e.g. ja), and the content paths to gather text from (default Content/*). Writes the target settings and its Gather/Export/Import/Compile configs under Config/Localization.",
+  "description": "Create or update a game localization target (default Game, which the game loads): native culture (default en), cultures to translate into (e.g. ja), and the content paths to gather text from (default Content/*). Writes the target settings and its Gather/Export/Import/Compile configs under Config/Localization.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "target": {
+     "type": "string"
+    },
+    "native": {
+     "type": "string"
+    },
+    "cultures": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "paths": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "mapping_add",
   "group": "input",
   "summary": "Map a key (SpaceBar, W, Gamepad_FaceButton_Bottom, ...) to an action in a mapping context, with optional modifiers (Negate, Swizzle, DeadZone, Scalar) and triggers (Pressed, Released, Down, Hold, Tap). WASD on one Axis2D move action (X = right, Y = forward): D none, A Negate, W Swizzle, S Swizzle+Negate.",
@@ -2573,6 +2821,121 @@
    ]
   },
   "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "metasound_add_node",
+  "group": "audio",
+  "summary": "Add a node to a MetaSound by class name Namespace.Name[.Variant], e.g. UE.Sine.Audio, UE.ADSR Envelope.Audio, UE.Multiply.Audio. Returns its node id and pins.",
+  "description": "Add a node to a MetaSound by class name Namespace.Name[.Variant], e.g. UE.Sine.Audio, UE.ADSR Envelope.Audio, UE.Multiply.Audio. Returns its node id and pins.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "node": {
+     "type": "string"
+    },
+    "version": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "path",
+    "node"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "metasound_connect",
+  "group": "audio",
+  "summary": "Connect an output to an input. from/to are <node id>:<pin name>, or graph:<name> for the MetaSound's own inputs (from) and outputs (to), e.g. from 5F3A...:Audio to graph:UE.OutputFormat.Mono.Audio:0.",
+  "description": "Connect an output to an input. from/to are <node id>:<pin name>, or graph:<name> for the MetaSound's own inputs (from) and outputs (to), e.g. from 5F3A...:Audio to graph:UE.OutputFormat.Mono.Audio:0.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "from",
+    "to"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "metasound_create",
+  "group": "audio",
+  "summary": "Create a MetaSound Source (format mono or stereo, oneShot default true). Returns its graph inputs (UE.Source.OnPlay) and outputs (audio channels, OnFinished) to connect nodes to with metasound_connect.",
+  "description": "Create a MetaSound Source (format mono or stereo, oneShot default true). Returns its graph inputs (UE.Source.OnPlay) and outputs (audio channels, OnFinished) to connect nodes to with metasound_connect.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "format": {
+     "type": "string",
+     "enum": [
+      "mono",
+      "stereo"
+     ]
+    },
+    "oneShot": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "metasound_set_input",
+  "group": "audio",
+  "summary": "Set the default value of a node input: number (float or int), boolean or string.",
+  "description": "Set the default value of a node input: number (float or int), boolean or string.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "node": {
+     "type": "string"
+    },
+    "input": {
+     "type": "string"
+    },
+    "value": {}
+   },
+   "required": [
+    "path",
+    "node",
+    "input",
+    "value"
+   ]
+  },
+  "mutating": true,
   "longRunning": false,
   "minEngine": "5.5"
  },
@@ -3015,6 +3378,183 @@
   "minEngine": "5.5"
  },
  {
+  "name": "pcg_add_node",
+  "group": "pcg",
+  "summary": "Add a node to a PCG graph by settings type (CreatePointsGrid, SurfaceSampler, StaticMeshSpawner, DensityFilter, TransformPoints, ... or a full PCG*Settings class) with properties in snake_case (StaticMeshSpawner also takes mesh: a static mesh path). Returns the node name and its pin labels.",
+  "description": "Add a node to a PCG graph by settings type (CreatePointsGrid, SurfaceSampler, StaticMeshSpawner, DensityFilter, TransformPoints, ... or a full PCG*Settings class) with properties in snake_case (StaticMeshSpawner also takes mesh: a static mesh path). Returns the node name and its pin labels.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "properties": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "path",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pcg_connect",
+  "group": "pcg",
+  "summary": "Connect two PCG nodes: from and to are <node name>:<pin label> (input / output name the graph's own nodes), e.g. PCGNode_0:Out to PCGNode_1:In.",
+  "description": "Connect two PCG nodes: from and to are <node name>:<pin label> (input / output name the graph's own nodes), e.g. PCGNode_0:Out to PCGNode_1:In.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "from",
+    "to"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pcg_create",
+  "group": "pcg",
+  "summary": "Create an empty PCG graph (Input and Output nodes only).",
+  "description": "Create an empty PCG graph (Input and Output nodes only).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pcg_generate",
+  "group": "pcg",
+  "summary": "Run a PCG graph in the open level: places (or reuses) a PCG Volume labelled label (default PCG_<graph>) at location with extent (half size, default 1000), assigns the graph and generates. Generation finishes over the next frames; pcg_status reports when it is done and how many instances were spawned.",
+  "description": "Run a PCG graph in the open level: places (or reuses) a PCG Volume labelled label (default PCG_<graph>) at location with extent (half size, default 1000), assigns the graph and generates. Generation finishes over the next frames; pcg_status reports when it is done and how many instances were spawned.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "graph": {
+     "type": "string"
+    },
+    "label": {
+     "type": "string"
+    },
+    "location": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     }
+    },
+    "extent": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "graph"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "pcg_status",
+  "group": "pcg",
+  "summary": "State of a PCG Volume placed by pcg_generate: generated, and the instanced mesh instances it spawned.",
+  "description": "State of a PCG Volume placed by pcg_generate: generated, and the instanced mesh instances it spawned.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "label": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "label"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "perf_measure",
+  "group": "perf",
+  "summary": "Measure the running play session for seconds (default 10): frameMs, gameMs, renderMs and gpuMs as {avg, p95, max}, hitches (frames over hitchMs, default 50), drawCalls {avg, max}, memoryMB {used, peak}, fps. partial=true when the session ended early.",
+  "description": "Measure the running play session for seconds (default 10): frameMs, gameMs, renderMs and gpuMs as {avg, p95, max}, hitches (frames over hitchMs, default 50), drawCalls {avg, max}, memoryMB {used, peak}, fps. partial=true when the session ended early.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "seconds": {
+     "type": "number"
+    },
+    "hitchMs": {
+     "type": "number"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "perf_trace",
+  "group": "perf",
+  "summary": "Unreal Insights trace of the editor process: start (to file, default Saved/UnrealCli/Traces/<time>.utrace; channels default cpu,gpu,frame,bookmark) or stop. Summarise the file with: unrealengine-cli perf trace summary <file>.",
+  "description": "Unreal Insights trace of the editor process: start (to file, default Saved/UnrealCli/Traces/<time>.utrace; channels default cpu,gpu,frame,bookmark) or stop. Summarise the file with: unrealengine-cli perf trace summary <file>.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "action": {
+     "type": "string",
+     "enum": [
+      "start",
+      "stop"
+     ]
+    },
+    "file": {
+     "type": "string"
+    },
+    "channels": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "action"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "pie_actors",
   "group": "runtime",
   "summary": "Actors of the play world (filter by class or label/name substring) with location, rotation and velocity; the player's pawn is flagged.",
@@ -3371,6 +3911,37 @@
   "minEngine": "5.5"
  },
  {
+  "name": "posesearch_create",
+  "group": "anim",
+  "summary": "Create Motion Matching assets: <path>_Schema (Pose Search Schema for the skeleton) and the Pose Search Database at path holding the animations. Needs the PoseSearch plugin (posesearch.plugin_disabled otherwise). Tune the schema's channels in its editor.",
+  "description": "Create Motion Matching assets: <path>_Schema (Pose Search Schema for the skeleton) and the Pose Search Database at path holding the animations. Needs the PoseSearch plugin (posesearch.plugin_disabled otherwise). Tune the schema's channels in its editor.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "skeleton": {
+     "type": "string"
+    },
+    "animations": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "path",
+    "skeleton",
+    "animations"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "project_info",
   "group": "project",
   "summary": "Project name, paths and modules.",
@@ -3557,6 +4128,23 @@
    "required": [
     "code"
    ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "render_settings",
+  "group": "lighting",
+  "summary": "Read or change project rendering settings (DefaultEngine.ini). values: {name: value} where name is lumen, lumenReflections, virtualShadowMaps, nanite, rayTracing, staticLighting (true/false), antiAliasing (None, FXAA, TemporalAA, MSAA, TSR) or any URendererSettings property name with its UE text value. Returns each setting's before and after value and whether an editor restart is needed.",
+  "description": "Read or change project rendering settings (DefaultEngine.ini). values: {name: value} where name is lumen, lumenReflections, virtualShadowMaps, nanite, rayTracing, staticLighting (true/false), antiAliasing (None, FXAA, TemporalAA, MSAA, TSR) or any URendererSettings property name with its UE text value. Returns each setting's before and after value and whether an editor restart is needed.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "values": {
+     "type": "object"
+    }
+   }
   },
   "mutating": true,
   "longRunning": false,

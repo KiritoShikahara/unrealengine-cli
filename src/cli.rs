@@ -4,8 +4,8 @@ use std::time::Instant;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::{
-    Ctx, anim, basic, blueprint, code, fx, gas, light, online, perf, project, server, test_runner,
-    typed, visual,
+    Ctx, anim, basic, blueprint, code, fx, gas, light, loc, online, perf, project, server,
+    test_runner, typed, visual,
 };
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
@@ -214,6 +214,11 @@ pub enum Command {
     Pcg {
         #[command(subcommand)]
         action: fx::PcgCmd,
+    },
+    /// Localization: target, gather, export / translate / import PO files, compile
+    Loc {
+        #[command(subcommand)]
+        action: loc::LocCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -499,6 +504,7 @@ fn dispatch(
         Command::Perf { action } => ("perf", perf::run(ctx, action)),
         Command::Light { action } => ("light", light::run(ctx, action)),
         Command::Anim { action } => ("anim", anim::run(ctx, action)),
+        Command::Loc { action } => ("loc", loc::run(ctx, action)),
         Command::Audio { action } => ("audio", fx::audio(ctx, action)),
         Command::Physics { action } => ("physics", fx::physics(ctx, action)),
         Command::Pcg { action } => ("pcg", fx::pcg(ctx, action)),

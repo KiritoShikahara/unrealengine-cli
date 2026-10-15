@@ -13,3 +13,6 @@ __pycache__/
 /TestProject/Tests
 /TestProject/Content/__ExternalActors__
 /TestProject/Content/__ExternalObjects__
+/TestProject/Config/DefaultEditor.ini
+/TestProject/Config/Localization
+/TestProject/Content/Localization

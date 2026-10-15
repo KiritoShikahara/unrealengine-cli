@@ -6,6 +6,7 @@ pub mod code_net;
 pub mod fx;
 pub mod gas;
 pub mod light;
+pub mod loc;
 pub mod online;
 pub mod perf;
 pub mod project;

@@ -1507,10 +1507,143 @@ fn e2e_19_save_game_round_trip() {
     let compiled = ok(&["blueprint", "compile", &map]);
     assert_eq!(compiled["errors"], 0, "{compiled}");
     ok(&["blueprint", "save", &map]);
-    if render_enabled() {
-        let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "4242"]);
-        assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
+    if !render_enabled() {
+        return;
     }
+    let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "4242"]);
+    assert_eq!(pie["endedReason"], "log", "loaded value printed: {pie}");
+
+    // A later version of the game adds a field: the old save still loads, keeps BestScore
+    // and the new field takes its default (4242 + 4343 = 8585).
+    call(
+        "bp_add_variable",
+        json!({"path": save, "name": "Coins", "type": "int", "defaultValue": "4343"}),
+    );
+    assert_eq!(ok(&["blueprint", "compile", &save])["errors"], 0);
+    ok(&["blueprint", "save", &save]);
+    let v2 = root("L_SaveV2");
+    ok(&["level", "new", &v2]);
+    let h = |ty: &str, m: Option<&str>, extra: Value| node(&v2, ty, m, extra);
+    let begin = h("Event", Some("BeginPlay"), json!({}));
+    let read = h("CallFunction", Some("LoadGameFromSlot"), json!({}));
+    let cast = h("Cast", Some(&save), json!({}));
+    let best = h(
+        "VariableGet",
+        Some("BestScore"),
+        json!({"memberParent": save}),
+    );
+    let coins = h("VariableGet", Some("Coins"), json!({"memberParent": save}));
+    let add = h("CallFunction", Some("Add_IntInt"), json!({}));
+    let text = h("CallFunction", Some("Conv_IntToString"), json!({}));
+    let say = h("CallFunction", Some("PrintString"), json!({}));
+    pin_link(&v2, &begin, "then", &read, "execute");
+    ok(&[
+        "blueprint",
+        "set-pin",
+        &v2,
+        read["id"].as_str().unwrap(),
+        "SlotName",
+        "E2ESlot",
+    ]);
+    pin_link(&v2, &read, "then", &cast, "execute");
+    pin_link(&v2, &read, "ReturnValue", &cast, "Object");
+    pin_link(&v2, &cast, &cast_out, &best, "self");
+    pin_link(&v2, &cast, &cast_out, &coins, "self");
+    pin_link(&v2, &best, "BestScore", &add, "A");
+    pin_link(&v2, &coins, "Coins", &add, "B");
+    pin_link(&v2, &add, "ReturnValue", &text, "InInt");
+    pin_link(&v2, &cast, "then", &say, "execute");
+    pin_link(&v2, &text, "ReturnValue", &say, "InString");
+    assert_eq!(ok(&["blueprint", "compile", &v2])["errors"], 0);
+    ok(&["blueprint", "save", &v2]);
+    let pie = ok(&["pie", "run", "--seconds", "20", "--stop-on-log", "8585"]);
+    assert_eq!(
+        pie["endedReason"], "log",
+        "old save loaded by the new version: {pie}"
+    );
+}
+
+#[test]
+fn e2e_30_localization() {
+    if !enabled() {
+        return;
+    }
+    // Text in a Blueprint, gathered from this run's folder only, translated to Japanese.
+    let bp = root("BP_Loc");
+    let source = format!("Hello traveller {}", run_id());
+    ok(&["blueprint", "create", &bp, "--parent", "Actor"]);
+    ok(&[
+        "blueprint",
+        "add-variable",
+        &bp,
+        "Greeting",
+        "--type",
+        "text",
+        "--default",
+        &source,
+    ]);
+    assert_eq!(ok(&["blueprint", "compile", &bp])["errors"], 0);
+    ok(&["blueprint", "save", &bp]);
+    let folder = format!("Content/E2E/{}", run_id());
+    let target = ok(&["loc", "target", "--culture", "ja", "--path", &folder]);
+    assert!(
+        target["cultures"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("ja")),
+        "{target}"
+    );
+    ok(&["loc", "gather"]);
+    let export = ok(&["loc", "export"]);
+    let ja = export["po"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["culture"] == "ja")
+        .unwrap()["file"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let po = std::fs::read_to_string(&ja).unwrap();
+    assert!(po.contains(&format!("msgid \"{source}\"")), "{po}");
+    let tr = ok(&[
+        "loc",
+        "translate",
+        "ja",
+        "--entry",
+        &format!("{source}=こんにちは旅人"),
+    ]);
+    assert_eq!(tr["filled"], json!([source]), "{tr}");
+    ok(&["loc", "import"]);
+    let compiled = ok(&["loc", "compile"]);
+    assert!(
+        compiled["locres"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["culture"] == "ja"),
+        "{compiled}"
+    );
+    let shown = ok(&[
+        "loc",
+        "preview",
+        "ja",
+        "--asset",
+        &bp,
+        "--property",
+        "Greeting",
+    ]);
+    assert_eq!(shown["text"], "こんにちは旅人", "{shown}");
+    let native = ok(&[
+        "loc",
+        "preview",
+        "off",
+        "--asset",
+        &bp,
+        "--property",
+        "Greeting",
+    ]);
+    assert_eq!(native["text"], json!(source), "{native}");
 }
 
 #[test]

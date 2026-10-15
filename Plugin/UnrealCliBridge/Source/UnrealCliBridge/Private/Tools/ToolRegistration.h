@@ -31,6 +31,7 @@ namespace UCli
 	void RegisterLightTools(FToolRegistry& Registry);
 	void RegisterAnimAdvancedTools(FToolRegistry& Registry);
 	void RegisterPhysicsTools(FToolRegistry& Registry);
+	void RegisterLocTools(FToolRegistry& Registry);
 
 	/** The play world named by the call's optional "world" argument, or fails the call. */
 	UWorld* ResolvePlayWorld(const FToolCallRef& Call);

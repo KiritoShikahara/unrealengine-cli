@@ -97,9 +97,9 @@
 
 ## Phase 12: US10 - ローカライズ、タグ、セーブ (P3)
 
-- [ ] T054 [P] [US10] E2E `e2e_28_localization` を書く(ja の追加、収集、PO の取り込み、コンパイル、`-culture=ja` の表示)
-- [ ] T055 [US10] `loc_add_culture|gather|export|import|compile` を実装する(コマンドレットをジョブで実行)
-- [ ] T056 [US10] SaveGame のバージョン移行の E2E を e2e_19 に追加し、スキルに手順を書く
+- [x] T054 [P] [US10] E2E `e2e_28_localization` を書く(ja の追加、収集、PO の取り込み、コンパイル、`-culture=ja` の表示)(実装メモ: `e2e_30_localization`。表示は `loc preview ja` で確認)
+- [x] T055 [US10] `loc_add_culture|gather|export|import|compile` を実装する(コマンドレットをジョブで実行)
+- [x] T056 [US10] SaveGame のバージョン移行の E2E を e2e_19 に追加し、スキルに手順を書く
 
 ## Phase 13: US11 - 見た目とパフォーマンス (P2)
 

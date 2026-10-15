@@ -214,6 +214,34 @@ fn sleeper() -> std::process::Child {
     }
 }
 
+/// A long-running process that is not our child, like a server from `server start` (a child of ours
+/// would stay a zombie after being killed): its pid and a "still running?" check.
+fn detached_sleeper() -> (u32, Box<dyn FnMut() -> bool>) {
+    if cfg!(windows) {
+        let mut child = sleeper();
+        (
+            child.id(),
+            Box::new(move || child.try_wait().unwrap().is_none()),
+        )
+    } else {
+        let out = std::process::Command::new("sh")
+            .args(["-c", "sleep 60 >/dev/null 2>&1 & echo $!"])
+            .output()
+            .unwrap();
+        let pid: u32 = String::from_utf8_lossy(&out.stdout).trim().parse().unwrap();
+        (
+            pid,
+            Box::new(move || {
+                std::process::Command::new("kill")
+                    .args(["-0", &pid.to_string()])
+                    .status()
+                    .unwrap()
+                    .success()
+            }),
+        )
+    }
+}
+
 fn write_record(home: &Path, pid: u32, log: &Path) {
     let dir = home.join("servers");
     std::fs::create_dir_all(&dir).unwrap();
@@ -227,8 +255,7 @@ fn write_record(home: &Path, pid: u32, log: &Path) {
 #[test]
 fn recorded_server_is_listed_logged_and_stopped() {
     let home = tempfile::tempdir().unwrap();
-    let mut child = sleeper();
-    let pid = child.id();
+    let (pid, mut running) = detached_sleeper();
     let log = home.path().join("server.log");
     std::fs::write(&log, "line 1\nLogNet: listening on port 7777\nline 3\n").unwrap();
     write_record(home.path(), pid, &log);
@@ -253,7 +280,7 @@ fn recorded_server_is_listed_logged_and_stopped() {
     let (code, v) = run(home.path(), home.path(), None, &["server", "stop", &pid_s]);
     assert_eq!(code, 0, "{v}");
     let deadline = Instant::now() + Duration::from_secs(5);
-    while child.try_wait().unwrap().is_none() {
+    while running() {
         assert!(Instant::now() < deadline, "server process still running");
         std::thread::sleep(Duration::from_millis(100));
     }

@@ -11,6 +11,13 @@
   DefaultEngine.ini (EOS artifact, Steam app id); `online check` lists missing keys and never prints secrets
   (`ClientSecret`, `EncryptionKey` show as `***`). `online session create|find|join|destroy [--world]` runs sessions in
   PIE through the online subsystem (tool `online_session`, tested with Null).
+- Gameplay Ability System: `gas enable` (plugin and module dependencies), `gas attribute-set <Name> --attr Health=100`
+  (C++ with accessors, replication and OnRep), `gas effect` (modifiers, duration, period, stacking, granted tags),
+  `gas ability` (commit, apply an effect to the owner, end; cost, cooldown, tags), `gas cue`, `gas component` (an
+  AbilitySystemComponent with starting attribute sets and a table of starting values), and in PIE `gas give|activate|apply|state`.
+  The bridge reaches GameplayAbilities through reflection, so it still loads in projects without GAS.
+- Gameplay Tags: `tags list|add|rename|remove`.
+- New skill `unreal-gas`.
 
 ## 0.4.0
 

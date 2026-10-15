@@ -10,9 +10,9 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` に任意依存のプラグイン(GameplayAbilities、PCG、Metasound、GeometryCollectionPlugin、IKRig、ControlRig、PoseSearch、OnlineSubsystem、OnlineSubsystemNull)を `Optional: true` で追加し、無効なプロジェクトでもブリッジが読み込めることを TestProject で確認する
+- [x] T001 `Plugin/UnrealCliBridge/UnrealCliBridge.uplugin` に任意依存のプラグイン(GameplayAbilities、PCG、Metasound、GeometryCollectionPlugin、IKRig、ControlRig、PoseSearch、OnlineSubsystem、OnlineSubsystemNull)を `Optional: true` で追加し、無効なプロジェクトでもブリッジが読み込めることを TestProject で確認する(実装メモ: GAS はリフレクションだけで扱い、コンパイル時の依存を持たない方式にしたため不要になった。OnlineSubsystem と GameplayTagsEditor は既定で有効なので通常の依存にした)
 - [ ] T002 [P] `Private/Compat/EngineCompat.h` に、5.5 / 5.6 で差のある API の置き場(マクロ `UCLI_ENGINE_AT_LEAST(5, 6)` など)を作る
-- [ ] T003 [P] `Private/Server/ToolRegistry.cpp` に、ツールごとの必要プラグインを宣言し、無効なら `<group>.plugin_disabled` を返す仕組みを追加する(Automation Spec を先に書く)
+- [x] T003 [P] `Private/Server/ToolRegistry.cpp` に、ツールごとの必要プラグインを宣言し、無効なら `<group>.plugin_disabled` を返す仕組みを追加する(Automation Spec を先に書く)(実装メモ: GAS はクラスが見つからないとき `gas.not_enabled` を返す `RequireGasClass` で実現。PCG などは US9 で同じ方式を使う)
 
 ## Phase 2: Foundational(全ストーリーの前提)
 
@@ -66,14 +66,14 @@
 
 ## Phase 8: US6 - GAS (P2)
 
-- [ ] T035 [P] [US6] `gas enable` の .uproject / .Build.cs 編集のテストを `tests/us14_gas.rs` に書く
-- [ ] T036 [P] [US6] AttributeSet の生成コードの Automation Spec を書く
-- [ ] T037 [P] [US6] `scripts/e2e-gas.py` を書く(属性、Effect で Health -10、アビリティの付与と発動)。SC-004
-- [ ] T038 [US6] `gas enable` を実装する(事前表示と dry-run)
-- [ ] T039 [US6] `gas_attribute_set_create` を実装する
-- [ ] T040 [US6] `gas_ability_create` / `gas_effect_create` / `gas_cue_create` を実装する(Effect の Modifier・期間・スタック・タグ)
-- [ ] T041 [US6] `gas_runtime`(give、activate、apply、state)を実装する
-- [ ] T042 [US6] `tags_add|list|rename|remove` を `Private/Tools/TagTools.cpp` に実装する(US10 と共有。テストを先に書く)
+- [x] T035 [P] [US6] `gas enable` の .uproject / .Build.cs 編集のテストを `tests/us14_gas.rs` に書く
+- [x] T036 [P] [US6] AttributeSet の生成コードの Automation Spec を書く(実装メモ: 生成コードは `tests/us14_gas.rs` で検査し、TestProject の UHeroAttributes を 5.8 で実際にコンパイルして確認)
+- [x] T037 [P] [US6] `scripts/e2e-gas.py` を書く(属性、Effect で Health -10、アビリティの付与と発動)。SC-004(実装メモ: E2E `e2e_25_gas` として実装)
+- [x] T038 [US6] `gas enable` を実装する(事前表示と dry-run)
+- [x] T039 [US6] `gas_attribute_set_create` を実装する(実装メモ: エディタ不要のため CLI 側 `gas attribute-set` として実装)
+- [x] T040 [US6] `gas_ability_create` / `gas_effect_create` / `gas_cue_create` を実装する(Effect の Modifier・期間・スタック・タグ)
+- [x] T041 [US6] `gas_runtime`(give、activate、apply、state)を実装する
+- [x] T042 [US6] `tags_add|list|rename|remove` を `Private/Tools/TagTools.cpp` に実装する(US10 と共有。テストを先に書く)
 
 ## Phase 9: US7 - ライティングとレンダリング (P2)
 

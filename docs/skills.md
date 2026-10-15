@@ -28,6 +28,7 @@ unrealengine-cli skills lint --severity error
 | `unreal-fab-assets` | The project needs ready-made content from Fab (meshes, materials, VFX, sounds, asset packs): find a listing, then download and add it to the project |
 | `unreal-game-from-scratch` | Building a playable game or prototype end to end: game mode, player pawn and input, gameplay actors, HUD, level, then play-testing it |
 | `unreal-landscape` | Creating terrain, sculpting or painting a landscape |
+| `unreal-gas` | Building with the Gameplay Ability System: attributes (health, mana), gameplay effects (damage, buffs, damage over time), abilities, gameplay cues and gameplay tags, and checking them in play |
 | `unreal-level-build` | Building or changing a level: creating maps, spawning, moving, attaching or deleting actors |
 | `unreal-material` | Creating materials, wiring material expressions or setting material instance parameters |
 | `unreal-multiplayer` | Making a game multiplayer or checking multiplayer behaviour: replicated actors and variables, RPCs, and play-testing a listen or dedicated server with clients in the editor |

@@ -1,6 +1,6 @@
 # Tool catalog
 
-150 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+159 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -117,6 +117,16 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `fab_page_run` |  | Run JavaScript in the editor's Fab browser page (opens the Fab tab). The script is an async function body; `A` holds the args; its return value comes back as JSON. |
 | `fab_search` |  | Search Fab listings: uid, title, type, seller, isFree, formats. Pass a uid to fab_add. |
 | `fab_status` |  | Whether the Fab plugin is loaded and its page is signed in to Fab (opens the Fab tab). |
+
+## gas
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `gas_ability_create` | yes | Create a Gameplay Ability Blueprint. effect: a Gameplay Effect applied to the owner when the ability activates (the graph is ActivateAbility -> CommitAbility -> ApplyGameplayEffectToOwner -> EndAbility); cost / cooldown: Gameplay Effects; tags: ability tags. Compiled and saved. |
+| `gas_component_add` | yes | Give a Blueprint actor an AbilitySystemComponent (reused when it already has one) whose DefaultStartingData creates the given AttributeSets (class names) at start, with a DT_<Blueprint>_<Set> table of starting values taken from the set's defaults (edit it to change them). Compiled and saved. |
+| `gas_cue_create` | yes | Create a Gameplay Cue notify Blueprint for a GameplayCue.* tag (kind static, default, or actor). Compiled and saved; implement OnExecute / OnActive in its graph. |
+| `gas_effect_create` | yes | Create a Gameplay Effect Blueprint: duration instant (default), infinite or seconds; period seconds; modifiers [{attribute: Set.Attribute, op: add/multiply/divide/override, magnitude}]; stacking source/target with stackLimit; grantedTags (must exist, see tags_add). Compiled and saved. |
+| `gas_runtime` | yes | Drive an actor's AbilitySystemComponent in the play world: give (ability), activate (ability), apply (effect to self), state. Every action returns the state: attributes (base/current), owned tags, granted abilities, active effects. |
 
 ## input
 
@@ -266,6 +276,15 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 |---|---|---|
 | `system_ping` |  | Check the bridge answers; returns editor identity. |
 | `tools_list` |  | List registered tools with their input schemas. |
+
+## tags
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `tags_add` | yes | Add a Gameplay Tag to Config/DefaultGameplayTags.ini (parents are implied). No-op when it exists. |
+| `tags_list` |  | Registered Gameplay Tags (optionally only those containing filter). |
+| `tags_remove` | yes | Remove a Gameplay Tag from the project ini. Refused while assets still reference it. |
+| `tags_rename` | yes | Rename a Gameplay Tag (and its children); writes a redirect so existing references keep working. |
 
 ## umg
 

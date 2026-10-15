@@ -1908,3 +1908,131 @@ fn e2e_24_online_null() {
     assert_eq!(code, 4, "destroying a missing session must fail: {v}");
     call("pie_stop", json!({}));
 }
+
+#[test]
+fn e2e_25_gas() {
+    if !render_enabled() {
+        eprintln!("GAS E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    // TestProject enables GameplayAbilities and has the C++ set UHeroAttributes (Health 100, MaxHealth 100, Mana 50),
+    // generated with `gas attribute-set HeroAttributes --attr Health=100 --attr MaxHealth=100 --attr Mana=50`.
+    for tag in ["E2E.Gas.Burning", "Ability.E2E.Hit", "GameplayCue.E2E.Hit"] {
+        ok(&["tags", "add", tag]);
+    }
+    let tags = ok(&["tags", "list", "--filter", "E2E.Gas"]);
+    assert_eq!(tags["tags"], json!(["E2E.Gas.Burning"]), "{tags}");
+
+    let hit = root("GE_Hit");
+    let burn = root("GE_Burn");
+    let ability = root("GA_Hit");
+    let made = ok(&[
+        "gas",
+        "effect",
+        &hit,
+        "--modifier",
+        "HeroAttributes.Health:add:-10",
+    ]);
+    assert_eq!(made["modifiers"], 1, "{made}");
+    ok(&[
+        "gas",
+        "effect",
+        &burn,
+        "--duration",
+        "10",
+        "--period",
+        "1",
+        "--modifier",
+        "HeroAttributes.Mana:add:-2",
+        "--grant-tag",
+        "E2E.Gas.Burning",
+        "--stacking",
+        "target",
+        "--stack-limit",
+        "2",
+    ]);
+    ok(&[
+        "gas",
+        "ability",
+        &ability,
+        "--effect",
+        &hit,
+        "--tag",
+        "Ability.E2E.Hit",
+    ]);
+    ok(&[
+        "gas",
+        "cue",
+        &root("GC_Hit"),
+        "--tag",
+        "GameplayCue.E2E.Hit",
+    ]);
+    let (code, v) = cli(&[
+        "gas",
+        "effect",
+        &root("GE_Bad"),
+        "--modifier",
+        "HeroAttributes.Stamina:add:1",
+    ]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "gas.bad_attribute");
+
+    let dummy = root("BP_GasDummy");
+    ok(&["blueprint", "create", &dummy, "--parent", "Actor"]);
+    let comp = ok(&[
+        "gas",
+        "component",
+        &dummy,
+        "--attribute-set",
+        "HeroAttributes",
+    ]);
+    assert_eq!(comp["created"], true, "{comp}");
+    ok(&[
+        "level",
+        "new",
+        &root("L_Gas"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let spawned = call("actor_spawn", json!({"actorClass": dummy}));
+    let label = spawned["label"].as_str().unwrap().to_string();
+    let plain = call("actor_spawn", json!({"actorClass": "StaticMeshActor"}));
+
+    call("pie_start", json!({}));
+    let health = |s: &Value| {
+        s["state"]["attributes"]["HeroAttributes.Health"]["current"]
+            .as_f64()
+            .unwrap()
+    };
+    let start = ok(&["gas", "state", &label]);
+    assert_eq!(health(&start), 100.0, "{start}");
+    let applied = ok(&["gas", "apply", &label, &hit]);
+    assert_eq!(health(&applied), 90.0, "SC-004: {applied}");
+    let given = ok(&["gas", "give", &label, &ability]);
+    assert_eq!(
+        given["state"]["abilities"].as_array().unwrap().len(),
+        1,
+        "{given}"
+    );
+    let activated = ok(&["gas", "activate", &label, &ability]);
+    assert_eq!(activated["activated"], true, "{activated}");
+    assert_eq!(health(&activated), 80.0, "{activated}");
+    let burning = ok(&["gas", "apply", &label, &burn]);
+    assert!(
+        burning["state"]["tags"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("E2E.Gas.Burning")),
+        "{burning}"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    let later = ok(&["gas", "state", &label]);
+    let mana = later["state"]["attributes"]["HeroAttributes.Mana"]["current"]
+        .as_f64()
+        .unwrap();
+    assert!(mana <= 46.0, "the periodic effect did not tick: {later}");
+    let (code, v) = cli(&["gas", "state", plain["label"].as_str().unwrap()]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "gas.no_component");
+    call("pie_stop", json!({}));
+}

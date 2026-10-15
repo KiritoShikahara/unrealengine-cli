@@ -1867,6 +1867,213 @@
   "minEngine": "5.5"
  },
  {
+  "name": "gas_ability_create",
+  "group": "gas",
+  "summary": "Create a Gameplay Ability Blueprint. effect: a Gameplay Effect applied to the owner when the ability activates (the graph is ActivateAbility -> CommitAbility -> ApplyGameplayEffectToOwner -> EndAbility); cost / cooldown: Gameplay Effects; tags: ability tags. Compiled and saved.",
+  "description": "Create a Gameplay Ability Blueprint. effect: a Gameplay Effect applied to the owner when the ability activates (the graph is ActivateAbility -> CommitAbility -> ApplyGameplayEffectToOwner -> EndAbility); cost / cooldown: Gameplay Effects; tags: ability tags. Compiled and saved.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "effect": {
+     "type": "string"
+    },
+    "cost": {
+     "type": "string"
+    },
+    "cooldown": {
+     "type": "string"
+    },
+    "tags": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "gas_component_add",
+  "group": "gas",
+  "summary": "Give a Blueprint actor an AbilitySystemComponent (reused when it already has one) whose DefaultStartingData creates the given AttributeSets (class names) at start, with a DT_<Blueprint>_<Set> table of starting values taken from the set's defaults (edit it to change them). Compiled and saved.",
+  "description": "Give a Blueprint actor an AbilitySystemComponent (reused when it already has one) whose DefaultStartingData creates the given AttributeSets (class names) at start, with a DT_<Blueprint>_<Set> table of starting values taken from the set's defaults (edit it to change them). Compiled and saved.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "attributeSets": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "gas_cue_create",
+  "group": "gas",
+  "summary": "Create a Gameplay Cue notify Blueprint for a GameplayCue.* tag (kind static, default, or actor). Compiled and saved; implement OnExecute / OnActive in its graph.",
+  "description": "Create a Gameplay Cue notify Blueprint for a GameplayCue.* tag (kind static, default, or actor). Compiled and saved; implement OnExecute / OnActive in its graph.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "tag": {
+     "type": "string"
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "static",
+      "actor"
+     ]
+    }
+   },
+   "required": [
+    "path",
+    "tag"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "gas_effect_create",
+  "group": "gas",
+  "summary": "Create a Gameplay Effect Blueprint: duration instant (default), infinite or seconds; period seconds; modifiers [{attribute: Set.Attribute, op: add|multiply|divide|override, magnitude}]; stacking source|target with stackLimit; grantedTags (must exist, see tags_add). Compiled and saved.",
+  "description": "Create a Gameplay Effect Blueprint: duration instant (default), infinite or seconds; period seconds; modifiers [{attribute: Set.Attribute, op: add|multiply|divide|override, magnitude}]; stacking source|target with stackLimit; grantedTags (must exist, see tags_add). Compiled and saved.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "duration": {
+     "type": "string"
+    },
+    "period": {
+     "type": "number"
+    },
+    "modifiers": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "attribute": {
+        "type": "string"
+       },
+       "op": {
+        "type": "string",
+        "enum": [
+         "add",
+         "multiply",
+         "divide",
+         "override"
+        ]
+       },
+       "magnitude": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "attribute",
+       "magnitude"
+      ]
+     }
+    },
+    "stacking": {
+     "type": "string",
+     "enum": [
+      "none",
+      "source",
+      "target"
+     ]
+    },
+    "stackLimit": {
+     "type": "integer"
+    },
+    "grantedTags": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "gas_runtime",
+  "group": "gas",
+  "summary": "Drive an actor's AbilitySystemComponent in the play world: give (ability), activate (ability), apply (effect to self), state. Every action returns the state: attributes (base/current), owned tags, granted abilities, active effects.",
+  "description": "Drive an actor's AbilitySystemComponent in the play world: give (ability), activate (ability), apply (effect to self), state. Every action returns the state: attributes (base/current), owned tags, granted abilities, active effects.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "action": {
+     "type": "string",
+     "enum": [
+      "give",
+      "activate",
+      "apply",
+      "state"
+     ]
+    },
+    "actor": {
+     "type": "string"
+    },
+    "ability": {
+     "type": "string"
+    },
+    "effect": {
+     "type": "string"
+    },
+    "level": {
+     "type": "number"
+    },
+    "world": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "action",
+    "actor"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "input_action_create",
   "group": "input",
   "summary": "Create an Enhanced Input Action (valueType: Boolean|Axis1D|Axis2D|Axis3D).",
@@ -3595,6 +3802,90 @@
    "properties": {}
   },
   "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "tags_add",
+  "group": "tags",
+  "summary": "Add a Gameplay Tag to Config/DefaultGameplayTags.ini (parents are implied). No-op when it exists.",
+  "description": "Add a Gameplay Tag to Config/DefaultGameplayTags.ini (parents are implied). No-op when it exists.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tag": {
+     "type": "string"
+    },
+    "comment": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "tag"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "tags_list",
+  "group": "tags",
+  "summary": "Registered Gameplay Tags (optionally only those containing filter).",
+  "description": "Registered Gameplay Tags (optionally only those containing filter).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "filter": {
+     "type": "string"
+    }
+   }
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "tags_remove",
+  "group": "tags",
+  "summary": "Remove a Gameplay Tag from the project ini. Refused while assets still reference it.",
+  "description": "Remove a Gameplay Tag from the project ini. Refused while assets still reference it.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "tag": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "tag"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "tags_rename",
+  "group": "tags",
+  "summary": "Rename a Gameplay Tag (and its children); writes a redirect so existing references keep working.",
+  "description": "Rename a Gameplay Tag (and its children); writes a redirect so existing references keep working.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "from": {
+     "type": "string"
+    },
+    "to": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "from",
+    "to"
+   ]
+  },
+  "mutating": true,
   "longRunning": false,
   "minEngine": "5.5"
  },

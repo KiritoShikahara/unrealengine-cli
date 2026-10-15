@@ -247,6 +247,16 @@ namespace
 	}
 }
 
+UWorld* UCli::ResolvePlayWorld(const FToolCallRef& Call)
+{
+	return RequirePlayWorld(Call);
+}
+
+AActor* UCli::ResolvePlayActor(const FToolCallRef& Call)
+{
+	return FindPlayActor(Call);
+}
+
 void UCli::RegisterPlayTools(FToolRegistry& R)
 {
 	R.Add(TEXT("pie_start"), TEXT("runtime"), TEXT("Start Play In Editor and return once every player exists; drive it with pie_input / pie_wait / pie_screenshot, end it with pie_stop. players (1-4) and netMode (standalone; listen = listen server + clients; client = dedicated server + clients) start a multiplayer session in the editor process; pick a world with the world argument of the other pie tools (see pie_worlds)."),

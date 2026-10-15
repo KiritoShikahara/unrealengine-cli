@@ -20,6 +20,7 @@ namespace UCli
 		RegisterPlayTools(Registry);
 		RegisterAiTools(Registry);
 		RegisterFabTools(Registry);
+		RegisterGasTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

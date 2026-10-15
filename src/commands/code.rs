@@ -284,6 +284,26 @@ fn search(ctx: &Ctx, query: &str, regex: bool, limit: usize) -> Result<Value, Cl
     Ok(json!({ "hits": hits, "truncated": hits.len() >= limit }))
 }
 
+/// The first module under Source/ that has a .Build.cs.
+pub fn default_module(dir: &Path) -> Result<String, CliError> {
+    let mut names: Vec<String> = std::fs::read_dir(dir.join("Source"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| {
+            e.path()
+                .join(format!("{}.Build.cs", e.file_name().to_string_lossy()))
+                .is_file()
+        })
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+    names.sort();
+    names.into_iter().next().ok_or_else(|| {
+        CliError::usage("code.no_module", "no C++ module under Source/")
+            .with_hint("unrealengine-cli setup --add-code-module")
+    })
+}
+
 fn class_create(
     ctx: &Ctx,
     name: &str,
@@ -293,20 +313,7 @@ fn class_create(
     let (_, dir) = project_dir(ctx)?;
     let module = match module {
         Some(m) => m.to_string(),
-        None => std::fs::read_dir(dir.join("Source"))
-            .ok()
-            .and_then(|rd| {
-                rd.flatten().find(|e| {
-                    e.path()
-                        .join(format!("{}.Build.cs", e.file_name().to_string_lossy()))
-                        .is_file()
-                })
-            })
-            .map(|e| e.file_name().to_string_lossy().to_string())
-            .ok_or_else(|| {
-                CliError::usage("code.no_module", "no C++ module under Source/")
-                    .with_hint("unrealengine-cli setup --add-code-module")
-            })?,
+        None => default_module(&dir)?,
     };
     let (prefix, parent_header) = match parent {
         "Actor" => ("A", "GameFramework/Actor.h"),

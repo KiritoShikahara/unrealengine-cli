@@ -2,6 +2,7 @@ pub mod basic;
 pub mod blueprint;
 pub mod code;
 pub mod code_net;
+pub mod gas;
 pub mod online;
 pub mod project;
 pub mod server;

@@ -4,7 +4,8 @@ use std::time::Instant;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::{
-    Ctx, basic, blueprint, code, gas, online, perf, project, server, test_runner, typed, visual,
+    Ctx, basic, blueprint, code, gas, light, online, perf, project, server, test_runner, typed,
+    visual,
 };
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
@@ -183,6 +184,16 @@ pub enum Command {
     Perf {
         #[command(subcommand)]
         action: perf::PerfCmd,
+    },
+    /// Lighting: presets, static lighting builds, HLOD builds
+    Light {
+        #[command(subcommand)]
+        action: light::LightCmd,
+    },
+    /// Project rendering settings: Lumen, virtual shadow maps, Nanite, anti-aliasing, ...
+    Render {
+        #[command(subcommand)]
+        action: light::RenderCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -466,6 +477,8 @@ fn dispatch(
         Command::Gas { action } => ("gas", gas::run(ctx, action)),
         Command::Visual { action } => ("visual", visual::run(ctx, action)),
         Command::Perf { action } => ("perf", perf::run(ctx, action)),
+        Command::Light { action } => ("light", light::run(ctx, action)),
+        Command::Render { action } => ("render", light::render(ctx, action)),
         Command::Tags { action } => ("tags", gas::tags(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),

@@ -28,6 +28,7 @@ namespace UCli
 	void RegisterFabTools(FToolRegistry& Registry);
 	void RegisterGasTools(FToolRegistry& Registry);
 	void RegisterPerfTools(FToolRegistry& Registry);
+	void RegisterLightTools(FToolRegistry& Registry);
 
 	/** The play world named by the call's optional "world" argument, or fails the call. */
 	UWorld* ResolvePlayWorld(const FToolCallRef& Call);

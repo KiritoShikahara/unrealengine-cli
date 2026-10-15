@@ -2110,3 +2110,58 @@ fn e2e_29_visual_perf() {
         "{v}"
     );
 }
+
+#[test]
+fn e2e_27_lighting() {
+    if !render_enabled() {
+        eprintln!("lighting E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    ok(&[
+        "level",
+        "new",
+        &root("L_Lighting"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let outdoor = ok(&["light", "preset", "outdoor"]);
+    assert!(
+        outdoor["removed"].as_array().unwrap().len() >= 3,
+        "{outdoor}"
+    );
+    assert!(
+        outdoor["spawned"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("Sun")),
+        "{outdoor}"
+    );
+    let name = format!("e2e-light-{}", run_id());
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    ok(&["visual", "baseline", &name]);
+    call("pie_stop", json!({}));
+    let night = ok(&["light", "preset", "night"]);
+    assert!(
+        night["removed"].as_array().unwrap().contains(&json!("Sun")),
+        "{night}"
+    );
+    call("pie_start", json!({}));
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    let (code, v) = cli(&["visual", "compare", &name, "--threshold", "5"]);
+    call("pie_stop", json!({}));
+    assert_eq!(code, 4, "night should look different from day: {v}");
+
+    let settings = ok(&["render", "get"]);
+    for key in ["lumen", "virtualShadowMaps", "nanite", "antiAliasing"] {
+        assert!(settings["settings"][key].is_string(), "{settings}");
+    }
+    let (code, v) = cli(&["render", "set", "noSuchSetting", "1"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "render.unknown_setting");
+
+    // TestProject disables static lighting, so the build job ends with a clear failure.
+    let (code, v) = cli(&["light", "build"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "lighting.build_failed");
+}

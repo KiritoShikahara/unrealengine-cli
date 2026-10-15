@@ -77,10 +77,10 @@
 
 ## Phase 9: US7 - ライティングとレンダリング (P2)
 
-- [ ] T043 [P] [US7] E2E `e2e_25_lighting` を書く(屋外プリセット、スクリーンショットの平均輝度、ライティングのビルドのジョブ)
-- [ ] T044 [US7] `light_preset` を実装する(Directional、Sky Light、SkyAtmosphere、Fog、PostProcessVolume。屋内版も)
-- [ ] T045 [US7] `light_build` / `light_hlod_build` をジョブとして実装する(`lighting.build_in_progress`)
-- [ ] T046 [US7] `render_settings` を実装する(Lumen、仮想シャドウマップ、Nanite、AA。変更前後の値を返す)
+- [x] T043 [P] [US7] E2E `e2e_25_lighting` を書く(屋外プリセット、スクリーンショットの平均輝度、ライティングのビルドのジョブ)(実装メモ: `e2e_27_lighting`。昼と夜のスクリーンショット差分で判定。Lightmass の成功経路と HLOD のビルド(64 アクター、約5分)は手動で確認)
+- [x] T044 [US7] `light_preset` を実装する(Directional、Sky Light、SkyAtmosphere、Fog、PostProcessVolume。屋内版も)
+- [x] T045 [US7] `light_build` / `light_hlod_build` をジョブとして実装する(`lighting.build_in_progress`)
+- [x] T046 [US7] `render_settings` を実装する(Lumen、仮想シャドウマップ、Nanite、AA。変更前後の値を返す)
 
 ## Phase 10: US8 - 高度なアニメーション (P3)
 

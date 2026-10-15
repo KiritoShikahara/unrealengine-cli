@@ -11,3 +11,5 @@
 /Plugin/UnrealCliBridge/Intermediate
 __pycache__/
 /TestProject/Tests
+/TestProject/Content/__ExternalActors__
+/TestProject/Content/__ExternalObjects__

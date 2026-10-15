@@ -3,6 +3,7 @@ pub mod blueprint;
 pub mod code;
 pub mod code_net;
 pub mod gas;
+pub mod light;
 pub mod online;
 pub mod perf;
 pub mod project;
@@ -88,6 +89,54 @@ impl Ctx {
     ) -> Result<Value, CliError> {
         self.global.timeout_ms = self.global.timeout_ms.max(timeout_ms);
         self.call(tool, args)
+    }
+
+    /// Starts a long-running tool and waits for its job; errors keep the job's code (or `<prefix>.timeout`).
+    pub fn run_job(
+        &mut self,
+        tool: &str,
+        args: Value,
+        timeout_secs: u64,
+        prefix: &str,
+    ) -> Result<Value, CliError> {
+        let started = self.call(tool, args)?;
+        if self.global.dry_run {
+            return Ok(started);
+        }
+        let job = started["jobId"].as_str().unwrap_or_default().to_string();
+        let begin = std::time::Instant::now();
+        loop {
+            let j = self.call("jobs_get", serde_json::json!({ "jobId": job }))?;
+            match j["state"].as_str().unwrap_or_default() {
+                "succeeded" => return Ok(j["result"].clone()),
+                "failed" => {
+                    let e = &j["error"];
+                    let mut err = CliError::editor(
+                        e["code"].as_str().unwrap_or("job.failed"),
+                        e["message"].as_str().unwrap_or("the job failed"),
+                    )
+                    .with_details(e["details"].clone());
+                    if let Some(h) = e["hint"].as_str() {
+                        err = err.with_hint(h);
+                    }
+                    return Err(err);
+                }
+                "timeout" | "cancelled" => {
+                    return Err(CliError::timeout(
+                        format!("{prefix}.timeout"),
+                        format!("job {job} ended: {}", j["state"]),
+                    ));
+                }
+                _ if begin.elapsed().as_secs() > timeout_secs => {
+                    let _ = self.call("jobs_cancel", serde_json::json!({ "jobId": job }));
+                    return Err(CliError::timeout(
+                        format!("{prefix}.timeout"),
+                        format!("{tool} did not finish within {timeout_secs}s"),
+                    ));
+                }
+                _ => std::thread::sleep(std::time::Duration::from_millis(500)),
+            }
+        }
     }
 }
 

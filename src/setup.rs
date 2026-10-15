@@ -43,6 +43,11 @@ fn plugin_files() -> Vec<(&'static Path, &'static [u8])> {
 
 /// Ensures `Plugins` in a .uproject lists the bridge as enabled; returns the new text if changed.
 pub fn enable_in_uproject(text: &str) -> Result<Option<String>, CliError> {
+    enable_plugins_in_uproject(text, &[PLUGIN_NAME])
+}
+
+/// Ensures `Plugins` in a .uproject lists each plugin as enabled; returns the new text if changed.
+pub fn enable_plugins_in_uproject(text: &str, names: &[&str]) -> Result<Option<String>, CliError> {
     let mut v: Value = serde_json::from_str(text).map_err(|e| {
         CliError::usage(
             "project.invalid",
@@ -56,15 +61,19 @@ pub fn enable_in_uproject(text: &str) -> Result<Option<String>, CliError> {
     let list = plugins
         .as_array_mut()
         .ok_or_else(|| CliError::usage("project.invalid", "Plugins must be an array"))?;
-    if let Some(p) = list.iter_mut().find(|p| p["Name"] == PLUGIN_NAME) {
-        if p["Enabled"] == true {
-            return Ok(None);
+    let mut changed = false;
+    for name in names {
+        if let Some(p) = list.iter_mut().find(|p| p["Name"] == *name) {
+            if p["Enabled"] != true {
+                p["Enabled"] = json!(true);
+                changed = true;
+            }
+        } else {
+            list.push(json!({ "Name": name, "Enabled": true }));
+            changed = true;
         }
-        p["Enabled"] = json!(true);
-    } else {
-        list.push(json!({ "Name": PLUGIN_NAME, "Enabled": true }));
     }
-    Ok(Some(to_tabbed_json(&v)))
+    Ok(changed.then(|| to_tabbed_json(&v)))
 }
 
 fn to_tabbed_json(v: &Value) -> String {

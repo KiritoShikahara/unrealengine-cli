@@ -59,10 +59,10 @@
 
 ## Phase 7: US5 - オンラインセッション (P2)
 
-- [ ] T031 [P] [US5] `online configure` の ini と .uproject の編集、`online check` の不足キー、秘密の伏せ字のテストを `tests/us13_online.rs` に書く
-- [ ] T032 [P] [US5] E2E `e2e_24_online_null` を書く(Null で作成 → 検索 → 参加 → 破棄)
-- [ ] T033 [US5] `online_configure` / `online_check` を `Private/Tools/OnlineTools.cpp` に実装する
-- [ ] T034 [US5] `online_session` を実装する(IOnlineSession の各非同期処理をティッカーで待つ)
+- [x] T031 [P] [US5] `online configure` の ini と .uproject の編集、`online check` の不足キー、秘密の伏せ字のテストを `tests/us13_online.rs` に書く
+- [x] T032 [P] [US5] E2E `e2e_24_online_null` を書く(Null で作成 → 検索 → 参加 → 破棄)
+- [x] T033 [US5] `online_configure` / `online_check` を `Private/Tools/OnlineTools.cpp` に実装する(実装メモ: ini と .uproject の編集はエディタ不要のため CLI 側 `src/commands/online.rs` に置いた)
+- [x] T034 [US5] `online_session` を実装する(IOnlineSession の各非同期処理をティッカーで待つ)
 
 ## Phase 8: US6 - GAS (P2)
 

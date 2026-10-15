@@ -1,6 +1,6 @@
 # Tool catalog
 
-149 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+150 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -189,6 +189,12 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `niagara_input_set` | yes | Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs. |
 | `niagara_module_add` | yes | Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn / EmitterUpdate / ParticleSpawn / ParticleUpdate. |
 | `niagara_system_create` | yes | Create an empty Niagara System asset. |
+
+## online
+
+| Tool | Changes | Summary |
+|---|---|---|
+| `online_session` | yes | Session in a play world through the online subsystem (Null in PIE): create (sessionName, maxPlayers, lan), find (lists results with their index), join (index of the last find in that world; travel=true then moves the player to it), destroy. Waits up to timeoutSeconds (default 10) and fails with online.session_failed. |
 
 ## packaging
 

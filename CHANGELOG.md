@@ -7,6 +7,10 @@
   started (others are refused). `server target add|build|package --out-dir` create, build and package the Server target
   on engines built from source (`server.source_engine_required` on Launcher engines).
 - `pie connect <host:port>` joins a server from the play world.
+- Online: `online configure --subsystem null|eos|steam [--set KEY=VALUE]` enables the plugins and writes
+  DefaultEngine.ini (EOS artifact, Steam app id); `online check` lists missing keys and never prints secrets
+  (`ClientSecret`, `EncryptionKey` show as `***`). `online session create|find|join|destroy [--world]` runs sessions in
+  PIE through the online subsystem (tool `online_session`, tested with Null).
 
 ## 0.4.0
 

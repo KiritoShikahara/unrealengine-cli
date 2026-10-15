@@ -1850,3 +1850,61 @@ fn e2e_23_net_assert_and_emulation() {
     ok(&["net", "emulate", "--off"]);
     call("pie_stop", json!({}));
 }
+
+#[test]
+fn e2e_24_online_null() {
+    if !render_enabled() {
+        eprintln!("online E2E skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)");
+        return;
+    }
+    // Two standalone players: the first hosts a LAN session through the Null subsystem, the second finds and joins it.
+    call("pie_start", json!({"players": 2, "netMode": "standalone"}));
+    let created = ok(&[
+        "online",
+        "session",
+        "create",
+        "--world",
+        "standalone",
+        "--max-players",
+        "3",
+    ]);
+    assert_eq!(created["subsystem"], "NULL", "{created}");
+    assert_eq!(created["maxPlayers"], 3, "{created}");
+    let found = ok(&["online", "session", "find", "--world", "standalone:2"]);
+    let results = found["results"].as_array().unwrap();
+    assert!(
+        results.iter().any(|r| r["id"] == created["id"]),
+        "the hosted session was not found: {found}"
+    );
+    let index = results
+        .iter()
+        .position(|r| r["id"] == created["id"])
+        .unwrap()
+        .to_string();
+    let joined = ok(&[
+        "online",
+        "session",
+        "join",
+        "--world",
+        "standalone:2",
+        "--index",
+        &index,
+    ]);
+    assert!(joined["connectString"].as_str().is_some(), "{joined}");
+    let (code, v) = cli(&[
+        "online",
+        "session",
+        "join",
+        "--world",
+        "standalone:2",
+        "--index",
+        "99",
+    ]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "online.no_result");
+    ok(&["online", "session", "destroy", "--world", "standalone:2"]);
+    ok(&["online", "session", "destroy", "--world", "standalone"]);
+    let (code, v) = cli(&["online", "session", "destroy", "--world", "standalone"]);
+    assert_eq!(code, 4, "destroying a missing session must fail: {v}");
+    call("pie_stop", json!({}));
+}

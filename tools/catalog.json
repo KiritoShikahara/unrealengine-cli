@@ -2703,6 +2703,54 @@
   "minEngine": "5.5"
  },
  {
+  "name": "online_session",
+  "group": "online",
+  "summary": "Session in a play world through the online subsystem (Null in PIE): create (sessionName, maxPlayers, lan), find (lists results with their index), join (index of the last find in that world; travel=true then moves the player to it), destroy. Waits up to timeoutSeconds (default 10) and fails with online.session_failed.",
+  "description": "Session in a play world through the online subsystem (Null in PIE): create (sessionName, maxPlayers, lan), find (lists results with their index), join (index of the last find in that world; travel=true then moves the player to it), destroy. Waits up to timeoutSeconds (default 10) and fails with online.session_failed.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "action": {
+     "type": "string",
+     "enum": [
+      "create",
+      "find",
+      "join",
+      "destroy"
+     ]
+    },
+    "world": {
+     "type": "string",
+     "description": "standalone, standalone:2, server, client:1, ... - see pie_worlds"
+    },
+    "sessionName": {
+     "type": "string"
+    },
+    "maxPlayers": {
+     "type": "integer"
+    },
+    "lan": {
+     "type": "boolean"
+    },
+    "index": {
+     "type": "integer"
+    },
+    "travel": {
+     "type": "boolean"
+    },
+    "timeoutSeconds": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "action"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "package_project",
   "group": "packaging",
   "summary": "Start BuildCookRun to package the project into outputDir (relative paths are under the project, e.g. Build/Windows; never an engine install or Content); returns the process id and log file (poll with package_status). check=true only validates outputDir.",

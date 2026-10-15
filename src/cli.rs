@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use crate::commands::{Ctx, basic, blueprint, code, project, server, test_runner, typed};
+use crate::commands::{Ctx, basic, blueprint, code, online, project, server, test_runner, typed};
 use crate::core::envelope::Envelope;
 use crate::core::error::CliError;
 
@@ -156,6 +156,11 @@ pub enum Command {
     Server {
         #[command(subcommand)]
         action: server::ServerCmd,
+    },
+    /// Online subsystem (Null, EOS, Steam): configure, check, and sessions in PIE
+    Online {
+        #[command(subcommand)]
+        action: online::OnlineCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -435,6 +440,7 @@ fn dispatch(
         Command::Fab { action } => ("fab", typed::fab(ctx, action)),
         Command::Net { action } => ("net", typed::net(ctx, action)),
         Command::Server { action } => ("server", server::run(ctx, action)),
+        Command::Online { action } => ("online", online::run(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),
         Command::Code { action } => ("code", code::run(ctx, action)),
         Command::Skills { action } => {

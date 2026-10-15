@@ -4,6 +4,9 @@
 
 - Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`
   for every pie command; actors report `role`, `remoteRole` and `owner`.
+- Replication: `blueprint replicate <bp> <var> [--notify] [--condition]` (OnRep function included), `blueprint rpc <bp> <event>
+  --type server|client|multicast [--reliable]`, and for C++ `code replicate <header> <name> <type>` and `code rpc` (header,
+  GetLifetimeReplicatedProps, DOREPLIFETIME, _Implementation/_Validate). `pie get|call controller` targets the player controller.
 
 ## 0.3.2
 

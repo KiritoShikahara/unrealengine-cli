@@ -1620,3 +1620,133 @@ fn e2e_21_multiplayer_pie() {
     assert_eq!(count_pcs("server"), 2);
     call("pie_stop", json!({}));
 }
+
+#[test]
+fn e2e_22_replication_and_rpc() {
+    if !enabled() {
+        return;
+    }
+    // A player controller with a RepNotify variable and a reliable Server RPC that sets it.
+    let pc = root("BP_NetPC");
+    ok(&["blueprint", "create", &pc, "--parent", "PlayerController"]);
+    ok(&["blueprint", "add-variable", &pc, "Score", "--type", "int"]);
+    let rep = ok(&["blueprint", "replicate", &pc, "Score", "--notify"]);
+    assert_eq!(rep["notifyFunction"], "OnRep_Score", "{rep}");
+    let graph = call("bp_graph_get", json!({"path": pc, "graph": "OnRep_Score"}));
+    let entry = graph["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["class"] == "K2Node_FunctionEntry")
+        .expect("OnRep_Score has an entry node")
+        .clone();
+    let print = node(
+        &pc,
+        "CallFunction",
+        Some("PrintString"),
+        json!({"graph": "OnRep_Score"}),
+    );
+    let f = format!("{}.then", entry["id"].as_str().unwrap());
+    let t = format!("{}.execute", print["id"].as_str().unwrap());
+    ok(&[
+        "blueprint",
+        "connect",
+        &pc,
+        &f,
+        &t,
+        "--graph",
+        "OnRep_Score",
+    ]);
+    call(
+        "bp_set_pin",
+        json!({"path": pc, "graph": "OnRep_Score", "node": print["id"], "pin": "InString", "value": "e2e OnRep Score"}),
+    );
+    let event = node(&pc, "CustomEvent", Some("ServerSetScore"), json!({}));
+    let rpc = ok(&[
+        "blueprint",
+        "rpc",
+        &pc,
+        "ServerSetScore",
+        "--type",
+        "server",
+        "--reliable",
+    ]);
+    assert_eq!(rpc["type"], "server", "{rpc}");
+    assert_eq!(rpc["reliable"], true, "{rpc}");
+    let set = node(&pc, "VariableSet", Some("Score"), json!({}));
+    pin_link(&pc, &event, "then", &set, "execute");
+    call(
+        "bp_set_pin",
+        json!({"path": pc, "node": set["id"], "pin": "Score", "value": "7"}),
+    );
+    let compiled = ok(&["blueprint", "compile", &pc]);
+    assert_eq!(compiled["errors"], 0, "{compiled}");
+    ok(&["blueprint", "save", &pc]);
+    let (_, err) = fails(
+        "bp_set_rpc",
+        json!({"path": pc, "event": "NoSuchEvent", "type": "server"}),
+    );
+    assert_eq!(err, "blueprint.event_not_found");
+
+    if !render_enabled() {
+        eprintln!(
+            "replication PIE skipped: needs a rendering editor (UNREALENGINE_CLI_E2E_RENDER=1)"
+        );
+        return;
+    }
+    let gm = root("BP_NetGM");
+    ok(&["blueprint", "create", &gm, "--parent", "GameModeBase"]);
+    let pc_class = format!("{pc}.BP_NetPC_C");
+    ok(&["prop", "set", &gm, "PlayerControllerClass", &pc_class]);
+    ok(&["blueprint", "compile", &gm]);
+    ok(&["blueprint", "save", &gm]);
+    ok(&[
+        "level",
+        "new",
+        &root("L_Rep"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let gm_class = format!("{gm}.BP_NetGM_C");
+    ok(&["prop", "set", "WorldSettings", "DefaultGameMode", &gm_class]);
+    call("pie_start", json!({"players": 2, "netMode": "listen"}));
+    // Client 1 calls the Server RPC on its own controller; the server sets Score, which replicates back.
+    // Replication can finish within the call, so read the log from before it.
+    let since = ok(&["logs", "--limit", "1"])["nextSince"]
+        .as_i64()
+        .unwrap()
+        .to_string();
+    call(
+        "pie_call",
+        json!({"world": "client:1", "actor": "controller", "command": "ServerSetScore"}),
+    );
+    call("pie_wait", json!({"seconds": 1}));
+    let logs = ok(&[
+        "logs",
+        "--since",
+        &since,
+        "--category",
+        "LogBlueprintUserMessages",
+    ]);
+    assert!(
+        logs["lines"].as_array().unwrap().iter().any(|l| l["text"]
+            .as_str()
+            .unwrap()
+            .contains("Client 1: e2e OnRep Score")),
+        "OnRep_Score did not run on client 1: {logs}"
+    );
+    let client = call(
+        "pie_get",
+        json!({"world": "client:1", "actor": "controller", "properties": ["Score"]}),
+    );
+    assert_eq!(client["properties"]["Score"], "7", "{client}");
+    let host = call(
+        "pie_get",
+        json!({"world": "server", "actor": "controller", "properties": ["Score"]}),
+    );
+    assert_eq!(
+        host["properties"]["Score"], "0",
+        "the host's controller changed: {host}"
+    );
+    call("pie_stop", json!({}));
+}

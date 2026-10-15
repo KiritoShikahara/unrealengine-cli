@@ -30,12 +30,12 @@
 
 ## Phase 4: US2 - レプリケーションと RPC (P1)
 
-- [ ] T012 [P] [US2] `blueprint replicate` / `blueprint rpc` / `code replicate` / `code rpc` のモックテストを `tests/us11_net.rs` に追加する
-- [ ] T013 [P] [US2] `code_add_replicated_property` / `code_add_rpc` のテキスト編集の単体テスト(ヘッダーと .cpp の入力 → 期待出力)を Automation Spec `Private/Tests/ReplicationCodeSpec.cpp` に書く
-- [ ] T014 [P] [US2] E2E `e2e_22_replication` を書く(RepNotify 変数と Server RPC の Blueprint、PIE でサーバーの変更がクライアントに届き OnRep が呼ばれる)
-- [ ] T015 [US2] `bp_set_replication`(CPF_Net、CPF_RepNotify、RepNotifyFunc、ReplicationCondition、OnRep 関数の作成)を `Private/Tools/ReplicationTools.cpp` に実装する
-- [ ] T016 [US2] `bp_set_rpc`(FUNC_Net* と Reliable)を実装する
-- [ ] T017 [US2] `code_add_replicated_property` / `code_add_rpc` を実装する(`GetLifetimeReplicatedProps` と include の自動追加、差分の事前表示、dry-run)
+- [x] T012 [P] [US2] `blueprint replicate` / `blueprint rpc` / `code replicate` / `code rpc` のモックテストを `tests/us11_net.rs` に追加する
+- [x] T013 [P] [US2] `code replicate` / `code rpc` のテキスト編集のテスト(ヘッダーと .cpp の入力 → 期待出力、dry-run)を `tests/us11_net.rs` に書く(エディタ不要の CLI 側実装にしたため cargo test で検証。生成コードは TestProject で UE 5.7 のビルドを確認)
+- [x] T014 [P] [US2] E2E `e2e_22_replication` を書く(RepNotify 変数と Server RPC の Blueprint、PIE でサーバーの変更がクライアントに届き OnRep が呼ばれる)
+- [x] T015 [US2] `bp_set_replication`(CPF_Net、CPF_RepNotify、RepNotifyFunc、ReplicationCondition、OnRep 関数の作成)を `Private/Tools/ReplicationTools.cpp` に実装する
+- [x] T016 [US2] `bp_set_rpc`(FUNC_Net* と Reliable)を実装する
+- [x] T017 [US2] `code_add_replicated_property` / `code_add_rpc` を実装する(`GetLifetimeReplicatedProps` と include の自動追加、差分の事前表示、dry-run)
 - [ ] T018 [US2] ネットワーク関連プロパティの別名(NetUpdateFrequency など)が prop で読み書きできることを E2E で確認し、足りなければ `tools/prop.py` に別名を追加する
 
 ## Phase 5: US3 - 同期の検証 (P1)

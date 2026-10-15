@@ -132,11 +132,15 @@ namespace
 			APlayerController* PC = World->GetFirstPlayerController();
 			if (PC && PC->GetPawn()) return PC->GetPawn();
 		}
+		if (Id == TEXT("controller"))
+		{
+			if (APlayerController* PC = World->GetFirstPlayerController()) return PC;
+		}
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
 			if (It->GetActorLabel() == Id || It->GetName() == Id) return *It;
 		}
-		Call->Fail(TEXT("pie.actor_not_found"), FString::Printf(TEXT("no actor '%s' in the play world"), *Id), TEXT("list them: pie_actors (\"player\" is the player's pawn)"));
+		Call->Fail(TEXT("pie.actor_not_found"), FString::Printf(TEXT("no actor '%s' in the play world"), *Id), TEXT("list them: pie_actors (\"player\" is the player's pawn, \"controller\" its player controller)"));
 		return nullptr;
 	}
 
@@ -511,7 +515,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 			Call->Succeed(Arr(Items));
 		});
 
-	R.Add(TEXT("pie_get"), TEXT("runtime"), TEXT("Read properties of a play-world actor (or one of its components): actor is a label, name or \"player\"; without properties returns its transform and velocity."),
+	R.Add(TEXT("pie_get"), TEXT("runtime"), TEXT("Read properties of a play-world actor (or one of its components): actor is a label, name, \"player\" (the pawn) or \"controller\" (its player controller); without properties returns its transform and velocity."),
 		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"actor":{"type":"string"},"component":{"type":"string"},"properties":{"type":"array","items":{"type":"string"}}},"required":["actor"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{

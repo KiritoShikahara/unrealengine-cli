@@ -110,6 +110,28 @@ pub enum BlueprintCmd {
     },
     /// Compile and report errors
     Compile { path: String },
+    /// Replicate a variable (--notify adds an OnRep_<Var> function; --off stops replicating it)
+    Replicate {
+        path: String,
+        variable: String,
+        #[arg(long, conflicts_with = "off")]
+        notify: bool,
+        #[arg(long)]
+        off: bool,
+        /// Replication condition: None, InitialOnly, OwnerOnly, SkipOwner, SimulatedOnly, AutonomousOnly, ...
+        #[arg(long)]
+        condition: Option<String>,
+    },
+    /// Make a custom event a remote procedure call
+    Rpc {
+        path: String,
+        event: String,
+        /// server, client, multicast or none
+        #[arg(long = "type", value_parser = ["server", "client", "multicast", "none"])]
+        rpc_type: String,
+        #[arg(long)]
+        reliable: bool,
+    },
     /// Save (refused on compile errors unless --force)
     Save {
         path: String,
@@ -295,6 +317,40 @@ pub fn to_call(cmd: BlueprintCmd) -> Result<(&'static str, Value), CliError> {
         BlueprintCmd::Compile { path } => {
             put("path", json!(path));
             "bp_compile"
+        }
+        BlueprintCmd::Replicate {
+            path,
+            variable,
+            notify,
+            off,
+            condition,
+        } => {
+            put("path", json!(path));
+            put("variable", json!(variable));
+            let mode = if off {
+                "none"
+            } else if notify {
+                "notify"
+            } else {
+                "replicated"
+            };
+            put("mode", json!(mode));
+            put("condition", json!(condition));
+            "bp_set_replication"
+        }
+        BlueprintCmd::Rpc {
+            path,
+            event,
+            rpc_type,
+            reliable,
+        } => {
+            put("path", json!(path));
+            put("event", json!(event));
+            put("type", json!(rpc_type));
+            if reliable {
+                put("reliable", json!(true));
+            }
+            "bp_set_rpc"
         }
         BlueprintCmd::Save { path, force } => {
             put("path", json!(path));

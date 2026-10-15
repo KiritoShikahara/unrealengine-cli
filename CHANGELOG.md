@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Dedicated servers: `server start [--map] [--port] [-- <args>]` runs the project's Server build, or the editor binary in
+  server mode (works with Launcher engines), and returns once it listens; `server list|logs|stop` manage servers it
+  started (others are refused). `server target add|build|package --out-dir` create, build and package the Server target
+  on engines built from source (`server.source_engine_required` on Launcher engines).
+- `pie connect <host:port>` joins a server from the play world.
+
 ## 0.4.0
 
 - Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`

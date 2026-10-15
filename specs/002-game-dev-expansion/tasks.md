@@ -48,13 +48,14 @@
 
 ## Phase 6: US4 - 専用サーバー (P2)
 
-- [ ] T024 [P] [US4] `server target add` の生成内容、dry-run、インストール版の判定(`InstalledBuild.txt`)で `server.source_engine_required` になることのテストを `tests/us12_server.rs` に書く
-- [ ] T025 [P] [US4] サーバー記録(`servers/<pid>.json`)と、記録にない PID を `server stop` が拒否するテストを書く
-- [ ] T026 [US4] `src/commands/server.rs` に `server target add`(`<Project>Server.Target.cs`)を実装する
-- [ ] T027 [US4] `server build` / `server package` を実装する(001 のビルドエラー解析とパッケージ出力先の安全確認を再利用)
-- [ ] T028 [US4] `src/servers.rs` に `server start|list|logs|stop` を実装する(ハンドル非継承の起動、`Listening` の待機、`server.port_in_use`、`server.exited`)
-- [ ] T029 [US4] `pie_connect` を実装する(PIE クライアントから `open <host:port>`)
-- [ ] T030 [US4] ソース版エンジンでの手動検証手順を quickstart に沿って実施し、結果を記録する(ソース版エンジンがない場合は保留として記録)
+- [x] T024 [P] [US4] `server target add` の生成内容、dry-run、インストール版の判定(`InstalledBuild.txt`)で `server.source_engine_required` になることのテストを `tests/us12_server.rs` に書く
+- [x] T025 [P] [US4] サーバー記録(`servers/<pid>.json`)と、記録にない PID を `server stop` が拒否するテストを書く
+- [x] T026 [US4] `src/commands/server.rs` に `server target add`(`<Project>Server.Target.cs`)を実装する
+- [x] T027 [US4] `server build` / `server package` を実装する(001 のビルドエラー解析とパッケージ出力先の安全確認を再利用)
+- [x] T028 [US4] `src/servers.rs` に `server start|list|logs|stop` を実装する(ハンドル非継承の起動、`Listening` の待機、`server.port_in_use`、`server.exited`)
+- [x] T029 [US4] `pie_connect` を実装する(PIE クライアントから `open <host:port>`)
+- [x] T030 [US4] ソース版エンジンでの手動検証手順を quickstart に沿って実施し、結果を記録する(ソース版エンジンがない場合は保留として記録)
+  - 結果: ソース版エンジンがないため `server build` / `server package` の実ビルドは保留。インストール版 5.7 で `server build` が即座に `server.source_engine_required` を返すこと、エディタ実行ファイルのサーバーモードでの `server start`(4 秒で待ち受け)→ `pie connect 127.0.0.1:7781` → サーバーログに `Join succeeded` → `server stop` を確認済み
 
 ## Phase 7: US5 - オンラインセッション (P2)
 

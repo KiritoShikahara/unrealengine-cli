@@ -105,7 +105,7 @@ pub fn editor_target(uproject: &Path) -> String {
     format!("{stem}Editor")
 }
 
-fn host_platform() -> &'static str {
+pub fn host_platform() -> &'static str {
     if cfg!(windows) {
         "Win64"
     } else if cfg!(target_os = "macos") {
@@ -117,6 +117,16 @@ fn host_platform() -> &'static str {
 
 /// Builds the project's editor target. Returns diagnostics; fails with exit code 6 on errors.
 pub fn build_editor(engine: &Engine, uproject: &Path) -> Result<Value, CliError> {
+    build_target(engine, uproject, &editor_target(uproject), "Development")
+}
+
+/// Builds any target of the project (`<Project>Server`, ...) for the host platform.
+pub fn build_target(
+    engine: &Engine,
+    uproject: &Path,
+    target: &str,
+    config: &str,
+) -> Result<Value, CliError> {
     let script = engine.build_script();
     if !script.is_file() {
         return Err(CliError::usage(
@@ -124,12 +134,11 @@ pub fn build_editor(engine: &Engine, uproject: &Path) -> Result<Value, CliError>
             format!("{} not found", script.display()),
         ));
     }
-    let target = editor_target(uproject);
     let started = std::time::Instant::now();
     let out = Command::new(&script)
-        .arg(&target)
+        .arg(target)
         .arg(host_platform())
-        .arg("Development")
+        .arg(config)
         .arg(format!("-Project={}", uproject.display()))
         .arg("-WaitMutex")
         .arg("-NoHotReloadFromIDE")

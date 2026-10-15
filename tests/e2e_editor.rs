@@ -2218,3 +2218,97 @@ fn e2e_26_ik_retarget() {
     ]);
     assert_eq!(ps["animations"].as_array().unwrap().len(), 2, "{ps}");
 }
+
+#[test]
+fn e2e_28_audio_physics_pcg() {
+    if !enabled() {
+        return;
+    }
+    // MetaSound: a sine tone wired to the output with a set frequency.
+    let ms = root("MS_Tone");
+    let made = ok(&["audio", "metasound", "create", &ms]);
+    let out = made["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|o| o.as_str().unwrap())
+        .find(|o| o.contains("Audio"))
+        .unwrap()
+        .to_string();
+    let sine = ok(&["audio", "metasound", "node", &ms, "UE.Sine.Audio"]);
+    let id = sine["node"].as_str().unwrap().to_string();
+    assert!(
+        sine["inputs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["name"] == "Frequency"),
+        "{sine}"
+    );
+    ok(&[
+        "audio",
+        "metasound",
+        "connect",
+        &ms,
+        &format!("{id}:Audio"),
+        &format!("graph:{out}"),
+    ]);
+    let set = ok(&["audio", "metasound", "set", &ms, &id, "Frequency", "330"]);
+    assert_eq!(set["type"], "Float", "{set}");
+    let (code, v) = cli(&["audio", "metasound", "node", &ms, "UE.NoSuchNode.Audio"]);
+    assert_eq!(code, 4, "{v}");
+    assert_eq!(v["error"]["code"], "metasound.no_class");
+
+    // Chaos: a destructible from two meshes.
+    let gc = ok(&[
+        "physics",
+        "collection",
+        &root("GC_Shapes"),
+        "--mesh",
+        "/Engine/BasicShapes/Cube",
+        "--mesh",
+        "/Engine/BasicShapes/Sphere",
+    ]);
+    assert_eq!(gc["meshes"], 2, "{gc}");
+
+    // PCG: a 10 x 10 grid of cubes.
+    ok(&[
+        "level",
+        "new",
+        &root("L_PCG"),
+        "--template",
+        "/Engine/Maps/Templates/Template_Default",
+    ]);
+    let graph = root("PCG_Grid");
+    ok(&["pcg", "create", &graph]);
+    let grid = ok(&[
+        "pcg",
+        "node",
+        &graph,
+        "CreatePointsGrid",
+        "--props",
+        r#"{"grid_extents":[500,500,0],"cell_size":[100,100,100]}"#,
+    ]);
+    let spawner = ok(&[
+        "pcg",
+        "node",
+        &graph,
+        "StaticMeshSpawner",
+        "--props",
+        r#"{"mesh":"/Engine/BasicShapes/Cube"}"#,
+    ]);
+    let (g, s) = (
+        grid["node"].as_str().unwrap(),
+        spawner["node"].as_str().unwrap(),
+    );
+    ok(&[
+        "pcg",
+        "connect",
+        &graph,
+        &format!("{g}:Out"),
+        &format!("{s}:In"),
+    ]);
+    ok(&["pcg", "connect", &graph, &format!("{s}:Out"), "output:Out"]);
+    let done = ok(&["pcg", "generate", &graph]);
+    assert_eq!(done["instances"], 100, "{done}");
+}

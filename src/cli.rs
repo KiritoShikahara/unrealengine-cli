@@ -4,7 +4,7 @@ use std::time::Instant;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::{
-    Ctx, anim, basic, blueprint, code, gas, light, online, perf, project, server, test_runner,
+    Ctx, anim, basic, blueprint, code, fx, gas, light, online, perf, project, server, test_runner,
     typed, visual,
 };
 use crate::core::envelope::Envelope;
@@ -199,6 +199,21 @@ pub enum Command {
     Anim {
         #[command(subcommand)]
         action: anim::AnimCmd,
+    },
+    /// Audio: MetaSound sources built node by node
+    Audio {
+        #[command(subcommand)]
+        action: fx::AudioCmd,
+    },
+    /// Chaos physics: Geometry Collections (destructibles)
+    Physics {
+        #[command(subcommand)]
+        action: fx::PhysicsCmd,
+    },
+    /// Procedural Content Generation graphs: create, add nodes, connect, generate in the level
+    Pcg {
+        #[command(subcommand)]
+        action: fx::PcgCmd,
     },
     /// Fab marketplace: search, your library, add listings to the project
     Fab {
@@ -484,6 +499,9 @@ fn dispatch(
         Command::Perf { action } => ("perf", perf::run(ctx, action)),
         Command::Light { action } => ("light", light::run(ctx, action)),
         Command::Anim { action } => ("anim", anim::run(ctx, action)),
+        Command::Audio { action } => ("audio", fx::audio(ctx, action)),
+        Command::Physics { action } => ("physics", fx::physics(ctx, action)),
+        Command::Pcg { action } => ("pcg", fx::pcg(ctx, action)),
         Command::Render { action } => ("render", light::render(ctx, action)),
         Command::Tags { action } => ("tags", gas::tags(ctx, action)),
         Command::Test { action } => ("test", test_runner::run(ctx, action)),

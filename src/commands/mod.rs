@@ -3,6 +3,7 @@ pub mod basic;
 pub mod blueprint;
 pub mod code;
 pub mod code_net;
+pub mod fx;
 pub mod gas;
 pub mod light;
 pub mod online;

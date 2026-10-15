@@ -90,10 +90,10 @@
 
 ## Phase 11: US9 - MetaSound / Chaos / PCG (P3)
 
-- [ ] T050 [P] [US9] E2E `e2e_27_audio_physics_pcg` を書く(MetaSound の作成と接続、Geometry Collection の分割、PCG で 100 本の配置)
-- [ ] T051 [US9] `metasound_create|add_node|connect|set_input` を実装する
-- [ ] T052 [US9] `geometry_collection_create` を実装する
-- [ ] T053 [US9] `pcg_create|add_node|connect|generate` を実装する
+- [x] T050 [P] [US9] E2E `e2e_27_audio_physics_pcg` を書く(MetaSound の作成と接続、Geometry Collection の分割、PCG で 100 本の配置)
+- [x] T051 [US9] `metasound_create|add_node|connect|set_input` を実装する
+- [x] T052 [US9] `geometry_collection_create` を実装する(実装メモ: メッシュから Geometry Collection を作る。分割は Fracture プラグインの C++ でしか呼べず、プラグインは既定で無効なため自動化しない。E2E は `e2e_28_audio_physics_pcg`)
+- [x] T053 [US9] `pcg_create|add_node|connect|generate` を実装する
 
 ## Phase 12: US10 - ローカライズ、タグ、セーブ (P3)
 

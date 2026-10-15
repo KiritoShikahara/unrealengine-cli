@@ -28,8 +28,8 @@
 | `render get\|set <setting> [value]` | レンダリング設定 | `render_settings` |
 | `anim ikrig\|retarget\|controlrig\|posesearch ...` | 高度なアニメーション | `anim_ikrig_create` ほか |
 | `audio metasound create\|node\|connect\|set` | MetaSound | `metasound_*` |
-| `physics fracture <mesh> --pieces <n>` | Geometry Collection | `geometry_collection_create` |
-| `pcg create\|node\|connect\|generate` | PCG | `pcg_*` |
+| `physics collection <path> --mesh <mesh>...` | Geometry Collection(分割は Fracture モードで行う。分割 API はスクリプトから呼べないため) | `geometry_collection_create` |
+| `pcg create\|node\|connect\|generate` | PCG(generate は `pcg_status` で完了を待つ) | `pcg_*` |
 | `loc add-culture\|gather\|export\|import\|compile` | ローカライズ | `loc_*` |
 | `visual baseline <name>` / `visual compare <name> [--threshold <pct>]` / `visual diff <a> <b>` | 画像差分 | CLI 内(画像処理)と `pie_screenshot` / `editor_screenshot` |
 | `perf measure --seconds <s>` / `perf trace start\|stop` / `perf trace summary <file>` | 性能計測 | `perf_measure`、`perf_trace` |

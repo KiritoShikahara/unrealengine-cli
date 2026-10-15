@@ -24,6 +24,7 @@ namespace UCli
 		RegisterPerfTools(Registry);
 		RegisterLightTools(Registry);
 		RegisterAnimAdvancedTools(Registry);
+		RegisterPhysicsTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

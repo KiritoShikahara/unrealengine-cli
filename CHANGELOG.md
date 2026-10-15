@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - Multiplayer PIE: `pie start --players <1-4> --net-mode standalone|listen|client`, `pie worlds`, and `--world server|client:<n>`
   for every pie command; actors report `role`, `remoteRole` and `owner`.

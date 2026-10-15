@@ -84,9 +84,9 @@
 
 ## Phase 10: US8 - 高度なアニメーション (P3)
 
-- [ ] T047 [P] [US8] E2E `e2e_26_ik_retarget` を書く(マネキンの IK Rig 2 つ、Retargeter、1 本のリターゲット)
-- [ ] T048 [US8] `anim_ikrig_create` / `anim_retargeter_create` / `anim_retarget` を Python で実装する(`tools/anim_advanced.py`)
-- [ ] T049 [US8] `controlrig_create` と `posesearch_create` を実装する
+- [x] T047 [P] [US8] E2E `e2e_26_ik_retarget` を書く(マネキンの IK Rig 2 つ、Retargeter、1 本のリターゲット)
+- [x] T048 [US8] `anim_ikrig_create` / `anim_retargeter_create` / `anim_retarget` を Python で実装する(`tools/anim_advanced.py`)
+- [x] T049 [US8] `controlrig_create` と `posesearch_create` を実装する(実装メモ: Python の PoseSearch ファクトリーはアセットを作れないため、`posesearch_create` は C++ のリフレクションで実装。TestProject で PoseSearch を有効化)
 
 ## Phase 11: US9 - MetaSound / Chaos / PCG (P3)
 

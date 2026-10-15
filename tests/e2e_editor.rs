@@ -2165,3 +2165,56 @@ fn e2e_27_lighting() {
     assert_eq!(code, 4, "{v}");
     assert_eq!(v["error"]["code"], "lighting.build_failed");
 }
+
+#[test]
+fn e2e_26_ik_retarget() {
+    if !enabled() {
+        return;
+    }
+    let ch = "/Engine/Tutorial/SubEditors/TutorialAssets/Character";
+    let mesh = format!("{ch}/TutorialTPP");
+    let (src, tgt, rtg) = (root("IK_Source"), root("IK_Target"), root("RTG_Tutorial"));
+    let rig = ok(&["anim", "ikrig", &src, "--mesh", &mesh]);
+    assert_eq!(rig["retargetRoot"], "pelvis", "{rig}");
+    assert!(rig["chains"].as_array().unwrap().len() >= 10, "{rig}");
+    assert!(rig["solvers"].as_u64().unwrap() >= 1, "{rig}");
+    ok(&["anim", "ikrig", &tgt, "--mesh", &mesh]);
+    let map = ok(&[
+        "anim",
+        "retargeter",
+        &rtg,
+        "--source",
+        &src,
+        "--target",
+        &tgt,
+    ]);
+    let mapping = map["mapping"].as_array().unwrap();
+    assert!(mapping.iter().all(|m| m["source"] == m["target"]), "{map}");
+    let out = ok(&[
+        "anim",
+        "retarget",
+        &rtg,
+        &format!("{ch}/Tutorial_Walk_Fwd"),
+        "--folder",
+        &root("Retargeted"),
+    ]);
+    let created = out["created"].as_array().unwrap();
+    assert_eq!(created.len(), 1, "{out}");
+    let asset = created[0].as_str().unwrap();
+    assert!(asset.ends_with("Tutorial_Walk_Fwd_Retargeted"), "{out}");
+    ok(&["asset", "deps", asset]);
+
+    let cr = ok(&["anim", "controlrig", &root("CR_Tutorial"), "--mesh", &mesh]);
+    assert!(cr["bones"].as_u64().unwrap() > 50, "{cr}");
+    // TestProject enables PoseSearch.
+    let ps = ok(&[
+        "anim",
+        "posesearch",
+        &root("PSD_Tutorial"),
+        "--skeleton",
+        &format!("{ch}/TutorialTPP_Skeleton"),
+        &format!("{ch}/Tutorial_Walk_Fwd"),
+        &format!("{ch}/Tutorial_Idle"),
+    ]);
+    assert_eq!(ps["animations"].as_array().unwrap().len(), 2, "{ps}");
+}

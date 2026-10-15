@@ -1,3 +1,4 @@
+pub mod anim;
 pub mod basic;
 pub mod blueprint;
 pub mod code;

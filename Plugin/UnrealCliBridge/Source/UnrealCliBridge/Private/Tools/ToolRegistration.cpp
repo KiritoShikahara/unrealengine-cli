@@ -23,6 +23,7 @@ namespace UCli
 		RegisterGasTools(Registry);
 		RegisterPerfTools(Registry);
 		RegisterLightTools(Registry);
+		RegisterAnimAdvancedTools(Registry);
 		RegisterPythonTools(Registry);
 	}
 }

@@ -8,6 +8,7 @@
   ],
   "Plugins": [
     { "Name": "UnrealCliBridge", "Enabled": true },
-    { "Name": "GameplayAbilities", "Enabled": true }
+    { "Name": "GameplayAbilities", "Enabled": true },
+    { "Name": "PoseSearch", "Enabled": true }
   ]
 }

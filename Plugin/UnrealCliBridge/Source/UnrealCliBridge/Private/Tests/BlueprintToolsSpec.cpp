@@ -76,6 +76,22 @@ bool FUCliBlueprintEventGraphPage::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintDefaultSceneRoot, "UnrealCliBridge.Blueprint.DefaultSceneRoot", UCli::Test::TestFlags)
+bool FUCliBlueprintDefaultSceneRoot::RunTest(const FString&)
+{
+	const FString Path = UniquePath(TEXT("BP_Root"));
+	Call(TEXT("bp_create"), P(Path, TEXT(",\"parent\":\"Actor\"")));
+	const TSharedPtr<FJsonObject> Root = Call(TEXT("bp_add_component"), P(Path, TEXT(",\"class\":\"SceneComponent\",\"name\":\"DefaultSceneRoot\"")));
+	TestTrue(TEXT("root ok"), Ok(Root));
+	TestEqual(TEXT("same name"), Data(Root)->GetStringField(TEXT("name")), FString(TEXT("DefaultSceneRoot")));
+	const TSharedPtr<FJsonObject> Cap = Call(TEXT("bp_add_component"), P(Path, TEXT(",\"class\":\"CapsuleComponent\",\"name\":\"Capsule\",\"parent\":\"DefaultSceneRoot\"")));
+	TestTrue(TEXT("child of default root"), Ok(Cap));
+	TestEqual(TEXT("capsule name"), Data(Cap)->GetStringField(TEXT("name")), FString(TEXT("Capsule")));
+	TestEqual(TEXT("duplicate name refused"), Code(Call(TEXT("bp_add_component"), P(Path, TEXT(",\"class\":\"SphereComponent\",\"name\":\"Capsule\"")))), FString(TEXT("blueprint.component_exists")));
+	TestTrue(TEXT("compiles"), Data(Call(TEXT("bp_compile"), P(Path)))->GetBoolField(TEXT("succeeded")));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintVariables, "UnrealCliBridge.Blueprint.Variables", UCli::Test::TestFlags)
 bool FUCliBlueprintVariables::RunTest(const FString&)
 {

@@ -7,6 +7,16 @@
 - `bp_add_variable` (and function/struct field types) accept `map<K,V>` and `set<T>`.
 - `bp_add_graph`: add an event graph page such as `InterfaceGraph` (#11).
 - `install.bat` also installs `rustfmt` and `clippy`.
+- Niagara: `niagara_modules_list` (modules per stage with inputs, types, values, enum options, and renderers),
+  `niagara_module_enable`, `niagara_renderer_set` (e.g. the sprite Material); `niagara_input_set` sets enum and
+  static switch inputs (#15).
+- `editor_screenshot` writes the PNG before it returns (it no longer depends on a viewport redraw) (#5).
+- `fab add` reports `fab.in_progress` when the listing is already downloading (#3).
+- Warnings go to stderr in text output, so stdout stays valid JSON (#12).
+- `prop_set` accepts a level actor label for object references (#13).
+- `pie_call` fails with the parameter list when an argument cannot be read, instead of `ok` with no effect (#14).
+- `bp_add_component` with `name=DefaultSceneRoot` uses the Blueprint's root, `parent=DefaultSceneRoot` works, and a
+  name that would be changed is an error instead of a silent rename (#16).
 
 ## 0.6.0
 

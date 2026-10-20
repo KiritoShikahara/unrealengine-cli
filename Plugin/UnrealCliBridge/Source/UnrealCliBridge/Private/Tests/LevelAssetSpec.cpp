@@ -1,4 +1,5 @@
 #include "Tests/BridgeTestUtil.h"
+#include "Misc/App.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -31,6 +32,31 @@ bool FUCliPropertyCandidates::RunTest(const FString&)
 	TestEqual(TEXT("not found"), Code(Bad), FString(TEXT("prop.not_found")));
 	TestTrue(TEXT("suggests"), Bad->GetObjectField(TEXT("error"))->GetStringField(TEXT("hint")).Contains(TEXT("intensity")));
 	Call(TEXT("actor_destroy"), FString::Printf(TEXT("{\"labels\":[\"%s\"]}"), *Label));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliPropertyActorByLabel, "UnrealCliBridge.Property.ActorReferenceByLabel", UCli::Test::TestFlags)
+bool FUCliPropertyActorByLabel::RunTest(const FString&)
+{
+	if (!FApp::CanEverRender())
+	{
+		AddInfo(TEXT("skipped: spawning a Blueprint actor needs rendering (-nullrhi)"));
+		return true;
+	}
+	const FString Bp = UniquePath(TEXT("BP_Switch"));
+	Call(TEXT("bp_create"), FString::Printf(TEXT("{\"path\":\"%s\",\"parent\":\"Actor\"}"), *Bp));
+	Call(TEXT("bp_add_variable"), FString::Printf(TEXT("{\"path\":\"%s\",\"name\":\"Target\",\"type\":\"Actor\",\"instanceEditable\":true}"), *Bp));
+	Call(TEXT("bp_compile"), FString::Printf(TEXT("{\"path\":\"%s\"}"), *Bp));
+	const FString Id = FGuid::NewGuid().ToString(EGuidFormats::Digits).Left(6);
+	const FString Sw = TEXT("UCliSwitch_") + Id;
+	const FString Light = TEXT("UCliTarget_") + Id;
+	TestTrue(TEXT("spawn bp"), Ok(Call(TEXT("actor_spawn"), FString::Printf(TEXT("{\"actorClass\":\"%s\",\"label\":\"%s\"}"), *Bp, *Sw))));
+	Call(TEXT("actor_spawn"), FString::Printf(TEXT("{\"actorClass\":\"PointLight\",\"label\":\"%s\"}"), *Light));
+	TestTrue(TEXT("set by label"), Ok(Call(TEXT("prop_set"), FString::Printf(TEXT("{\"path\":\"%s\",\"property\":\"Target\",\"value\":\"%s\"}"), *Sw, *Light))));
+	const TSharedPtr<FJsonObject> G = Data(Call(TEXT("prop_get"), FString::Printf(TEXT("{\"path\":\"%s\",\"property\":\"Target\"}"), *Sw)));
+	TestTrue(TEXT("points at the light"), G.IsValid() && G->GetStringField(TEXT("value")).Contains(TEXT("PointLight")));
+	TestEqual(TEXT("unknown label"), Code(Call(TEXT("prop_set"), FString::Printf(TEXT("{\"path\":\"%s\",\"property\":\"Target\",\"value\":\"NoSuchActor_%s\"}"), *Sw, *Id))), FString(TEXT("prop.bad_value")));
+	Call(TEXT("actor_destroy"), FString::Printf(TEXT("{\"labels\":[\"%s\",\"%s\"]}"), *Sw, *Light));
 	return true;
 }
 

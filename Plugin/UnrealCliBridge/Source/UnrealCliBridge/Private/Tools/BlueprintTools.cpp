@@ -1461,16 +1461,51 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			}
 			USimpleConstructionScript* SCS = B->SimpleConstructionScript;
 			SCS->Modify();
+			// A new Actor Blueprint gets its DefaultSceneRoot node lazily (when the editor opens it); make it findable by name.
+			SCS->ValidateSceneRootNodes();
+			auto FindNode = [SCS](const FString& N) -> USCS_Node*
+			{
+				if (USCS_Node* Found = SCS->FindSCSNode(FName(*N))) return Found;
+				USCS_Node* Root = SCS->GetDefaultSceneRootNode();
+				return Root && Root->GetVariableName().ToString() == N ? Root : nullptr;
+			};
 			const FString Name = Call->GetString(TEXT("name"));
-			USCS_Node* Node = SCS->CreateNode(C, Name.IsEmpty() ? NAME_None : FName(*Name));
+			if (!Name.IsEmpty())
+			{
+				if (USCS_Node* Existing = FindNode(Name))
+				{
+					if (Existing == SCS->GetDefaultSceneRootNode() && C == USceneComponent::StaticClass() && !Call->Has(TEXT("parent")))
+					{
+						// The Blueprint already has this root, as the editor shows it.
+						TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+						O->SetStringField(TEXT("name"), Name);
+						O->SetStringField(TEXT("class"), C->GetName());
+						O->SetBoolField(TEXT("existing"), true);
+						Call->Succeed(O);
+						return;
+					}
+					Call->Fail(TEXT("blueprint.component_exists"), FString::Printf(TEXT("a component named '%s' already exists"), *Name), TEXT("pick another name, or use it as parent"));
+					return;
+				}
+			}
+			USCS_Node* Parent = nullptr;
 			if (Call->Has(TEXT("parent")))
 			{
-				USCS_Node* Parent = SCS->FindSCSNode(FName(*Call->GetString(TEXT("parent"))));
+				Parent = FindNode(Call->GetString(TEXT("parent")));
 				if (!Parent)
 				{
 					Call->Fail(TEXT("blueprint.component_not_found"), FString::Printf(TEXT("no component '%s'"), *Call->GetString(TEXT("parent"))));
 					return;
 				}
+			}
+			USCS_Node* Node = SCS->CreateNode(C, Name.IsEmpty() ? NAME_None : FName(*Name));
+			if (!Name.IsEmpty() && Node->GetVariableName().ToString() != Name)
+			{
+				Call->Fail(TEXT("blueprint.bad_component_name"), FString::Printf(TEXT("'%s' cannot be used as a component name (the engine would rename it to '%s')"), *Name, *Node->GetVariableName().ToString()), TEXT("pick another name"));
+				return;
+			}
+			if (Parent)
+			{
 				Parent->AddChildNode(Node);
 			}
 			else

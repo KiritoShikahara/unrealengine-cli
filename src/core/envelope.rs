@@ -78,10 +78,15 @@ impl Envelope {
                 out.push_str(&format!("\nhint: {h}"));
             }
         }
-        for w in &self.warnings {
-            out.push_str(&format!("\nwarning: {w}"));
-        }
         out
+    }
+
+    /// Warnings for text output; printed on stderr so stdout stays machine-readable.
+    pub fn warning_lines(&self) -> Vec<String> {
+        self.warnings
+            .iter()
+            .map(|w| format!("warning: {w}"))
+            .collect()
     }
 
     pub fn print(&self, format: OutputFormat) {
@@ -90,5 +95,25 @@ impl Envelope {
             OutputFormat::Text if self.ok => println!("{}", self.to_text()),
             OutputFormat::Text => eprintln!("{}", self.to_text()),
         }
+        if format == OutputFormat::Text {
+            for w in self.warning_lines() {
+                eprintln!("{w}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn text_output_keeps_warnings_off_stdout() {
+        let mut e = Envelope::from_result("x", Ok(json!({ "a": 1 })), Duration::ZERO);
+        e.warnings.push("plugin mismatch".into());
+        let text = e.to_text();
+        assert!(serde_json::from_str::<Value>(&text).is_ok(), "{text}");
+        assert_eq!(e.warning_lines(), vec!["warning: plugin mismatch"]);
     }
 }

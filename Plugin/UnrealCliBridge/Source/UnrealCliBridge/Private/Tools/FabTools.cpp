@@ -534,16 +534,24 @@ void UCli::RegisterFabTools(FToolRegistry& R)
 					}
 					TArray<FString> Errors;
 					bool bCancelled = false;
+					bool bInProgress = false;
 					for (const FBridgeLogLine& L : FBridgeLog::Get().Read(LogStart, 0, ELogVerbosity::Log, TEXT("LogFab")))
 					{
 						if (L.Verbosity <= ELogVerbosity::Error && !L.Text.Contains(TEXT("auth token")))
 						{
 							Errors.Add(L.Text);
 						}
-						bCancelled |= L.Text.Contains(TEXT("Import Cancelled")) || L.Text.Contains(TEXT("already being processed"));
+						bCancelled |= L.Text.Contains(TEXT("Import Cancelled"));
+						bInProgress |= L.Text.Contains(TEXT("already being processed"));
 					}
 					if (Path.IsEmpty())
 					{
+						if (bInProgress)
+						{
+							EndPage();
+							Call->Fail(TEXT("fab.in_progress"), TEXT("this listing is already being downloaded by the editor"), TEXT("wait for that download to finish (watch `unrealengine-cli logs --category LogFab`), then run fab add again"));
+							return false;
+						}
 						if (!Errors.IsEmpty() || bCancelled)
 						{
 							EndPage();

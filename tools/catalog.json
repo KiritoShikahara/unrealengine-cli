@@ -742,8 +742,8 @@
  {
   "name": "bp_add_function",
   "group": "blueprint",
-  "summary": "Add a function graph with optional inputs/outputs [{name,type}].",
-  "description": "Add a function graph with optional inputs/outputs [{name,type}].",
+  "summary": "Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint).",
+  "description": "Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -761,6 +761,33 @@
     },
     "pure": {
      "type": "boolean"
+    },
+    "override": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bp_add_graph",
+  "group": "blueprint",
+  "summary": "Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>.",
+  "description": "Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
     }
    },
    "required": [
@@ -775,8 +802,8 @@
  {
   "name": "bp_add_node",
   "group": "blueprint",
-  "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
-  "description": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
+  "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | CallParent (function or event of the parent class, the Parent: node of an override) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
+  "description": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | CallParent (function or event of the parent class, the Parent: node of an override) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -809,6 +836,7 @@
       "BreakStruct",
       "SwitchEnum",
       "Timeline",
+      "CallParent",
       "Node"
      ]
     },
@@ -885,8 +913,8 @@
  {
   "name": "bp_add_variable",
   "group": "blueprint",
-  "summary": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [].",
-  "description": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [].",
+  "summary": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [], or a container map<K,V> / set<T> (e.g. map<string,int>).",
+  "description": "Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [], or a container map<K,V> / set<T> (e.g. map<string,int>).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -3253,6 +3281,114 @@
   "minEngine": "5.5"
  },
  {
+  "name": "niagara_module_enable",
+  "group": "niagara",
+  "summary": "Enable or disable a module in an emitter stage, as the checkbox in the Niagara stack does.",
+  "description": "Enable or disable a module in an emitter stage, as the checkbox in the Niagara stack does.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    },
+    "stage": {
+     "type": "string",
+     "enum": [
+      "EmitterSpawn",
+      "EmitterUpdate",
+      "ParticleSpawn",
+      "ParticleUpdate"
+     ]
+    },
+    "module": {
+     "type": "string"
+    },
+    "enabled": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "system",
+    "emitter",
+    "stage",
+    "module",
+    "enabled"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "niagara_modules_list",
+  "group": "niagara",
+  "summary": "Modules of an emitter per stage in stack order, each with enabled and its inputs (name, type, kind input|staticSwitch, current local value, enum options), plus the emitter's renderers. Use the names with niagara_input_set, niagara_module_enable and niagara_renderer_set.",
+  "description": "Modules of an emitter per stage in stack order, each with enabled and its inputs (name, type, kind input|staticSwitch, current local value, enum options), plus the emitter's renderers. Use the names with niagara_input_set, niagara_module_enable and niagara_renderer_set.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    },
+    "stage": {
+     "type": "string",
+     "enum": [
+      "EmitterSpawn",
+      "EmitterUpdate",
+      "ParticleSpawn",
+      "ParticleUpdate"
+     ]
+    }
+   },
+   "required": [
+    "system",
+    "emitter"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "niagara_renderer_set",
+  "group": "niagara",
+  "summary": "Set a property of an emitter's renderer (index or class, e.g. SpriteRenderer; see niagara_modules_list), e.g. property=Material value=/Game/M_Glow, or bIsEnabled, SubImageSize, Alignment.",
+  "description": "Set a property of an emitter's renderer (index or class, e.g. SpriteRenderer; see niagara_modules_list), e.g. property=Material value=/Game/M_Glow, or bIsEnabled, SubImageSize, Alignment.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "system": {
+     "type": "string"
+    },
+    "emitter": {
+     "type": "string"
+    },
+    "renderer": {
+     "description": "index or class name: SpriteRenderer, MeshRenderer, RibbonRenderer..."
+    },
+    "property": {
+     "type": "string"
+    },
+    "value": {}
+   },
+   "required": [
+    "system",
+    "emitter",
+    "property",
+    "value"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "niagara_system_create",
   "group": "niagara",
   "summary": "Create an empty Niagara System asset.",
@@ -3584,8 +3720,8 @@
  {
   "name": "pie_call",
   "group": "runtime",
-  "summary": "Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\".",
-  "description": "Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\".",
+  "summary": "Call a function or custom event on a play-world actor with space-separated arguments in parameter order, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\". Structs use Unreal text form without spaces: K2_SetActorLocation (X=-140,Y=300,Z=100) false () false passes NewLocation, bSweep, SweepHitResult (out, any value), bTeleport. A bad argument fails with the parameter list.",
+  "description": "Call a function or custom event on a play-world actor with space-separated arguments in parameter order, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\". Structs use Unreal text form without spaces: K2_SetActorLocation (X=-140,Y=300,Z=100) false () false passes NewLocation, bSweep, SweepHitResult (out, any value), bTeleport. A bad argument fails with the parameter list.",
   "inputSchema": {
    "type": "object",
    "properties": {

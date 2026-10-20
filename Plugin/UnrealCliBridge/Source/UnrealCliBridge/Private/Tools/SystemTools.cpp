@@ -7,6 +7,9 @@
 #include "FileHelpers.h"
 #include "HAL/PlatformProcess.h"
 #include "HighResScreenshot.h"
+#include "ImageUtils.h"
+#include "Misc/FileHelper.h"
+#include "RenderingThread.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/Paths.h"
@@ -281,7 +284,9 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 		EToolFlags::Mutating | EToolFlags::NoUndo,
 		[](const FToolCallRef& Call)
 		{
-			if (!ActiveViewportClient())
+			FEditorViewportClient* Client = ActiveViewportClient();
+			FViewport* VP = Client ? GEditor->GetActiveViewport() : nullptr;
+			if (!VP)
 			{
 				Call->Fail(TEXT("editor.no_viewport"), TEXT("no active viewport to capture"));
 				return;
@@ -289,10 +294,33 @@ void UCli::RegisterSystemTools(FToolRegistry& R)
 			// Relative paths are under the project (the editor's working directory is the engine's Binaries folder).
 			const FString Requested = Call->GetString(TEXT("path"));
 			const FString Path = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(Requested) ? FPaths::ProjectDir() / Requested : Requested);
-			FScreenshotRequest::RequestScreenshot(Path, false, false);
+			// A queued screenshot request is only served when the viewport redraws, which an unfocused editor may never do:
+			// draw the viewport now and read its pixels so the PNG exists when the call returns.
+			Client->Invalidate();
+			VP->Draw(false);
+			FlushRenderingCommands();
+			TArray<FColor> Pixels;
+			const FIntPoint Size = VP->GetSizeXY();
+			if (!VP->ReadPixels(Pixels) || Pixels.Num() == 0 || Pixels.Num() != Size.X * Size.Y)
+			{
+				Call->Fail(TEXT("editor.screenshot_failed"), TEXT("could not read the editor viewport (an editor started with --null-rhi has none)"), TEXT("open the editor with rendering: unrealengine-cli editor open"));
+				return;
+			}
+			for (FColor& C : Pixels)
+			{
+				C.A = 255;
+			}
+			TArray64<uint8> Png;
+			FImageUtils::PNGCompressImageArray(Size.X, Size.Y, TArrayView64<const FColor>(Pixels.GetData(), Pixels.Num()), Png);
+			if (!FFileHelper::SaveArrayToFile(Png, *Path))
+			{
+				Call->Fail(TEXT("io.write"), FString::Printf(TEXT("could not write %s"), *Path));
+				return;
+			}
 			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 			O->SetStringField(TEXT("path"), Path);
-			O->SetBoolField(TEXT("requested"), true);
+			O->SetNumberField(TEXT("width"), Size.X);
+			O->SetNumberField(TEXT("height"), Size.Y);
 			Call->Succeed(O);
 		});
 }

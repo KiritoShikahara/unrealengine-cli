@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.1
+
+- `setup --prebuilt`: keeps a Blueprint-only project Blueprint-only; the plugin is compiled with `RunUAT BuildPlugin`
+  and shipped with binaries instead of adding a C++ module.
+- `bp_add_variable` (and function/struct field types) accept `map<K,V>` and `set<T>`.
+- `bp_add_graph`: add an event graph page such as `InterfaceGraph` (#11).
+- `install.bat` also installs `rustfmt` and `clippy`.
+- Niagara: `niagara_modules_list` (modules per stage with inputs, types, values, enum options, and renderers),
+  `niagara_module_enable`, `niagara_renderer_set` (e.g. the sprite Material); `niagara_input_set` sets enum and
+  static switch inputs (#15).
+- `editor_screenshot` writes the PNG before it returns (it no longer depends on a viewport redraw) (#5).
+- `fab add` reports `fab.in_progress` when the listing is already downloading (#3).
+- Warnings go to stderr in text output, so stdout stays valid JSON (#12).
+- `prop_set` accepts a level actor label for object references (#13).
+- `pie_call` fails with the parameter list when an argument cannot be read, instead of `ok` with no effect (#14).
+- `bp_add_component` with `name=DefaultSceneRoot` uses the Blueprint's root, `parent=DefaultSceneRoot` works, and a
+  name that would be changed is an error instead of a silent rename (#16).
+- `bp_add_function override=true` overrides a parent function (with its Parent: call node); `bp_add_node
+  type=CallParent` places a parent call; a plain function with a parent's name is refused (#17).
+- Variable, map and set types accept enums, including User Defined Enum assets by name or path (#18).
+
 ## 0.6.0
 
 - Visual checks: `visual baseline|compare|diff` (Tests/Visual/<name>.png, tolerance and threshold, red difference

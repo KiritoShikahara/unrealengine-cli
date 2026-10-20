@@ -110,6 +110,9 @@ pub enum Command {
         /// Add a minimal C++ module to a Blueprint-only project
         #[arg(long = "add-code-module")]
         add_code_module: bool,
+        /// Keep a Blueprint-only project: ship the plugin with prebuilt binaries (RunUAT BuildPlugin)
+        #[arg(long, conflicts_with = "add_code_module")]
+        prebuilt: bool,
     },
     /// Check engine, build tools, plugin and editor
     Doctor {
@@ -475,7 +478,11 @@ fn dispatch(
         Command::Setup {
             build,
             add_code_module,
-        } => ("setup", project::setup_cmd(ctx, build, add_code_module)),
+            prebuilt,
+        } => (
+            "setup",
+            project::setup_cmd(ctx, build, add_code_module, prebuilt),
+        ),
         Command::Doctor { report } => ("doctor", project::doctor_cmd(ctx, report)),
         Command::Editor { action } => match action {
             EditorCmd::Open {

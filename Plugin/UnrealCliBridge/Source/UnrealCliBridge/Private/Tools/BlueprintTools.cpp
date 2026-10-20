@@ -7,6 +7,9 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "FileHelpers.h"
 #include "K2Node_CallFunction.h"
+#include "K2Node_CallParentFunction.h"
+#include "Engine/UserDefinedEnum.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "K2Node_CustomEvent.h"
 #include "Net/UnrealNetwork.h"
 #include "K2Node_DynamicCast.h"
@@ -138,19 +141,65 @@ namespace UCli::BP
 		}
 		if (T.ContainerType == EPinContainerType::Array) S += TEXT("[]");
 		if (T.ContainerType == EPinContainerType::Set) S = TEXT("set<") + S + TEXT(">");
-		if (T.ContainerType == EPinContainerType::Map) S = TEXT("map<") + S + TEXT(">");
+		if (T.ContainerType == EPinContainerType::Map)
+		{
+			FString V = T.PinValueType.TerminalCategory.ToString();
+			if (T.PinValueType.TerminalSubCategoryObject.IsValid()) V = T.PinValueType.TerminalSubCategoryObject->GetName();
+			else if (!T.PinValueType.TerminalSubCategory.IsNone()) V = T.PinValueType.TerminalSubCategory.ToString();
+			S = TEXT("map<") + S + TEXT(",") + V + TEXT(">");
+		}
 		return S;
 	}
+
+	bool ParseBaseType(const FString& InSpec, const FString& Spec, FEdGraphPinType& Out, FString& Error);
 
 	bool ParseType(const FString& InSpec, FEdGraphPinType& Out, FString& Error)
 	{
 		FString Spec = InSpec.TrimStartAndEnd();
 		Out = FEdGraphPinType();
+		const FString Lower = Spec.ToLower();
+		if ((Lower.StartsWith(TEXT("map<")) || Lower.StartsWith(TEXT("set<"))) && Spec.EndsWith(TEXT(">")))
+		{
+			const bool bMap = Lower.StartsWith(TEXT("map<"));
+			const FString Inner = Spec.Mid(4, Spec.Len() - 5);
+			FString Key = Inner, Value;
+			if (bMap && !Inner.Split(TEXT(","), &Key, &Value))
+			{
+				Error = FString::Printf(TEXT("map type needs a key and a value, e.g. map<string,int>: '%s'"), *InSpec);
+				return false;
+			}
+			if (!ParseBaseType(InSpec, Key.TrimStartAndEnd(), Out, Error))
+			{
+				return false;
+			}
+			Out.ContainerType = bMap ? EPinContainerType::Map : EPinContainerType::Set;
+			if (bMap)
+			{
+				FEdGraphPinType V;
+				if (!ParseBaseType(InSpec, Value.TrimStartAndEnd(), V, Error))
+				{
+					return false;
+				}
+				Out.PinValueType = FEdGraphTerminalType::FromPinType(V);
+			}
+			return true;
+		}
 		if (Spec.EndsWith(TEXT("[]")))
 		{
-			Out.ContainerType = EPinContainerType::Array;
 			Spec.LeftChopInline(2);
+			if (!ParseBaseType(InSpec, Spec.TrimStartAndEnd(), Out, Error))
+			{
+				return false;
+			}
+			Out.ContainerType = EPinContainerType::Array;
+			return true;
 		}
+		return ParseBaseType(InSpec, Spec, Out, Error);
+	}
+
+	bool ParseBaseType(const FString& InSpec, const FString& Spec, FEdGraphPinType& Out, FString& Error)
+	{
+		Out = FEdGraphPinType();
 		const FString L = Spec.ToLower();
 		if (L == TEXT("bool")) { Out.PinCategory = UEdGraphSchema_K2::PC_Boolean; return true; }
 		if (L == TEXT("int")) { Out.PinCategory = UEdGraphSchema_K2::PC_Int; return true; }
@@ -170,13 +219,44 @@ namespace UCli::BP
 		{
 			return Struct(S);
 		}
+		// Enums (native or User Defined Enum assets) by name or asset path; enum pins are bytes with the enum as sub-object.
+		UEnum* En = nullptr;
+		if (Spec.StartsWith(TEXT("/")))
+		{
+			En = LoadObject<UEnum>(nullptr, *ObjectPath(Spec), nullptr, LOAD_NoWarn | LOAD_Quiet);
+			if (!En)
+			{
+				if (UScriptStruct* S = LoadObject<UScriptStruct>(nullptr, *ObjectPath(Spec), nullptr, LOAD_NoWarn | LOAD_Quiet)) return Struct(S);
+			}
+		}
+		else
+		{
+			En = FindFirstObject<UEnum>(*Spec, EFindFirstObjectOptions::NativeFirst);
+			if (!En)
+			{
+				// Not loaded yet: find the asset by name.
+				TArray<FAssetData> Assets;
+				IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+				Registry.GetAssetsByClass(UUserDefinedEnum::StaticClass()->GetClassPathName(), Assets);
+				if (const FAssetData* A = Assets.FindByPredicate([&Spec](const FAssetData& D) { return D.AssetName.ToString() == Spec; }))
+				{
+					En = Cast<UEnum>(A->GetAsset());
+				}
+			}
+		}
+		if (En)
+		{
+			Out.PinCategory = UEdGraphSchema_K2::PC_Byte;
+			Out.PinSubCategoryObject = En;
+			return true;
+		}
 		if (UClass* C = ResolveClass(Spec))
 		{
 			Out.PinCategory = UEdGraphSchema_K2::PC_Object;
 			Out.PinSubCategoryObject = C;
 			return true;
 		}
-		Error = FString::Printf(TEXT("unknown type '%s' (bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [])"), *InSpec);
+		Error = FString::Printf(TEXT("unknown type '%s' (bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>|<enum>, optional [] or map<K,V> / set<T>)"), *InSpec);
 		return false;
 	}
 
@@ -672,8 +752,8 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(GraphJson(G));
 		});
 
-	R.Add(TEXT("bp_add_node"), TEXT("blueprint"), TEXT("Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString)."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro","InputAction","ComponentEvent","SpawnActor","CreateWidget","CallDispatcher","BindDispatcher","MakeStruct","BreakStruct","SwitchEnum","Timeline","Node"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"delegate":{"type":"string"},"properties":{"type":"object"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
+	R.Add(TEXT("bp_add_node"), TEXT("blueprint"), TEXT("Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | CallParent (function or event of the parent class, the Parent: node of an override) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"graph":{"type":"string"},"type":{"type":"string","enum":["Event","CustomEvent","CallFunction","VariableGet","VariableSet","Branch","Sequence","Self","Cast","Macro","InputAction","ComponentEvent","SpawnActor","CreateWidget","CallDispatcher","BindDispatcher","MakeStruct","BreakStruct","SwitchEnum","Timeline","CallParent","Node"]},"memberName":{"type":"string"},"memberParent":{"type":"string"},"delegate":{"type":"string"},"properties":{"type":"object"},"position":{"type":"array","items":{"type":"number"}}},"required":["path","type"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
 		{
@@ -728,6 +808,18 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 					N->EventReference.SetExternalMember(F->GetFName(), FuncOwner);
 					N->bOverrideFunction = true;
 				});
+			}
+			else if (Type == TEXT("CallParent"))
+			{
+				if (!NeedMember()) return;
+				UFunction* F = B->ParentClass ? B->ParentClass->FindFunctionByName(*Member) : nullptr;
+				if (!F) F = B->ParentClass ? B->ParentClass->FindFunctionByName(*(TEXT("Receive") + Member)) : nullptr;
+				if (!F)
+				{
+					Call->Fail(TEXT("blueprint.function_not_found"), FString::Printf(TEXT("the parent class %s has no function '%s'"), B->ParentClass ? *B->ParentClass->GetName() : TEXT("?"), *Member));
+					return;
+				}
+				Node = Place<UK2Node_CallParentFunction>(G, Call, [F](UK2Node_CallParentFunction* N) { N->SetFromFunction(F); });
 			}
 			else if (Type == TEXT("CustomEvent"))
 			{
@@ -1140,7 +1232,7 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
-	R.Add(TEXT("bp_add_variable"), TEXT("blueprint"), TEXT("Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional []."),
+	R.Add(TEXT("bp_add_variable"), TEXT("blueprint"), TEXT("Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [], or a container map<K,V> / set<T> (e.g. map<string,int>)."),
 		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"type":{"type":"string"},"defaultValue":{"type":"string"},"instanceEditable":{"type":"boolean"},"category":{"type":"string"}},"required":["path","name","type"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
@@ -1198,8 +1290,8 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(MakeShared<FJsonObject>());
 		});
 
-	R.Add(TEXT("bp_add_function"), TEXT("blueprint"), TEXT("Add a function graph with optional inputs/outputs [{name,type}]."),
-		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"inputs":{"type":"array"},"outputs":{"type":"array"},"pure":{"type":"boolean"}},"required":["path","name"]})"),
+	R.Add(TEXT("bp_add_graph"), TEXT("blueprint"), TEXT("Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"}},"required":["path","name"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)
 		{
@@ -1209,6 +1301,57 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			if (FindGraph(B, Name.ToString()))
 			{
 				Call->Fail(TEXT("blueprint.graph_exists"), FString::Printf(TEXT("graph '%s' already exists"), *Name.ToString()));
+				return;
+			}
+			if (B->BlueprintType == BPTYPE_Interface || B->BlueprintType == BPTYPE_FunctionLibrary || B->BlueprintType == BPTYPE_MacroLibrary)
+			{
+				Call->Fail(TEXT("blueprint.no_event_graph"), TEXT("this kind of Blueprint has no event graphs"));
+				return;
+			}
+			B->Modify();
+			UEdGraph* G = FBlueprintEditorUtils::CreateNewGraph(B, Name, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddUbergraphPage(B, G);
+			Touch(B, true);
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("graph"), G->GetName());
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bp_add_function"), TEXT("blueprint"), TEXT("Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint)."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"inputs":{"type":"array"},"outputs":{"type":"array"},"pure":{"type":"boolean"},"override":{"type":"boolean"}},"required":["path","name"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			const FName Name(*Call->GetString(TEXT("name")));
+			if (FindGraph(B, Name.ToString()))
+			{
+				Call->Fail(TEXT("blueprint.graph_exists"), FString::Printf(TEXT("graph '%s' already exists"), *Name.ToString()));
+				return;
+			}
+			UFunction* ParentFn = B->ParentClass ? B->ParentClass->FindFunctionByName(Name) : nullptr;
+			if (Call->GetBool(TEXT("override")))
+			{
+				UFunction* OverrideFn = nullptr;
+				UClass* OverrideClass = FBlueprintEditorUtils::GetOverrideFunctionClass(B, Name, &OverrideFn);
+				if (!OverrideClass || !OverrideFn || !UEdGraphSchema_K2::CanKismetOverrideFunction(OverrideFn))
+				{
+					Call->Fail(TEXT("blueprint.not_overridable"), FString::Printf(TEXT("'%s' is not an overridable function of %s"), *Name.ToString(), B->ParentClass ? *B->ParentClass->GetName() : TEXT("?")));
+					return;
+				}
+				B->Modify();
+				UEdGraph* G = FBlueprintEditorUtils::CreateNewGraph(B, Name, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+				FBlueprintEditorUtils::AddFunctionGraph(B, G, /*bIsUserCreated=*/ false, OverrideClass);
+				Touch(B, true);
+				TSharedPtr<FJsonObject> O = GraphJson(G);
+				O->SetBoolField(TEXT("override"), true);
+				Call->Succeed(O);
+				return;
+			}
+			if (ParentFn)
+			{
+				Call->Fail(TEXT("blueprint.function_in_parent"), FString::Printf(TEXT("the parent class %s already has a function '%s'"), *B->ParentClass->GetName(), *Name.ToString()), TEXT("override it: bp_add_function override=true (or pick another name)"));
 				return;
 			}
 			B->Modify();
@@ -1388,16 +1531,51 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			}
 			USimpleConstructionScript* SCS = B->SimpleConstructionScript;
 			SCS->Modify();
+			// A new Actor Blueprint gets its DefaultSceneRoot node lazily (when the editor opens it); make it findable by name.
+			SCS->ValidateSceneRootNodes();
+			auto FindNode = [SCS](const FString& N) -> USCS_Node*
+			{
+				if (USCS_Node* Found = SCS->FindSCSNode(FName(*N))) return Found;
+				USCS_Node* Root = SCS->GetDefaultSceneRootNode();
+				return Root && Root->GetVariableName().ToString() == N ? Root : nullptr;
+			};
 			const FString Name = Call->GetString(TEXT("name"));
-			USCS_Node* Node = SCS->CreateNode(C, Name.IsEmpty() ? NAME_None : FName(*Name));
+			if (!Name.IsEmpty())
+			{
+				if (USCS_Node* Existing = FindNode(Name))
+				{
+					if (Existing == SCS->GetDefaultSceneRootNode() && C == USceneComponent::StaticClass() && !Call->Has(TEXT("parent")))
+					{
+						// The Blueprint already has this root, as the editor shows it.
+						TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+						O->SetStringField(TEXT("name"), Name);
+						O->SetStringField(TEXT("class"), C->GetName());
+						O->SetBoolField(TEXT("existing"), true);
+						Call->Succeed(O);
+						return;
+					}
+					Call->Fail(TEXT("blueprint.component_exists"), FString::Printf(TEXT("a component named '%s' already exists"), *Name), TEXT("pick another name, or use it as parent"));
+					return;
+				}
+			}
+			USCS_Node* Parent = nullptr;
 			if (Call->Has(TEXT("parent")))
 			{
-				USCS_Node* Parent = SCS->FindSCSNode(FName(*Call->GetString(TEXT("parent"))));
+				Parent = FindNode(Call->GetString(TEXT("parent")));
 				if (!Parent)
 				{
 					Call->Fail(TEXT("blueprint.component_not_found"), FString::Printf(TEXT("no component '%s'"), *Call->GetString(TEXT("parent"))));
 					return;
 				}
+			}
+			USCS_Node* Node = SCS->CreateNode(C, Name.IsEmpty() ? NAME_None : FName(*Name));
+			if (!Name.IsEmpty() && Node->GetVariableName().ToString() != Name)
+			{
+				Call->Fail(TEXT("blueprint.bad_component_name"), FString::Printf(TEXT("'%s' cannot be used as a component name (the engine would rename it to '%s')"), *Name, *Node->GetVariableName().ToString()), TEXT("pick another name"));
+				return;
+			}
+			if (Parent)
+			{
 				Parent->AddChildNode(Node);
 			}
 			else

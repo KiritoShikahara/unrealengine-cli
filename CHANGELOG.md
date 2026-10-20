@@ -17,6 +17,9 @@
 - `pie_call` fails with the parameter list when an argument cannot be read, instead of `ok` with no effect (#14).
 - `bp_add_component` with `name=DefaultSceneRoot` uses the Blueprint's root, `parent=DefaultSceneRoot` works, and a
   name that would be changed is an error instead of a silent rename (#16).
+- `bp_add_function override=true` overrides a parent function (with its Parent: call node); `bp_add_node
+  type=CallParent` places a parent call; a plain function with a parent's name is refused (#17).
+- Variable, map and set types accept enums, including User Defined Enum assets by name or path (#18).
 
 ## 0.6.0
 

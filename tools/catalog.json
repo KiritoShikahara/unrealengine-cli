@@ -742,8 +742,8 @@
  {
   "name": "bp_add_function",
   "group": "blueprint",
-  "summary": "Add a function graph with optional inputs/outputs [{name,type}].",
-  "description": "Add a function graph with optional inputs/outputs [{name,type}].",
+  "summary": "Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint).",
+  "description": "Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -760,6 +760,9 @@
      "type": "array"
     },
     "pure": {
+     "type": "boolean"
+    },
+    "override": {
      "type": "boolean"
     }
    },
@@ -799,8 +802,8 @@
  {
   "name": "bp_add_node",
   "group": "blueprint",
-  "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
-  "description": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
+  "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | CallParent (function or event of the parent class, the Parent: node of an override) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
+  "description": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | CallParent (function or event of the parent class, the Parent: node of an override) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -833,6 +836,7 @@
       "BreakStruct",
       "SwitchEnum",
       "Timeline",
+      "CallParent",
       "Node"
      ]
     },

@@ -92,6 +92,57 @@ bool FUCliBlueprintDefaultSceneRoot::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintOverrideParent, "UnrealCliBridge.Blueprint.OverrideAndCallParent", UCli::Test::TestFlags)
+bool FUCliBlueprintOverrideParent::RunTest(const FString&)
+{
+	const FString Base = UniquePath(TEXT("BP_Base"));
+	Call(TEXT("bp_create"), P(Base, TEXT(",\"parent\":\"Actor\"")));
+	TestTrue(TEXT("parent fn"), Ok(Call(TEXT("bp_add_function"), P(Base, TEXT(",\"name\":\"SetFinished\",\"outputs\":[{\"name\":\"Done\",\"type\":\"bool\"}]")))));
+	Call(TEXT("bp_compile"), P(Base));
+	const FString Child = UniquePath(TEXT("BP_Child"));
+	TestTrue(TEXT("child"), Ok(Call(TEXT("bp_create"), P(Child, FString::Printf(TEXT(",\"parent\":\"%s\""), *Base)))));
+	TestEqual(TEXT("plain same name refused"), Code(Call(TEXT("bp_add_function"), P(Child, TEXT(",\"name\":\"SetFinished\"")))), FString(TEXT("blueprint.function_in_parent")));
+	const TSharedPtr<FJsonObject> Ov = Call(TEXT("bp_add_function"), P(Child, TEXT(",\"name\":\"SetFinished\",\"override\":true")));
+	TestTrue(TEXT("override"), Ok(Ov));
+	bool bParentCall = false;
+	if (Ok(Ov))
+	{
+		const TSharedPtr<FJsonObject> D = Data(Ov);
+		for (const TSharedPtr<FJsonValue>& N : D->GetArrayField(TEXT("nodes")))
+		{
+			bParentCall |= N->AsObject()->GetStringField(TEXT("class")) == TEXT("K2Node_CallParentFunction");
+		}
+	}
+	TestTrue(TEXT("override has Parent: call"), bParentCall);
+	TestEqual(TEXT("not overridable"), Code(Call(TEXT("bp_add_function"), P(Child, TEXT(",\"name\":\"NoSuchFn\",\"override\":true")))), FString(TEXT("blueprint.not_overridable")));
+	TestTrue(TEXT("CallParent node"), Ok(Call(TEXT("bp_add_node"), P(Child, TEXT(",\"type\":\"CallParent\",\"memberName\":\"SetFinished\"")))));
+	TestTrue(TEXT("compiles"), Data(Call(TEXT("bp_compile"), P(Child)))->GetBoolField(TEXT("succeeded")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintEnumVariables, "UnrealCliBridge.Blueprint.EnumVariables", UCli::Test::TestFlags)
+bool FUCliBlueprintEnumVariables::RunTest(const FString&)
+{
+	const FString En = UniquePath(TEXT("EN_Status"));
+	TestTrue(TEXT("enum"), Ok(Call(TEXT("enum_create"), FString::Printf(TEXT("{\"path\":\"%s\",\"values\":[\"Locked\",\"Open\"]}"), *En))));
+	const FString EnName = FPackageName::GetShortName(En);
+	const FString Path = UniquePath(TEXT("BP_Save"));
+	Call(TEXT("bp_create"), P(Path));
+	TestTrue(TEXT("enum by name"), Ok(Call(TEXT("bp_add_variable"), P(Path, FString::Printf(TEXT(",\"name\":\"Status\",\"type\":\"%s\""), *EnName)))));
+	TestTrue(TEXT("map value enum"), Ok(Call(TEXT("bp_add_variable"), P(Path, FString::Printf(TEXT(",\"name\":\"EventStatus\",\"type\":\"map<name,%s>\""), *EnName)))));
+	TestTrue(TEXT("enum by path"), Ok(Call(TEXT("bp_add_variable"), P(Path, FString::Printf(TEXT(",\"name\":\"KeyStatus\",\"type\":\"map<name,%s>\""), *En)))));
+	const TSharedPtr<FJsonObject> Info = Data(Call(TEXT("bp_get"), P(Path)));
+	const TArray<TSharedPtr<FJsonValue>>& Vars = Info->GetArrayField(TEXT("variables"));
+	TestEqual(TEXT("three"), Vars.Num(), 3);
+	if (Vars.Num() == 3)
+	{
+		TestEqual(TEXT("single"), Vars[0]->AsObject()->GetStringField(TEXT("type")), EnName);
+		TestEqual(TEXT("map"), Vars[1]->AsObject()->GetStringField(TEXT("type")), FString::Printf(TEXT("map<name,%s>"), *EnName));
+	}
+	TestTrue(TEXT("compiles"), Data(Call(TEXT("bp_compile"), P(Path)))->GetBoolField(TEXT("succeeded")));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintVariables, "UnrealCliBridge.Blueprint.Variables", UCli::Test::TestFlags)
 bool FUCliBlueprintVariables::RunTest(const FString&)
 {

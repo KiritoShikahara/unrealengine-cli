@@ -1244,6 +1244,33 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(MakeShared<FJsonObject>());
 		});
 
+	R.Add(TEXT("bp_add_graph"), TEXT("blueprint"), TEXT("Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"}},"required":["path","name"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBlueprint* B = RequireBP(Call);
+			if (!B) return;
+			const FName Name(*Call->GetString(TEXT("name")));
+			if (FindGraph(B, Name.ToString()))
+			{
+				Call->Fail(TEXT("blueprint.graph_exists"), FString::Printf(TEXT("graph '%s' already exists"), *Name.ToString()));
+				return;
+			}
+			if (B->BlueprintType == BPTYPE_Interface || B->BlueprintType == BPTYPE_FunctionLibrary || B->BlueprintType == BPTYPE_MacroLibrary)
+			{
+				Call->Fail(TEXT("blueprint.no_event_graph"), TEXT("this kind of Blueprint has no event graphs"));
+				return;
+			}
+			B->Modify();
+			UEdGraph* G = FBlueprintEditorUtils::CreateNewGraph(B, Name, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddUbergraphPage(B, G);
+			Touch(B, true);
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("graph"), G->GetName());
+			Call->Succeed(O);
+		});
+
 	R.Add(TEXT("bp_add_function"), TEXT("blueprint"), TEXT("Add a function graph with optional inputs/outputs [{name,type}]."),
 		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"inputs":{"type":"array"},"outputs":{"type":"array"},"pure":{"type":"boolean"}},"required":["path","name"]})"),
 		EToolFlags::Mutating,

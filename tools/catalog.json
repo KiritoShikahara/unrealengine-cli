@@ -773,6 +773,30 @@
   "minEngine": "5.5"
  },
  {
+  "name": "bp_add_graph",
+  "group": "blueprint",
+  "summary": "Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>.",
+  "description": "Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "bp_add_node",
   "group": "blueprint",
   "summary": "Add a node. type and memberName: Event (overridable event) | CustomEvent (name) | CallFunction (function; memberParent = class) | VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) | Branch | Sequence | Self | Cast (class) | Macro (ForEachLoop, DoOnce, Gate...) | InputAction (Input Action asset) | ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) | SpawnActor (actor class) | CreateWidget (widget Blueprint) | CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) | MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) | SwitchEnum (enum) | Timeline (name from bp_add_timeline) | Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString).",

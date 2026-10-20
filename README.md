@@ -3,7 +3,7 @@
 [日本語](README.ja.md)
 
 `unrealengine-cli` is a Rust CLI that lets AI agents (Claude Code, Codex, Cursor, ...) drive Unreal Editor 5.5–5.8.
-It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 181 editor tools:
+It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 182 editor tools:
 Blueprints, levels and actors, assets, reflected properties, C++ (Live Coding / rebuild), PIE, Automation tests,
 animation, UMG, materials, Niagara, landscapes, Enhanced Input, data assets, Sequencer, audio and packaging;
 multiplayer (PIE worlds, replication, RPCs, dedicated servers, online sessions), GAS and gameplay tags, lighting and

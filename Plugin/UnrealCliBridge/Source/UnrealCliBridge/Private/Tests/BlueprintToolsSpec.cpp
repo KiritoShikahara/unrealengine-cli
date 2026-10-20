@@ -51,6 +51,31 @@ bool FUCliBlueprintPrintString::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintEventGraphPage, "UnrealCliBridge.Blueprint.EventGraphPage", UCli::Test::TestFlags)
+bool FUCliBlueprintEventGraphPage::RunTest(const FString&)
+{
+	const FString Bpi = UniquePath(TEXT("BPI_Notify"));
+	TestTrue(TEXT("interface"), Ok(Call(TEXT("bp_create"), P(Bpi, TEXT(",\"kind\":\"interface\"")))));
+	TestTrue(TEXT("interface fn"), Ok(Call(TEXT("bp_add_function"), P(Bpi, TEXT(",\"name\":\"Notified\"")))));
+	Call(TEXT("bp_compile"), P(Bpi));
+
+	const FString Path = UniquePath(TEXT("BP_Pages"));
+	TestTrue(TEXT("create"), Ok(Call(TEXT("bp_create"), P(Path, TEXT(",\"parent\":\"Actor\"")))));
+	TestTrue(TEXT("implement"), Ok(Call(TEXT("bp_implement_interface"), P(Path, FString::Printf(TEXT(",\"interface\":\"%s\""), *Bpi)))));
+	TestTrue(TEXT("add graph"), Ok(Call(TEXT("bp_add_graph"), P(Path, TEXT(",\"name\":\"InterfaceGraph\"")))));
+	TestEqual(TEXT("duplicate graph"), Code(Call(TEXT("bp_add_graph"), P(Path, TEXT(",\"name\":\"InterfaceGraph\"")))), FString(TEXT("blueprint.graph_exists")));
+	TestTrue(TEXT("event in page"), Ok(Call(TEXT("bp_add_node"), P(Path, FString::Printf(TEXT(",\"graph\":\"InterfaceGraph\",\"type\":\"Event\",\"memberName\":\"Notified\",\"memberParent\":\"%s\""), *Bpi)))));
+	bool bListed = false;
+	const TSharedPtr<FJsonObject> Info = Data(Call(TEXT("bp_get"), P(Path)));
+	for (const TSharedPtr<FJsonValue>& G : Info->GetArrayField(TEXT("graphs")))
+	{
+		bListed |= G->AsObject()->GetStringField(TEXT("name")) == TEXT("InterfaceGraph");
+	}
+	TestTrue(TEXT("listed"), bListed);
+	TestTrue(TEXT("compiles"), Data(Call(TEXT("bp_compile"), P(Path)))->GetBoolField(TEXT("succeeded")));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintVariables, "UnrealCliBridge.Blueprint.Variables", UCli::Test::TestFlags)
 bool FUCliBlueprintVariables::RunTest(const FString&)
 {

@@ -1,6 +1,6 @@
 # Tool catalog
 
-181 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+182 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -66,6 +66,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `bp_add_component` | yes | Add a component to the Blueprint's construction script (optionally under a parent component). |
 | `bp_add_event_dispatcher` | yes | Add an event dispatcher with optional inputs [{name,type}]; then bp_compile and use CallDispatcher / BindDispatcher nodes. |
 | `bp_add_function` | yes | Add a function graph with optional inputs/outputs [{name,type}]. |
+| `bp_add_graph` | yes | Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>. |
 | `bp_add_node` | yes | Add a node. type and memberName: Event (overridable event) / CustomEvent (name) / CallFunction (function; memberParent = class) / VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) / Branch / Sequence / Self / Cast (class) / Macro (ForEachLoop, DoOnce, Gate...) / InputAction (Input Action asset) / ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) / SpawnActor (actor class) / CreateWidget (widget Blueprint) / CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) / MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) / SwitchEnum (enum) / Timeline (name from bp_add_timeline) / Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString). |
 | `bp_add_timeline` | yes | Add a timeline with float tracks [{name, keys:[[time,value],...]}] and place its node in the event graph (outputs: Update, Finished and one pin per track). |
 | `bp_add_variable` | yes | Add a member variable. type: bool/int/int64/byte/float/double/string/name/text/vector/rotator/transform/color/<class>/<struct>, optional [], or map<K,V> / set<T> (e.g. map<string,int>). |

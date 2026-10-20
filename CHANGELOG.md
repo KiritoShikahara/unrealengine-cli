@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+- `setup --prebuilt`: keeps a Blueprint-only project Blueprint-only; the plugin is compiled with `RunUAT BuildPlugin`
+  and shipped with binaries instead of adding a C++ module.
+- `bp_add_variable` (and function/struct field types) accept `map<K,V>` and `set<T>`.
+- `bp_add_graph`: add an event graph page such as `InterfaceGraph` (#11).
+- `install.bat` also installs `rustfmt` and `clippy`.
+
 ## 0.6.0
 
 - Visual checks: `visual baseline|compare|diff` (Tests/Visual/<name>.png, tolerance and threshold, red difference

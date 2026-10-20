@@ -138,19 +138,65 @@ namespace UCli::BP
 		}
 		if (T.ContainerType == EPinContainerType::Array) S += TEXT("[]");
 		if (T.ContainerType == EPinContainerType::Set) S = TEXT("set<") + S + TEXT(">");
-		if (T.ContainerType == EPinContainerType::Map) S = TEXT("map<") + S + TEXT(">");
+		if (T.ContainerType == EPinContainerType::Map)
+		{
+			FString V = T.PinValueType.TerminalCategory.ToString();
+			if (T.PinValueType.TerminalSubCategoryObject.IsValid()) V = T.PinValueType.TerminalSubCategoryObject->GetName();
+			else if (!T.PinValueType.TerminalSubCategory.IsNone()) V = T.PinValueType.TerminalSubCategory.ToString();
+			S = TEXT("map<") + S + TEXT(",") + V + TEXT(">");
+		}
 		return S;
 	}
+
+	bool ParseBaseType(const FString& InSpec, const FString& Spec, FEdGraphPinType& Out, FString& Error);
 
 	bool ParseType(const FString& InSpec, FEdGraphPinType& Out, FString& Error)
 	{
 		FString Spec = InSpec.TrimStartAndEnd();
 		Out = FEdGraphPinType();
+		const FString Lower = Spec.ToLower();
+		if ((Lower.StartsWith(TEXT("map<")) || Lower.StartsWith(TEXT("set<"))) && Spec.EndsWith(TEXT(">")))
+		{
+			const bool bMap = Lower.StartsWith(TEXT("map<"));
+			const FString Inner = Spec.Mid(4, Spec.Len() - 5);
+			FString Key = Inner, Value;
+			if (bMap && !Inner.Split(TEXT(","), &Key, &Value))
+			{
+				Error = FString::Printf(TEXT("map type needs a key and a value, e.g. map<string,int>: '%s'"), *InSpec);
+				return false;
+			}
+			if (!ParseBaseType(InSpec, Key.TrimStartAndEnd(), Out, Error))
+			{
+				return false;
+			}
+			Out.ContainerType = bMap ? EPinContainerType::Map : EPinContainerType::Set;
+			if (bMap)
+			{
+				FEdGraphPinType V;
+				if (!ParseBaseType(InSpec, Value.TrimStartAndEnd(), V, Error))
+				{
+					return false;
+				}
+				Out.PinValueType = FEdGraphTerminalType::FromPinType(V);
+			}
+			return true;
+		}
 		if (Spec.EndsWith(TEXT("[]")))
 		{
-			Out.ContainerType = EPinContainerType::Array;
 			Spec.LeftChopInline(2);
+			if (!ParseBaseType(InSpec, Spec.TrimStartAndEnd(), Out, Error))
+			{
+				return false;
+			}
+			Out.ContainerType = EPinContainerType::Array;
+			return true;
 		}
+		return ParseBaseType(InSpec, Spec, Out, Error);
+	}
+
+	bool ParseBaseType(const FString& InSpec, const FString& Spec, FEdGraphPinType& Out, FString& Error)
+	{
+		Out = FEdGraphPinType();
 		const FString L = Spec.ToLower();
 		if (L == TEXT("bool")) { Out.PinCategory = UEdGraphSchema_K2::PC_Boolean; return true; }
 		if (L == TEXT("int")) { Out.PinCategory = UEdGraphSchema_K2::PC_Int; return true; }
@@ -176,7 +222,7 @@ namespace UCli::BP
 			Out.PinSubCategoryObject = C;
 			return true;
 		}
-		Error = FString::Printf(TEXT("unknown type '%s' (bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [])"), *InSpec);
+		Error = FString::Printf(TEXT("unknown type '%s' (bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [] or map<K,V> / set<T>)"), *InSpec);
 		return false;
 	}
 
@@ -1140,7 +1186,7 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
-	R.Add(TEXT("bp_add_variable"), TEXT("blueprint"), TEXT("Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional []."),
+	R.Add(TEXT("bp_add_variable"), TEXT("blueprint"), TEXT("Add a member variable. type: bool|int|int64|byte|float|double|string|name|text|vector|rotator|transform|color|<class>|<struct>, optional [], or a container map<K,V> / set<T> (e.g. map<string,int>)."),
 		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"name":{"type":"string"},"type":{"type":"string"},"defaultValue":{"type":"string"},"instanceEditable":{"type":"boolean"},"category":{"type":"string"}},"required":["path","name","type"]})"),
 		EToolFlags::Mutating,
 		[](const FToolCallRef& Call)

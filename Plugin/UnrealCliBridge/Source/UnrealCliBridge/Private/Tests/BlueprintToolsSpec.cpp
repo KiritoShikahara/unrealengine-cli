@@ -58,6 +58,9 @@ bool FUCliBlueprintVariables::RunTest(const FString&)
 	Call(TEXT("bp_create"), P(Path));
 	TestTrue(TEXT("add int"), Ok(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Health\",\"type\":\"int\",\"defaultValue\":\"100\",\"instanceEditable\":true")))));
 	TestTrue(TEXT("add array"), Ok(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Points\",\"type\":\"vector[]\"")))));
+	TestTrue(TEXT("add map"), Ok(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Scores\",\"type\":\"map<string, int>\"")))));
+	TestTrue(TEXT("add set"), Ok(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Labels\",\"type\":\"set<name>\"")))));
+	TestEqual(TEXT("bad map"), Code(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Y\",\"type\":\"map<int>\"")))), FString(TEXT("args.invalid")));
 	TestEqual(TEXT("bad type"), Code(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"X\",\"type\":\"banana\"")))), FString(TEXT("args.invalid")));
 	TestEqual(TEXT("duplicate"), Code(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Health\",\"type\":\"int\"")))), FString(TEXT("blueprint.variable_exists")));
 
@@ -69,7 +72,13 @@ bool FUCliBlueprintVariables::RunTest(const FString&)
 	TestTrue(TEXT("component"), Ok(Call(TEXT("bp_add_component"), P(Path, TEXT(",\"class\":\"StaticMeshComponent\",\"name\":\"Mesh\"")))));
 
 	const TSharedPtr<FJsonObject> Info = Data(Call(TEXT("bp_get"), P(Path)));
-	TestEqual(TEXT("two variables"), Info->GetArrayField(TEXT("variables")).Num(), 2);
+	const TArray<TSharedPtr<FJsonValue>>& Vars = Info->GetArrayField(TEXT("variables"));
+	TestEqual(TEXT("four variables"), Vars.Num(), 4);
+	if (Vars.Num() == 4)
+	{
+		TestEqual(TEXT("map type"), Vars[2]->AsObject()->GetStringField(TEXT("type")), FString(TEXT("map<string,int>")));
+		TestEqual(TEXT("set type"), Vars[3]->AsObject()->GetStringField(TEXT("type")), FString(TEXT("set<name>")));
+	}
 	TestEqual(TEXT("one component"), Info->GetArrayField(TEXT("components")).Num(), 1);
 	TestTrue(TEXT("compiles"), Data(Call(TEXT("bp_compile"), P(Path)))->GetBoolField(TEXT("succeeded")));
 

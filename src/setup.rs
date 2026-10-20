@@ -144,7 +144,12 @@ fn add_module_to_uproject(text: &str, name: &str) -> Result<String, CliError> {
 }
 
 /// Installs the plugin into the project. With `dry_run`, only reports the planned changes.
-pub fn setup(uproject: &Path, dry_run: bool, add_code_module: bool) -> Result<Value, CliError> {
+pub fn setup(
+    uproject: &Path,
+    dry_run: bool,
+    add_code_module: bool,
+    prebuilt: bool,
+) -> Result<Value, CliError> {
     let project_dir = uproject.parent().unwrap_or(Path::new("."));
     let dest = project_dir.join("Plugins").join(PLUGIN_NAME);
     let mut changes = Vec::new();
@@ -168,13 +173,14 @@ pub fn setup(uproject: &Path, dry_run: bool, add_code_module: bool) -> Result<Va
     let mut uproject_text = enable_in_uproject(&original)?.unwrap_or_else(|| original.clone());
 
     let code = has_code_module(project_dir);
-    if !code {
+    let use_prebuilt = !code && prebuilt;
+    if !code && !prebuilt {
         if !add_code_module {
             return Err(CliError::usage(
                 "setup.no_code_module",
                 "this is a Blueprint-only project; the plugin must be compiled by a C++ project target",
             )
-            .with_hint("rerun with --add-code-module to add a minimal C++ module, or add a C++ class in the editor"));
+            .with_hint("rerun with --prebuilt to keep the project Blueprint-only, or --add-code-module to add a minimal C++ module"));
         }
         let name = uproject
             .file_stem()
@@ -210,7 +216,96 @@ pub fn setup(uproject: &Path, dry_run: bool, add_code_module: bool) -> Result<Va
         "plugin": dest.to_string_lossy().replace('\\', "/"),
         "changes": changes,
         "upToDate": writes.is_empty(),
+        "prebuilt": use_prebuilt,
     }))
+}
+
+fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for e in std::fs::read_dir(from)? {
+        let e = e?;
+        let dst = to.join(e.file_name());
+        if e.file_type()?.is_dir() {
+            copy_dir(&e.path(), &dst)?;
+        } else {
+            std::fs::copy(e.path(), dst)?;
+        }
+    }
+    Ok(())
+}
+
+/// Compiles the bundled plugin with `RunUAT BuildPlugin` outside the project and copies the
+/// packaged result (with binaries) into `Plugins/UnrealCliBridge`, so a Blueprint-only project
+/// can load it without a C++ module.
+pub fn build_prebuilt(
+    engine: &crate::engine::locate::Engine,
+    uproject: &Path,
+) -> Result<Value, CliError> {
+    let io = |e: std::io::Error| CliError::internal("io.write", e.to_string());
+    let dest = uproject
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join("Plugins")
+        .join(PLUGIN_NAME);
+    let work = std::env::temp_dir().join(format!(
+        "unrealengine-cli-buildplugin-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&work);
+    let src = work.join("src").join(PLUGIN_NAME);
+    let out = work.join("out");
+    for (rel, contents) in plugin_files() {
+        let p = src.join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).map_err(io)?;
+        std::fs::write(&p, contents).map_err(io)?;
+    }
+    let uat = engine.root.join(if cfg!(windows) {
+        "Engine/Build/BatchFiles/RunUAT.bat"
+    } else {
+        "Engine/Build/BatchFiles/RunUAT.sh"
+    });
+    if !uat.is_file() {
+        return Err(CliError::usage(
+            "engine.no_build_tools",
+            format!("{} not found", uat.display()),
+        ));
+    }
+    let res = std::process::Command::new(&uat)
+        .arg("BuildPlugin")
+        .arg(format!(
+            "-Plugin={}",
+            src.join(format!("{PLUGIN_NAME}.uplugin")).display()
+        ))
+        .arg(format!("-Package={}", out.display()))
+        .arg(format!(
+            "-TargetPlatforms={}",
+            crate::engine::build::host_platform()
+        ))
+        .arg("-utf8output")
+        .output()
+        .map_err(|e| {
+            CliError::internal("setup.spawn", format!("cannot run {}: {e}", uat.display()))
+        })?;
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&res.stdout),
+        String::from_utf8_lossy(&res.stderr)
+    );
+    let lines: Vec<&str> = text.lines().collect();
+    let tail = lines[lines.len().saturating_sub(15)..].to_vec();
+    if !res.status.success() {
+        return Err(CliError::new(
+            crate::core::exit_code::ExitCode::Build,
+            "setup.build_plugin_failed",
+            "RunUAT BuildPlugin failed",
+        )
+        .with_hint("fix the first error in details.logTail (Visual Studio build tools are required) and run again")
+        .with_details(json!({ "logTail": tail })));
+    }
+    let _ = std::fs::remove_dir_all(&dest);
+    copy_dir(&out, &dest).map_err(io)?;
+    let _ = std::fs::remove_dir_all(&work);
+    Ok(json!({ "succeeded": true, "plugin": dest.to_string_lossy().replace('\\', "/") }))
 }
 
 /// Version of the bundled plugin (from the .uplugin).

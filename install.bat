@@ -28,6 +28,10 @@ del "%TEMP%\rustup-init.exe"
 set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
 
 :build
+where rustup >nul 2>nul && (
+    echo [unrealengine-cli] Installing rustfmt and clippy: rustup component add rustfmt clippy
+    rustup component add rustfmt clippy || echo [unrealengine-cli] rustfmt/clippy install failed ^(continuing^)
+)
 echo [unrealengine-cli] Installing from local source: cargo install --path . --locked
 cargo install --path . --locked
 if errorlevel 1 goto fail

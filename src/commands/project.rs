@@ -20,10 +20,11 @@ pub fn setup_cmd(
     ctx: &mut Ctx,
     build_after: bool,
     add_code_module: bool,
+    prebuilt: bool,
 ) -> Result<Value, CliError> {
     let up = ctx.uproject()?;
     if !ctx.global.dry_run {
-        let plan = setup::setup(&up, true, add_code_module)?;
+        let plan = setup::setup(&up, true, add_code_module, prebuilt)?;
         for c in plan["changes"].as_array().into_iter().flatten() {
             eprintln!(
                 "{} {}",
@@ -32,7 +33,19 @@ pub fn setup_cmd(
             );
         }
     }
-    let mut data = setup::setup(&up, ctx.global.dry_run, add_code_module)?;
+    let mut data = setup::setup(&up, ctx.global.dry_run, add_code_module, prebuilt)?;
+    if data["prebuilt"] == true && !ctx.global.dry_run {
+        if let Some(i) = editor::running_for(&up) {
+            return Err(CliError::usage(
+                "build.editor_running",
+                format!("the editor (pid {}) has this project open", i.pid),
+            )
+            .with_hint("close it first: unrealengine-cli editor close"));
+        }
+        let engine = locate::resolve(&up)?;
+        data["buildPlugin"] = setup::build_prebuilt(&engine, &up)?;
+        return Ok(data);
+    }
     if build_after && !ctx.global.dry_run {
         data["build"] = build_cmd(ctx)?;
     }

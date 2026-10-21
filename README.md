@@ -53,6 +53,7 @@ unrealengine-cli tool call landscape_create --args '{"components":2}'
 * Exit codes: 0 ok, 2 input, 3 connection, 4 editor, 5 timeout, 6 build, 1 internal.
 * `--dry-run` previews any change; editor changes are undoable (`tool call editor_undo`).
 * MCP clients: `unrealengine-cli mcp configure claude-code` registers `unrealengine-cli mcp serve`.
+* Claude Code hook: `unrealengine-cli hook install claude-code [--global]` adds a SessionStart hook; in a UE project, `hook session-start` tells new sessions to use unrealengine-cli (prints nothing elsewhere).
 * Git Bash on Windows rewrites `/Game/...` arguments; unrealengine-cli restores them.
 
 ## Verified end to end

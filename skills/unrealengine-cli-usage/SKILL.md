@@ -1,7 +1,7 @@
 ---
 name: unrealengine-cli-usage
 description: Use when an agent needs to drive Unreal Editor through unrealengine-cli: connecting, finding tools, calling them, reading errors.
-version: 1.1.0
+version: 1.2.0
 tools: []
 ---
 
@@ -20,6 +20,7 @@ Use when an agent needs to drive Unreal Editor through unrealengine-cli: connect
 5. Preview changes with `--dry-run`; undo editor changes with `unrealengine-cli tool call editor_undo`.
 6. Read `warnings` in every result: "the editor runs UnrealCliBridge X but this CLI bundles Y" means the project's plugin is outdated (close the editor, `unrealengine-cli setup --build`, reopen).
 7. For a broader check: `unrealengine-cli doctor`; for a bug report: `unrealengine-cli doctor --report`.
+8. Claude Code: `unrealengine-cli hook install claude-code` adds a SessionStart hook (`hook session-start`) so new sessions in a UE project start with this context.
 
 ## Verify
 

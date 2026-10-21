@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.5
+
+- Claude Code hook: `hook install claude-code [--global]` registers `hook session-start`, which tells new sessions in
+  an Unreal project to use unrealengine-cli (silent elsewhere).
+- Behavior Trees: `bt_remove_node`, `bt_set_node_property`, `blackboard_get`.
+- Control Rig hierarchy: `controlrig_get`, `controlrig_add_bone`, `controlrig_add_null`, `controlrig_add_control`.
+- State Trees: `statetree_create|add_state|add_task|add_transition|compile|get`. The bridge now enables the StateTree
+  and GameplayStateTree plugins.
+- New skills: unreal-cli-extend, unreal-state-tree.
+
 ## 0.6.1
 
 - `setup --prebuilt`: keeps a Blueprint-only project Blueprint-only; the plugin is compiled with `RunUAT BuildPlugin`

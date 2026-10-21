@@ -243,6 +243,11 @@ pub enum Command {
         #[command(subcommand)]
         action: SkillsCmd,
     },
+    /// Claude Code hooks: session-start context, install into settings.json (no editor needed)
+    Hook {
+        #[command(subcommand)]
+        action: HookCmd,
+    },
     /// MCP server mode
     Mcp {
         #[command(subcommand)]
@@ -290,6 +295,19 @@ pub enum SkillsCmd {
     Lint {
         #[arg(long, default_value = "warning")]
         severity: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum HookCmd {
+    /// Print the SessionStart context for the Unreal project around the current directory
+    SessionStart,
+    /// Register the SessionStart hook with a client: claude-code
+    Install {
+        client: String,
+        /// User-wide settings instead of the project's .claude/settings.json
+        #[arg(long)]
+        global: bool,
     },
 }
 
@@ -535,6 +553,13 @@ fn dispatch(
             };
             ("skills", r)
         }
+        Command::Hook { action } => match action {
+            HookCmd::SessionStart => crate::hook::session_start(&ctx.cwd),
+            HookCmd::Install { client, global } => (
+                "hook install",
+                crate::hook::install(&client, global, &ctx.cwd, ctx.global.dry_run),
+            ),
+        },
         Command::Mcp { action } => match action {
             McpCmd::Serve => ("mcp serve", crate::mcp::serve(&ctx.global)),
             McpCmd::Configure { client } => (

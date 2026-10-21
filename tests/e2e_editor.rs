@@ -966,6 +966,52 @@ fn e2e_13_ai_behavior_tree_and_navigation() {
         "{tree}"
     );
     assert_eq!(top["children"][1]["class"], "BTTask_Wait", "{tree}");
+
+    let wait_id = top["children"][1]["id"].as_str().unwrap().to_string();
+    let set = call(
+        "bt_set_node_property",
+        json!({"path": bt, "id": wait_id, "properties": {"WaitTime": 4}}),
+    );
+    assert_eq!(set["class"], "BTTask_Wait", "{set}");
+    assert!(
+        set["values"]["WaitTime"].as_str().unwrap().contains("4.0"),
+        "{set}"
+    );
+    let (_, err) = fails(
+        "bt_set_node_property",
+        json!({"path": bt, "id": wait_id, "properties": {"NoSuchProp": 1}}),
+    );
+    assert_eq!(err, "args.invalid");
+    let deco_id = top["children"][0]["attached"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    call("bt_remove_node", json!({"path": bt, "id": deco_id}));
+    let tree = call("bt_get", json!({"path": bt}));
+    assert!(
+        tree["children"][0]["children"][0]["attached"].is_null(),
+        "{tree}"
+    );
+    let chase_id = tree["children"][0]["children"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    call("bt_remove_node", json!({"path": bt, "id": chase_id}));
+    let tree = call("bt_get", json!({"path": bt}));
+    let kids = tree["children"][0]["children"].as_array().unwrap();
+    assert_eq!(kids.len(), 1, "{tree}");
+    assert_eq!(kids[0]["class"], "BTTask_Wait", "{tree}");
+    assert_eq!(tree["runnable"], true, "{tree}");
+    let (_, err) = fails("bt_remove_node", json!({"path": bt, "id": "root"}));
+    assert_eq!(err, "ai.invalid_parent");
+    let (_, err) = fails("bt_remove_node", json!({"path": bt, "id": chase_id}));
+    assert_eq!(err, "ai.node_not_found");
+    let board = call("blackboard_get", json!({"path": bb}));
+    let keys = board["keys"].as_array().unwrap();
+    assert_eq!(keys.len(), 5, "{board}"); // SelfActor + 4 added
+    let target = keys.iter().find(|k| k["name"] == "Target").unwrap();
+    assert_eq!(target["type"], "Object", "{board}");
+    assert_eq!(target["baseClass"], "Actor", "{board}");
     ok(&["asset", "save", &bt]);
 
     if !render_enabled() {
@@ -1644,6 +1690,79 @@ fn e2e_30_localization() {
         "Greeting",
     ]);
     assert_eq!(native["text"], json!(source), "{native}");
+}
+
+#[test]
+fn e2e_31_state_tree() {
+    if !enabled() {
+        return;
+    }
+    let st = root("ST_Guard");
+    let made = call("statetree_create", json!({"path": st}));
+    assert_eq!(made["schema"], "StateTreeComponentSchema", "{made}");
+    let (_, err) = fails(
+        "statetree_create",
+        json!({"path": root("ST_Bad"), "schema": "Banana"}),
+    );
+    assert_eq!(err, "statetree.schema_not_found");
+    call(
+        "statetree_add_state",
+        json!({"path": st, "parent": "Root", "name": "Idle"}),
+    );
+    call(
+        "statetree_add_state",
+        json!({"path": st, "parent": "Root", "name": "Patrol"}),
+    );
+    let (_, err) = fails(
+        "statetree_add_state",
+        json!({"path": st, "parent": "Nowhere", "name": "X"}),
+    );
+    assert_eq!(err, "statetree.state_not_found");
+    let idle = call(
+        "statetree_add_task",
+        json!({"path": st, "state": "Idle", "class": "Delay", "properties": {"Duration": 1.5}}),
+    );
+    assert_eq!(idle["tasks"][0], "StateTreeDelayTask", "{idle}");
+    let (_, err) = fails(
+        "statetree_add_task",
+        json!({"path": st, "state": "Idle", "class": "NoSuchTask"}),
+    );
+    assert_eq!(err, "statetree.task_not_found");
+    let (_, err) = fails(
+        "statetree_add_task",
+        json!({"path": st, "state": "Idle", "class": "Delay", "properties": {"Nope": 1}}),
+    );
+    assert_eq!(err, "args.invalid");
+    call(
+        "statetree_add_task",
+        json!({"path": st, "state": "Patrol", "class": "DebugText", "properties": {"Text": "patrol"}}),
+    );
+    call(
+        "statetree_add_transition",
+        json!({"path": st, "state": "Idle", "type": "GotoState", "target": "Patrol"}),
+    );
+    let patrol = call(
+        "statetree_add_transition",
+        json!({"path": st, "state": "Patrol", "trigger": "OnStateCompleted", "type": "GotoState", "target": "Idle"}),
+    );
+    assert_eq!(patrol["transitions"][0]["target"], "Idle", "{patrol}");
+    let (_, err) = fails(
+        "statetree_add_transition",
+        json!({"path": st, "state": "Patrol", "type": "Sideways"}),
+    );
+    assert_eq!(err, "args.invalid");
+    let compiled = call("statetree_compile", json!({"path": st}));
+    assert_eq!(compiled["compiled"], true, "{compiled}");
+    let tree = call("statetree_get", json!({"path": st}));
+    assert_eq!(tree["ready"], true, "{tree}");
+    assert_eq!(tree["upToDate"], true, "{tree}");
+    let kids = tree["states"][0]["children"].as_array().unwrap();
+    assert_eq!(tree["states"][0]["name"], "Root", "{tree}");
+    assert_eq!(kids.len(), 2, "{tree}");
+    assert_eq!(kids[0]["name"], "Idle", "{tree}");
+    assert_eq!(kids[0]["transitions"][0]["target"], "Patrol", "{tree}");
+    assert_eq!(kids[1]["tasks"][0], "StateTreeDebugTextTask", "{tree}");
+    ok(&["asset", "save", &st]);
 }
 
 #[test]
@@ -2339,6 +2458,37 @@ fn e2e_26_ik_retarget() {
 
     let cr = ok(&["anim", "controlrig", &root("CR_Tutorial"), "--mesh", &mesh]);
     assert!(cr["bones"].as_u64().unwrap() > 50, "{cr}");
+    let rig = root("CR_Tutorial");
+    let bones = call("controlrig_get", json!({"path": rig, "type": "bone"}));
+    let first_bone = bones["elements"][0]["name"].as_str().unwrap().to_string();
+    call(
+        "controlrig_add_null",
+        json!({"path": rig, "name": "CliSpace", "location": [0, 0, 100]}),
+    );
+    let c = call(
+        "controlrig_add_control",
+        json!({"path": rig, "name": "CliCtrl", "parent": "CliSpace", "shape": "Circle_Thick", "color": [1, 0, 0]}),
+    );
+    assert_eq!(c["type"], "control", "{c}");
+    assert_eq!(c["parent"], "CliSpace", "{c}");
+    let b = call(
+        "controlrig_add_bone",
+        json!({"path": rig, "name": "CliBone", "parent": first_bone, "location": [0, 10, 0], "local": true}),
+    );
+    assert_eq!(b["parent"], first_bone, "{b}");
+    let all = call("controlrig_get", json!({"path": rig}));
+    assert_eq!(all["counts"]["null"], 1, "{all}");
+    assert_eq!(all["counts"]["control"], 1, "{all}");
+    assert_eq!(
+        all["counts"]["bone"].as_u64().unwrap(),
+        cr["bones"].as_u64().unwrap() + 1,
+        "{all}"
+    );
+    let (_, err) = fails(
+        "controlrig_add_control",
+        json!({"path": rig, "name": "Orphan", "parent": "NoSuchElement"}),
+    );
+    assert_eq!(err, "controlrig.element_not_found");
     // TestProject enables PoseSearch.
     let ps = ok(&[
         "anim",

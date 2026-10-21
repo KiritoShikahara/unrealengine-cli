@@ -659,6 +659,26 @@
   "minEngine": "5.5"
  },
  {
+  "name": "blackboard_get",
+  "group": "ai",
+  "summary": "A Blackboard's keys (name, type, baseClass for Object/Class keys, instanceSynced) and its parent Blackboard.",
+  "description": "A Blackboard's keys (name, type, baseClass for Object/Class keys, instanceSynced) and its parent Blackboard.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "blendspace_create",
   "group": "anim",
   "summary": "Create a 2D Blend Space for a skeleton.",
@@ -1424,6 +1444,58 @@
   "minEngine": "5.5"
  },
  {
+  "name": "bt_remove_node",
+  "group": "ai",
+  "summary": "Remove a Behavior Tree node by id (from bt_get): a decorator/service is detached; a composite or task is removed with everything below it.",
+  "description": "Remove a Behavior Tree node by id (from bt_get): a decorator/service is detached; a composite or task is removed with everything below it.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "id"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "bt_set_node_property",
+  "group": "ai",
+  "summary": "Set properties on a Behavior Tree node (id from bt_get): {Name: value}; Blackboard key selectors take a key name, value-or-key properties a value or \"key:<KeyName>\". Returns the new values as text.",
+  "description": "Set properties on a Behavior Tree node (id from bt_get): {Name: value}; Blackboard key selectors take a key name, value-or-key properties a value or \"key:<KeyName>\". Returns the new values as text.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "id": {
+     "type": "string"
+    },
+    "properties": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "path",
+    "id",
+    "properties"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "code_live_compile",
   "group": "code",
   "summary": "Compile changed .cpp files with Live Coding and patch the running editor (Windows). Fails with code.live_coding_stuck after timeoutSeconds (default 300).",
@@ -1512,6 +1584,121 @@
   "minEngine": "5.5"
  },
  {
+  "name": "controlrig_add_bone",
+  "group": "anim",
+  "summary": "Add a bone to a Control Rig's hierarchy under parent (an element name; empty = top level) at location (global unless local=true).",
+  "description": "Add a bone to a Control Rig's hierarchy under parent (an element name; empty = top level) at location (global unless local=true).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "location": {
+     "type": "array"
+    },
+    "local": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "controlrig_add_control",
+  "group": "anim",
+  "summary": "Add an animator control to a Control Rig's hierarchy under parent (element name; empty = top level). controlType: transform (default), float, bool, position, rotator, scale, vector2d, integer; shape: a shape name from the rig's shape library (e.g. Circle_Thick, Box_Thin); color [r,g,b] 0-1; location is the offset.",
+  "description": "Add an animator control to a Control Rig's hierarchy under parent (element name; empty = top level). controlType: transform (default), float, bool, position, rotator, scale, vector2d, integer; shape: a shape name from the rig's shape library (e.g. Circle_Thick, Box_Thin); color [r,g,b] 0-1; location is the offset.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "controlType": {
+     "type": "string",
+     "enum": [
+      "transform",
+      "float",
+      "bool",
+      "position",
+      "rotator",
+      "scale",
+      "vector2d",
+      "integer"
+     ]
+    },
+    "shape": {
+     "type": "string"
+    },
+    "color": {
+     "type": "array"
+    },
+    "location": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "controlrig_add_null",
+  "group": "anim",
+  "summary": "Add a null (a space / group transform) to a Control Rig's hierarchy under parent (element name; empty = top level).",
+  "description": "Add a null (a space / group transform) to a Control Rig's hierarchy under parent (element name; empty = top level).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "location": {
+     "type": "array"
+    },
+    "local": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "path",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
   "name": "controlrig_create",
   "group": "anim",
   "summary": "Create a Control Rig Blueprint for a skeletal mesh with the mesh's bones imported into its hierarchy and the mesh as preview. Add controls and the Forward Solve graph in the Control Rig editor or with bp tools.",
@@ -1535,6 +1722,35 @@
    ]
   },
   "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "controlrig_get",
+  "group": "anim",
+  "summary": "A Control Rig's hierarchy: elements (name, type bone|null|control|curve, parent, global location). type filters to one element type.",
+  "description": "A Control Rig's hierarchy: elements (name, type bone|null|control|curve, parent, global location). type filters to one element type.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string",
+     "enum": [
+      "bone",
+      "null",
+      "control",
+      "curve"
+     ]
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
   "longRunning": false,
   "minEngine": "5.5"
  },
@@ -4489,6 +4705,168 @@
    ]
   },
   "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_add_state",
+  "group": "statetree",
+  "summary": "Add a child state under parent (a state name, e.g. Root). type: State (default), Group; selection: TrySelectChildrenInOrder (default), TryEnterState, TrySelectChildrenAtRandom... State names must be unique in the tree.",
+  "description": "Add a child state under parent (a state name, e.g. Root). type: State (default), Group; selection: TrySelectChildrenInOrder (default), TryEnterState, TrySelectChildrenAtRandom... State names must be unique in the tree.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "selection": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "parent",
+    "name"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_add_task",
+  "group": "statetree",
+  "summary": "Add a task to a state: class is a task struct (Delay, DebugText, RunParallelStateTree, or any FStateTreeTaskBase struct name); properties {Name: value} set its instance data (e.g. Delay {Duration: 2}).",
+  "description": "Add a task to a state: class is a task struct (Delay, DebugText, RunParallelStateTree, or any FStateTreeTaskBase struct name); properties {Name: value} set its instance data (e.g. Delay {Duration: 2}).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "state": {
+     "type": "string"
+    },
+    "class": {
+     "type": "string"
+    },
+    "properties": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "path",
+    "state",
+    "class"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_add_transition",
+  "group": "statetree",
+  "summary": "Add a transition to a state. trigger: OnStateCompleted (default), OnStateSucceeded, OnStateFailed, OnTick; type: GotoState (needs target), NextState, NextSelectableState, Succeeded, Failed.",
+  "description": "Add a transition to a state. trigger: OnStateCompleted (default), OnStateSucceeded, OnStateFailed, OnTick; type: GotoState (needs target), NextState, NextSelectableState, Succeeded, Failed.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "state": {
+     "type": "string"
+    },
+    "trigger": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "target": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path",
+    "state",
+    "type"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_compile",
+  "group": "statetree",
+  "summary": "Compile a State Tree; returns compiled and the compiler messages. Save it afterwards with asset save.",
+  "description": "Compile a State Tree; returns compiled and the compiler messages. Save it afterwards with asset save.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_create",
+  "group": "statetree",
+  "summary": "Create a State Tree asset with a schema: Component (default, StateTreeComponent on any actor), AIComponent (AI controllers), or a schema class name. Starts with one state named Root.",
+  "description": "Create a State Tree asset with a schema: Component (default, StateTreeComponent on any actor), AIComponent (AI controllers), or a schema class name. Starts with one state named Root.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "schema": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": true,
+  "longRunning": false,
+  "minEngine": "5.5"
+ },
+ {
+  "name": "statetree_get",
+  "group": "statetree",
+  "summary": "A State Tree as nested states (name, type, selection, task structs, transitions with trigger/type/target), its schema and whether the compiled data is up to date.",
+  "description": "A State Tree as nested states (name, type, selection, task structs, transitions with trigger/type/target), its schema and whether the compiled data is up to date.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ]
+  },
+  "mutating": false,
   "longRunning": false,
   "minEngine": "5.5"
  },

@@ -4,6 +4,7 @@ pub mod commands;
 pub mod core;
 pub mod doctor;
 pub mod engine;
+pub mod hook;
 pub mod instances;
 pub mod mcp;
 pub mod reference;

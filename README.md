@@ -3,7 +3,7 @@
 [日本語](README.ja.md)
 
 `unrealengine-cli` is a Rust CLI that lets AI agents (Claude Code, Codex, Cursor, ...) drive Unreal Editor 5.5–5.8.
-It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 185 editor tools:
+It talks to an editor plugin, **UnrealCliBridge**, over a loopback TCP connection and exposes 198 editor tools:
 Blueprints, levels and actors, assets, reflected properties, C++ (Live Coding / rebuild), PIE, Automation tests,
 animation, UMG, materials, Niagara, landscapes, Enhanced Input, data assets, Sequencer, audio and packaging;
 multiplayer (PIE worlds, replication, RPCs, dedicated servers, online sessions), GAS and gameplay tags, lighting and
@@ -53,6 +53,7 @@ unrealengine-cli tool call landscape_create --args '{"components":2}'
 * Exit codes: 0 ok, 2 input, 3 connection, 4 editor, 5 timeout, 6 build, 1 internal.
 * `--dry-run` previews any change; editor changes are undoable (`tool call editor_undo`).
 * MCP clients: `unrealengine-cli mcp configure claude-code` registers `unrealengine-cli mcp serve`.
+* Claude Code hook: `unrealengine-cli hook install claude-code [--global]` adds a SessionStart hook; in a UE project, `hook session-start` tells new sessions to use unrealengine-cli (prints nothing elsewhere).
 * Git Bash on Windows rewrites `/Game/...` arguments; unrealengine-cli restores them.
 
 ## Verified end to end

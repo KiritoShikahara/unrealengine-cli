@@ -251,6 +251,29 @@ namespace
 		return Node;
 	}
 
+	// Removes a node, its attached decorators/services and everything below it.
+	void RemoveBtSubtree(UBehaviorTreeGraph* G, UAIGraphNode* N)
+	{
+		TArray<UAIGraphNode*> Children;
+		if (UEdGraphPin* Out = N->GetOutputPin())
+		{
+			for (UEdGraphPin* L : Out->LinkedTo)
+			{
+				if (UAIGraphNode* C = Cast<UAIGraphNode>(L->GetOwningNode())) Children.Add(C);
+			}
+		}
+		for (UAIGraphNode* C : Children) RemoveBtSubtree(G, C);
+		N->RemoveAllSubNodes();
+		G->RemoveNode(N);
+	}
+
+	FString KeyTypeName(const UBlackboardKeyType* T)
+	{
+		FString Name = T ? T->GetClass()->GetName() : FString();
+		Name.RemoveFromStart(TEXT("BlackboardKeyType_"));
+		return Name;
+	}
+
 	UWorld* EditorWorld() { return GEditor->GetEditorWorldContext().World(); }
 
 	FVector VecArg(const FToolCallRef& Call, const TCHAR* Key, const FVector& Default)
@@ -421,6 +444,109 @@ void UCli::RegisterAiTools(FToolRegistry& R)
 			TSharedPtr<FJsonObject> O = BtNodeJson(CastChecked<UAIGraphNode>(FindBtNode(G, TEXT("root"))));
 			O->SetStringField(TEXT("blackboard"), BT->BlackboardAsset ? BT->BlackboardAsset->GetPathName() : FString());
 			O->SetBoolField(TEXT("runnable"), BT->RootNode != nullptr);
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bt_remove_node"), TEXT("ai"), TEXT("Remove a Behavior Tree node by id (from bt_get): a decorator/service is detached; a composite or task is removed with everything below it."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"id":{"type":"string"}},"required":["path","id"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBehaviorTree* BT = LoadAsset<UBehaviorTree>(Call, TEXT("path"), TEXT("ai.behavior_tree_not_found"), TEXT("create one: behavior_tree_create"));
+			if (!BT) return;
+			UBehaviorTreeGraph* G = EnsureGraph(BT);
+			const FString Id = Call->GetString(TEXT("id"));
+			UBehaviorTreeGraphNode* Node = FindBtNode(G, Id);
+			if (!Node)
+			{
+				Call->Fail(TEXT("ai.node_not_found"), FString::Printf(TEXT("no node '%s' in the tree"), *Id), TEXT("ids: bt_get"));
+				return;
+			}
+			if (Node->IsA<UBehaviorTreeGraphNode_Root>())
+			{
+				Call->Fail(TEXT("ai.invalid_parent"), TEXT("the root cannot be removed"), TEXT("remove its child instead"));
+				return;
+			}
+			BT->Modify();
+			G->Modify();
+			if (Node->bIsSubNode && Node->ParentNode) Node->ParentNode->RemoveSubNode(Node);
+			else RemoveBtSubtree(G, Node);
+			G->UpdateAsset();
+			BT->MarkPackageDirty();
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("removed"), Id);
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("bt_set_node_property"), TEXT("ai"), TEXT("Set properties on a Behavior Tree node (id from bt_get): {Name: value}; Blackboard key selectors take a key name, value-or-key properties a value or \"key:<KeyName>\". Returns the new values as text."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"},"id":{"type":"string"},"properties":{"type":"object"}},"required":["path","id","properties"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			UBehaviorTree* BT = LoadAsset<UBehaviorTree>(Call, TEXT("path"), TEXT("ai.behavior_tree_not_found"), TEXT("create one: behavior_tree_create"));
+			if (!BT) return;
+			UBehaviorTreeGraph* G = EnsureGraph(BT);
+			const FString Id = Call->GetString(TEXT("id"));
+			UBehaviorTreeGraphNode* Node = FindBtNode(G, Id);
+			if (!Node || !Node->NodeInstance)
+			{
+				Call->Fail(TEXT("ai.node_not_found"), FString::Printf(TEXT("no node '%s' with properties in the tree"), *Id), TEXT("ids: bt_get (the root has no properties)"));
+				return;
+			}
+			const TSharedPtr<FJsonObject> Props = Call->GetObject(TEXT("properties"));
+			BT->Modify();
+			Node->NodeInstance->Modify();
+			FString Error;
+			if (!SetNodeProperties(Node->NodeInstance, Props, BT->BlackboardAsset, Error))
+			{
+				Call->Fail(TEXT("args.invalid"), Error);
+				return;
+			}
+			Node->NodeInstance->PostEditChange();
+			G->UpdateAsset();
+			BT->MarkPackageDirty();
+			TSharedPtr<FJsonObject> Values = MakeShared<FJsonObject>();
+			if (Props.IsValid())
+			{
+				for (const TPair<FString, TSharedPtr<FJsonValue>>& KV : Props->Values)
+				{
+					FProperty* P = Node->NodeInstance->GetClass()->FindPropertyByName(FName(*KV.Key));
+					FString Text;
+					if (P) P->ExportTextItem_Direct(Text, P->ContainerPtrToValuePtr<void>(Node->NodeInstance), nullptr, Node->NodeInstance, PPF_None);
+					Values->SetStringField(KV.Key, Text);
+				}
+			}
+			TSharedPtr<FJsonObject> O = BtNodeJson(Node);
+			O->SetObjectField(TEXT("values"), Values);
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("blackboard_get"), TEXT("ai"), TEXT("A Blackboard's keys (name, type, baseClass for Object/Class keys, instanceSynced) and its parent Blackboard."),
+		TEXT(R"({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			UBlackboardData* BB = LoadAsset<UBlackboardData>(Call, TEXT("path"), TEXT("ai.blackboard_not_found"), TEXT("create one: blackboard_create"));
+			if (!BB) return;
+			TArray<TSharedPtr<FJsonValue>> Keys;
+			for (const FBlackboardEntry& E : BB->Keys)
+			{
+				TSharedPtr<FJsonObject> K = MakeShared<FJsonObject>();
+				K->SetStringField(TEXT("name"), E.EntryName.ToString());
+				K->SetStringField(TEXT("type"), KeyTypeName(E.KeyType));
+				if (E.KeyType)
+				{
+					if (FObjectPropertyBase* Prop = FindFProperty<FObjectPropertyBase>(E.KeyType->GetClass(), TEXT("BaseClass")))
+					{
+						if (const UClass* Base = Cast<UClass>(Prop->GetObjectPropertyValue_InContainer(E.KeyType))) K->SetStringField(TEXT("baseClass"), Base->GetName());
+					}
+				}
+				K->SetBoolField(TEXT("instanceSynced"), E.bInstanceSynced != 0);
+				Keys.Add(Obj(K));
+			}
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("path"), BB->GetPathName());
+			O->SetStringField(TEXT("parent"), BB->Parent ? BB->Parent->GetPathName() : FString());
+			O->SetArrayField(TEXT("keys"), Keys);
 			Call->Succeed(O);
 		});
 

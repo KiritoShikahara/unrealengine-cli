@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
   "Version": 2,
-  "VersionName": "0.6.1",
+  "VersionName": "0.6.5",
   "FriendlyName": "Unreal CLI Bridge",
   "Description": "Lets unrealengine-cli drive the editor over a loopback TCP connection.",
   "Category": "Editor",
@@ -22,6 +22,8 @@
     { "Name": "Niagara", "Enabled": true },
     { "Name": "OnlineSubsystem", "Enabled": true },
     { "Name": "OnlineSubsystemUtils", "Enabled": true },
-    { "Name": "GameplayTagsEditor", "Enabled": true }
+    { "Name": "GameplayTagsEditor", "Enabled": true },
+    { "Name": "StateTree", "Enabled": true },
+    { "Name": "GameplayStateTree", "Enabled": true }
   ]
 }

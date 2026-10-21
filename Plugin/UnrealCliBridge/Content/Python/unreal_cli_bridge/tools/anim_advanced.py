@@ -116,3 +116,113 @@ def controlrig_create(path, mesh, modular=False):
     _save(rig)
     return {"path": rig.get_path_name(), "mesh": sk.get_path_name(), "bones": len(bones)}
 
+
+
+_RIG_TYPES = {"bone": "BONE", "null": "NULL", "control": "CONTROL", "curve": "CURVE"}
+
+
+def _rig(path):
+    rig = load_asset_or_fail(path, unreal.ControlRigBlueprint)
+    return rig, rig.get_editor_property("hierarchy"), rig.get_hierarchy_controller()
+
+
+def _rig_key(hierarchy, name):
+    if not name:
+        return unreal.RigElementKey()
+    for k in hierarchy.get_all_keys():
+        if str(k.name) == name and k.type != unreal.RigElementType.CURVE:
+            return k
+    raise ToolError("controlrig.element_not_found", "no element '%s' in the hierarchy" % name,
+                    "names: controlrig_get")
+
+
+def _rig_element(hierarchy, key):
+    parent = hierarchy.get_first_parent(key)
+    t = hierarchy.get_global_transform(key) if key.type != unreal.RigElementType.CURVE else None
+    out = {"name": str(key.name), "type": str(key.type.name).lower(),
+           "parent": str(parent.name) if parent and str(parent.name) != "None" else ""}
+    if t is not None:
+        out["location"] = [t.translation.x, t.translation.y, t.translation.z]
+    return out
+
+
+def _transform(location):
+    t = unreal.Transform()
+    if location:
+        t.translation = unreal.Vector(*location)
+    return t
+
+
+def _added(rig, hierarchy, key):
+    if key is None or str(key.name) == "None":
+        raise ToolError("controlrig.add_failed", "the hierarchy controller refused the element (name taken or bad parent)",
+                        "use a new name; list elements with controlrig_get")
+    _save(rig)
+    return _rig_element(hierarchy, key)
+
+
+@tool("controlrig_get", "anim",
+      "A Control Rig's hierarchy: elements (name, type bone|null|control|curve, parent, global location). "
+      "type filters to one element type.",
+      {"path": {"type": "string"}, "type": {"type": "string", "enum": list(_RIG_TYPES)}},
+      ["path"])
+def controlrig_get(path, type=None):
+    rig, hierarchy, _ = _rig(path)
+    keys = hierarchy.get_all_keys()
+    if type:
+        keys = [k for k in keys if k.type == getattr(unreal.RigElementType, _RIG_TYPES[type])]
+    elements = [_rig_element(hierarchy, k) for k in keys]
+    counts = {}
+    for e in elements:
+        counts[e["type"]] = counts.get(e["type"], 0) + 1
+    return {"path": rig.get_path_name(), "counts": counts, "elements": elements}
+
+
+@tool("controlrig_add_bone", "anim",
+      "Add a bone to a Control Rig's hierarchy under parent (an element name; empty = top level) at location "
+      "(global unless local=true).",
+      {"path": {"type": "string"}, "name": {"type": "string"}, "parent": {"type": "string"},
+       "location": {"type": "array"}, "local": {"type": "boolean"}},
+      ["path", "name"], mutating=True, undoable=False)
+def controlrig_add_bone(path, name, parent="", location=None, local=False):
+    rig, hierarchy, ctrl = _rig(path)
+    key = ctrl.add_bone(name, _rig_key(hierarchy, parent), _transform(location), not local,
+                        unreal.RigBoneType.USER, True, False)
+    return _added(rig, hierarchy, key)
+
+
+@tool("controlrig_add_null", "anim",
+      "Add a null (a space / group transform) to a Control Rig's hierarchy under parent (element name; empty = top level).",
+      {"path": {"type": "string"}, "name": {"type": "string"}, "parent": {"type": "string"},
+       "location": {"type": "array"}, "local": {"type": "boolean"}},
+      ["path", "name"], mutating=True, undoable=False)
+def controlrig_add_null(path, name, parent="", location=None, local=False):
+    rig, hierarchy, ctrl = _rig(path)
+    key = ctrl.add_null(name, _rig_key(hierarchy, parent), _transform(location), not local, True, False)
+    return _added(rig, hierarchy, key)
+
+
+_CONTROL_TYPES = {"transform": "EULER_TRANSFORM", "float": "FLOAT", "bool": "BOOL", "position": "POSITION",
+                  "rotator": "ROTATOR", "scale": "SCALE", "vector2d": "VECTOR2D", "integer": "INTEGER"}
+
+
+@tool("controlrig_add_control", "anim",
+      "Add an animator control to a Control Rig's hierarchy under parent (element name; empty = top level). "
+      "controlType: transform (default), float, bool, position, rotator, scale, vector2d, integer; shape: a shape name "
+      "from the rig's shape library (e.g. Circle_Thick, Box_Thin); color [r,g,b] 0-1; location is the offset.",
+      {"path": {"type": "string"}, "name": {"type": "string"}, "parent": {"type": "string"},
+       "controlType": {"type": "string", "enum": list(_CONTROL_TYPES)}, "shape": {"type": "string"},
+       "color": {"type": "array"}, "location": {"type": "array"}},
+      ["path", "name"], mutating=True, undoable=False)
+def controlrig_add_control(path, name, parent="", controlType="transform", shape=None, color=None, location=None):
+    rig, hierarchy, ctrl = _rig(path)
+    settings = unreal.RigControlSettings()
+    settings.control_type = getattr(unreal.RigControlType, _CONTROL_TYPES[controlType])
+    if shape:
+        settings.shape_name = shape
+    if color:
+        settings.shape_color = unreal.LinearColor(color[0], color[1], color[2], 1.0)
+    key = ctrl.add_control(name, _rig_key(hierarchy, parent), settings, unreal.RigControlValue(), True, False)
+    if location and key is not None and str(key.name) != "None":
+        hierarchy.set_control_offset_transform(key, _transform(location), True)
+    return _added(rig, hierarchy, key)

@@ -19,6 +19,7 @@ namespace UCli
 		RegisterNiagaraLandscapeTools(Registry);
 		RegisterPlayTools(Registry);
 		RegisterAiTools(Registry);
+		RegisterStateTreeTools(Registry);
 		RegisterFabTools(Registry);
 		RegisterGasTools(Registry);
 		RegisterPerfTools(Registry);

@@ -1,8 +1,8 @@
 ---
 name: unreal-ai
 description: Use when giving characters AI: Blackboards, Behavior Trees, AI controllers and navigation meshes.
-version: 1.0.0
-tools: [blackboard_create, blackboard_add_key, behavior_tree_create, bt_add_node, bt_get, nav_bounds_add, nav_build, nav_path]
+version: 1.1.0
+tools: [blackboard_create, blackboard_add_key, blackboard_get, behavior_tree_create, bt_add_node, bt_get, bt_set_node_property, bt_remove_node, nav_bounds_add, nav_build, nav_path]
 ---
 
 # unreal-ai
@@ -21,9 +21,11 @@ Use when giving characters AI: Blackboards, Behavior Trees, AI controllers and n
    3. Attach conditions and periodic logic: `kind: decorator, class: Blackboard, properties: {BlackboardKey: CanSee}`, `kind: service, class: DefaultFocus`.
    4. Value-or-key properties take a value or `key:<KeyName>`.
 4. `bt_get` shows the tree; `runnable: true` means the runtime tree was built.
-5. Controller: `blueprint create /Game/AI/BP_EnemyAI --parent AIController`; on BeginPlay call `RunBehaviorTree` (CallFunction) with the tree; set the pawn's `AIControllerClass` with `prop set`.
-6. Navigation: `nav_bounds_add` location, extent (half size) covering the walkable floor; check with `nav_path` from/to (poll; the mesh builds in the background).
-7. Play-test with the `unreal-pie-testing` skill (`pie get <enemy>` location changes).
+5. Fix a tree in place: `bt_set_node_property` path, id, properties (same value rules; returns the new values as text); `bt_remove_node` path, id (a decorator/service is detached, a composite/task goes with its subtree). `blackboard_get` lists keys with types (every Blackboard also has `SelfActor`).
+6. For state-machine style logic (states, tasks, transitions) use the `unreal-state-tree` skill instead.
+7. Controller: `blueprint create /Game/AI/BP_EnemyAI --parent AIController`; on BeginPlay call `RunBehaviorTree` (CallFunction) with the tree; set the pawn's `AIControllerClass` with `prop set`.
+8. Navigation: `nav_bounds_add` location, extent (half size) covering the walkable floor; check with `nav_path` from/to (poll; the mesh builds in the background).
+9. Play-test with the `unreal-pie-testing` skill (`pie get <enemy>` location changes).
 
 ## Verify
 

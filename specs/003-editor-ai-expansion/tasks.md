@@ -12,22 +12,22 @@
 
 ## Phase 3: US3 - Behavior Tree の強化 (P2)
 
-- [ ] T005 [P] [US3] `bt_remove_node` / `bt_set_node_property` / `blackboard_get` の E2E を `tests/e2e_editor.rs` に書く
-- [ ] T006 [US3] `Private/Tools/AiTools.cpp` に 3 ツールを実装し、`skills/unreal-ai` を更新する
+- [x] T005 [P] [US3] `bt_remove_node` / `bt_set_node_property` / `blackboard_get` の E2E を `tests/e2e_editor.rs` に書く
+- [x] T006 [US3] `Private/Tools/AiTools.cpp` に 3 ツールを実装し、`skills/unreal-ai` を更新する
 
 ## Phase 4: US4 - Control Rig の階層 (P3)
 
-- [ ] T007 [P] [US4] `controlrig_get` / `controlrig_add_bone` / `controlrig_add_control` / `controlrig_add_null` の E2E を書く
-- [ ] T008 [US4] `tools/anim_advanced.py` に実装し、`skills/unreal-advanced-animation` を更新する
+- [x] T007 [P] [US4] `controlrig_get` / `controlrig_add_bone` / `controlrig_add_control` / `controlrig_add_null` の E2E を書く
+- [x] T008 [US4] `tools/anim_advanced.py` に実装し、`skills/unreal-advanced-animation` を更新する
 
 ## Phase 5: US5 - State Tree (P2)
 
-- [ ] T009 [P] [US5] State Tree の E2E を書く(作成 → ステート 2 つ → タスク → 遷移 → コンパイル → get)
-- [ ] T010 [US5] uplugin に StateTree / GameplayStateTree を Optional 追加、Build.cs に依存を追加する
-- [ ] T011 [US5] `Private/Tools/StateTreeTools.cpp` に 6 ツールを実装する
-- [ ] T012 [US5] `skills/unreal-state-tree/SKILL.md` を書く
+- [x] T009 [P] [US5] State Tree の E2E を書く(作成 → ステート 2 つ → タスク → 遷移 → コンパイル → get)
+- [x] T010 [US5] uplugin に StateTree / GameplayStateTree を Optional 追加、Build.cs に依存を追加する
+- [x] T011 [US5] `Private/Tools/StateTreeTools.cpp` に 6 ツールを実装する
+- [x] T012 [US5] `skills/unreal-state-tree/SKILL.md` を書く
 
 ## Phase 6: 仕上げ
 
-- [ ] T013 `scripts/gen-catalog.sh` でカタログを再生成し、README のツール数を更新する
-- [ ] T014 品質ゲートと E2E(UE 5.7)を通す
+- [x] T013 `scripts/gen-catalog.sh` でカタログを再生成し、README のツール数を更新する
+- [x] T014 品質ゲートと E2E(UE 5.7)を通す

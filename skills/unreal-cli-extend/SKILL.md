@@ -1,6 +1,6 @@
 ---
 name: unreal-cli-extend
-description: Use when adding a new tool (Python or C++), a typed command or a bundled skill to unrealengine-cli itself, in a checkout of its repository.
+description: Use when adding a new tool (Python or C++), a typed command or a bundled skill to this CLI, in a checkout of its own source repository.
 version: 1.0.0
 tools: [tools_list]
 ---
@@ -9,7 +9,7 @@ tools: [tools_list]
 
 ## When to use
 
-Use when adding a new tool (Python or C++), a typed command or a bundled skill to unrealengine-cli itself, in a checkout of its repository. For one-off editor work, call `python_exec` instead of adding a tool.
+Use when adding a new tool (Python or C++), a typed command or a bundled skill to this CLI, in a checkout of its own source repository. For one-off editor work, call `python_exec` instead of adding a tool.
 
 ## Steps
 

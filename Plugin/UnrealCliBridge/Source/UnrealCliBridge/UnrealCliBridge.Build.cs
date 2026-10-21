@@ -15,7 +15,8 @@ public class UnrealCliBridge : ModuleRules
             "Niagara", "NiagaraEditor", "Landscape", "Foliage", "EnhancedInput", "InputCore",
             "AIModule", "AIGraph", "BehaviorTreeEditor", "NavigationSystem", "GameplayTasks",
             "MovieScene", "MovieSceneTracks", "WebBrowser", "OnlineSubsystem", "OnlineSubsystemUtils",
-            "GameplayTags", "GameplayTagsEditor", "RHI", "RenderCore", "GeometryCollectionEngine", "Chaos", "Localization"
+            "GameplayTags", "GameplayTagsEditor", "RHI", "RenderCore", "GeometryCollectionEngine", "Chaos", "Localization",
+            "StateTreeModule", "StateTreeEditorModule", "PropertyBindingUtils"
         });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

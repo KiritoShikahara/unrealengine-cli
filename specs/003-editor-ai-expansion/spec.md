@@ -72,3 +72,10 @@ UE プロジェクトのリポジトリで Claude Code を起動すると、「U
 
 - **SC-001**: 品質ゲート(fmt、clippy、test、skills lint)がすべて通る。
 - **SC-002**: 追加ツールの E2E が UE 5.7 で通る。
+
+## 実装中の設計判断
+
+- State Tree の編集とコンパイルには StateTreeEditorModule の C++ API が必要で、StateTree / GameplayStateTree は既定で無効のプラグインだった。任意依存にするとブリッジ DLL の読み込みが不安定になるため、`UnrealCliBridge.uplugin` の必須依存(`Enabled: true`)にした(Niagara や EnhancedInput と同じ扱い)。リンクには `PropertyBindingUtils` モジュールも必要だった。
+- Control Rig の階層は Python の `ControlRigBlueprint.hierarchy` プロパティと `RigHierarchyController` で操作する(`get_hierarchy()` は存在しない)。
+- Behavior Tree の `WaitTime` のような「値または BB キー」型は、`bt_set_node_property` の戻り値が `(DefaultValue=4.000000)` のような構造体テキストになる。Blackboard には常に `SelfActor` キーがある。
+- skills lint は本文の「unrealengine-cli <単語>」をコマンド参照とみなすため、`unreal-cli-extend` の説明文ではその並びを避けた。

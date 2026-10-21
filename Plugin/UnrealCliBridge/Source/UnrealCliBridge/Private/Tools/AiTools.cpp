@@ -402,20 +402,26 @@ void UCli::RegisterAiTools(FToolRegistry& R)
 			else if (Kind == TEXT("task")) GraphNodeClass = UBehaviorTreeGraphNode_Task::StaticClass();
 			else if (Kind == TEXT("decorator")) GraphNodeClass = UBehaviorTreeGraphNode_Decorator::StaticClass();
 			else GraphNodeClass = UBehaviorTreeGraphNode_Service::StaticClass();
-			UBehaviorTreeGraphNode* Node = PlaceBtNode(G, GraphNodeClass, Instance);
-			FString Error;
-			if (!Node->NodeInstance || !SetNodeProperties(Node->NodeInstance, Call->GetObject(TEXT("properties")), BT->BlackboardAsset, Error))
-			{
-				G->RemoveNode(Node);
-				Call->Fail(TEXT("args.invalid"), Error.IsEmpty() ? TEXT("could not create the node instance") : Error);
-				return;
-			}
+			UBehaviorTreeGraphNode* Node = nullptr;
 			if (bAttached)
 			{
-				G->RemoveNode(Node);
+				Node = NewObject<UBehaviorTreeGraphNode>(G, GraphNodeClass, NAME_None, RF_Transactional);
+				Node->ClassData = FGraphNodeClassData(Instance, FString());
 				Parent->AddSubNode(Node, G);
 			}
 			else
+			{
+				Node = PlaceBtNode(G, GraphNodeClass, Instance);
+			}
+			FString Error;
+			if (!Node->NodeInstance || !SetNodeProperties(Node->NodeInstance, Call->GetObject(TEXT("properties")), BT->BlackboardAsset, Error))
+			{
+				if (bAttached) Parent->RemoveSubNode(Node);
+				else G->RemoveNode(Node);
+				Call->Fail(TEXT("args.invalid"), Error.IsEmpty() ? TEXT("could not create the node instance") : Error);
+				return;
+			}
+			if (!bAttached)
 			{
 				int32 Siblings = 0;
 				if (UEdGraphPin* Out = Parent->GetOutputPin()) Siblings = Out->LinkedTo.Num();

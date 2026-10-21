@@ -1,6 +1,6 @@
 # Tool catalog
 
-181 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
+185 tools. Generated from tools/catalog.json by scripts/gen-docs.sh.
 
 Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its schema with `unrealengine-cli tool describe <name>`.
 
@@ -65,10 +65,11 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 |---|---|---|
 | `bp_add_component` | yes | Add a component to the Blueprint's construction script (optionally under a parent component). |
 | `bp_add_event_dispatcher` | yes | Add an event dispatcher with optional inputs [{name,type}]; then bp_compile and use CallDispatcher / BindDispatcher nodes. |
-| `bp_add_function` | yes | Add a function graph with optional inputs/outputs [{name,type}]. |
-| `bp_add_node` | yes | Add a node. type and memberName: Event (overridable event) / CustomEvent (name) / CallFunction (function; memberParent = class) / VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) / Branch / Sequence / Self / Cast (class) / Macro (ForEachLoop, DoOnce, Gate...) / InputAction (Input Action asset) / ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) / SpawnActor (actor class) / CreateWidget (widget Blueprint) / CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) / MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) / SwitchEnum (enum) / Timeline (name from bp_add_timeline) / Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString). |
+| `bp_add_function` | yes | Add a function graph with optional inputs/outputs [{name,type}]. override=true overrides the parent class's function of that name as the Override menu does (its signature, plus a Parent: call node when the parent is a Blueprint). |
+| `bp_add_graph` | yes | Add an event graph page (like My Blueprint > Graphs > +), e.g. InterfaceGraph; then place nodes there with bp_add_node graph=<name>. |
+| `bp_add_node` | yes | Add a node. type and memberName: Event (overridable event) / CustomEvent (name) / CallFunction (function; memberParent = class) / VariableGet/VariableSet (variable or component; memberParent = class for another object's variable) / Branch / Sequence / Self / Cast (class) / Macro (ForEachLoop, DoOnce, Gate...) / InputAction (Input Action asset) / ComponentEvent (component variable + delegate, e.g. OnComponentBeginOverlap) / SpawnActor (actor class) / CreateWidget (widget Blueprint) / CallDispatcher / BindDispatcher (event dispatcher; memberParent = class for another object's) / MakeStruct / BreakStruct (struct, e.g. Vector, HitResult) / SwitchEnum (enum) / Timeline (name from bp_add_timeline) / CallParent (function or event of the parent class, the Parent: node of an override) / Node (any graph node class, e.g. K2Node_SwitchInteger, K2Node_Select, K2Node_MakeArray, K2Node_SwitchString). |
 | `bp_add_timeline` | yes | Add a timeline with float tracks [{name, keys:[[time,value],...]}] and place its node in the event graph (outputs: Update, Finished and one pin per track). |
-| `bp_add_variable` | yes | Add a member variable. type: bool/int/int64/byte/float/double/string/name/text/vector/rotator/transform/color/<class>/<struct>, optional []. |
+| `bp_add_variable` | yes | Add a member variable. type: bool/int/int64/byte/float/double/string/name/text/vector/rotator/transform/color/<class>/<struct>, optional [], or a container map<K,V> / set<T> (e.g. map<string,int>). |
 | `bp_compile` |  | Compile and return status, error/warning counts and messages. |
 | `bp_connect` | yes | Connect pins: from/to are '<node>.<pin>' (node = N<k> or guid). |
 | `bp_create` | yes | Create a Blueprint asset (parent: class name, /Script path or Blueprint path). kind=interface creates a Blueprint Interface (add its functions with bp_add_function). |
@@ -222,6 +223,9 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `niagara_emitters_list` |  | Emitters of a Niagara System. |
 | `niagara_input_set` | yes | Set a module input: a local value (float, int, bool, or [x,y(,z(,w))] for vectors/colors), a link to a parameter (e.g. Particles.NormalizedAge, User.Speed) or a dynamic input script. module is the name niagara_module_add returned; a dynamic input's returned node name works as module for its own inputs. |
 | `niagara_module_add` | yes | Add a module script (e.g. /Niagara/Modules/Update/Forces/Drag) to an emitter stage: EmitterSpawn / EmitterUpdate / ParticleSpawn / ParticleUpdate. |
+| `niagara_module_enable` | yes | Enable or disable a module in an emitter stage, as the checkbox in the Niagara stack does. |
+| `niagara_modules_list` |  | Modules of an emitter per stage in stack order, each with enabled and its inputs (name, type, kind input/staticSwitch, current local value, enum options), plus the emitter's renderers. Use the names with niagara_input_set, niagara_module_enable and niagara_renderer_set. |
+| `niagara_renderer_set` | yes | Set a property of an emitter's renderer (index or class, e.g. SpriteRenderer; see niagara_modules_list), e.g. property=Material value=/Game/M_Glow, or bIsEnabled, SubImageSize, Alignment. |
 | `niagara_system_create` | yes | Create an empty Niagara System asset. |
 
 ## online
@@ -295,7 +299,7 @@ Call any tool with `unrealengine-cli tool call <name> --args '<json>'`; see its 
 | `automation_list` |  | List Automation tests whose full path contains filter. |
 | `automation_run` |  | Run Automation tests matching filter as a job; the result lists each test with its errors. |
 | `pie_actors` |  | Actors of the play world (filter by class or label/name substring) with location, rotation and velocity; the player's pawn is flagged. |
-| `pie_call` |  | Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command="SetActorHiddenInGame true" or command="TakeHit 25". |
+| `pie_call` |  | Call a function or custom event on a play-world actor with space-separated arguments in parameter order, e.g. actor=player command="SetActorHiddenInGame true" or command="TakeHit 25". Structs use Unreal text form without spaces: K2_SetActorLocation (X=-140,Y=300,Z=100) false () false passes NewLocation, bSweep, SweepHitResult (out, any value), bTeleport. A bad argument fails with the parameter list. |
 | `pie_click` |  | Click a button of the on-screen UI in the play session by widget name (fires its OnClicked; see pie_widgets). |
 | `pie_exec` |  | Run a console command in the play world (e.g. "slomo 0.5", "show collision", "ce MyEvent"). |
 | `pie_get` |  | Read properties of a play-world actor (or one of its components): actor is a label, name, "player" (the pawn) or "controller" (its player controller); without properties returns its transform and velocity. |

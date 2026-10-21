@@ -116,6 +116,35 @@ fn blueprint_only_project_needs_code_module_flag() {
 }
 
 #[test]
+fn blueprint_only_project_stays_blueprint_with_prebuilt() {
+    let home = tempfile::tempdir().unwrap();
+    let proj = tempfile::tempdir().unwrap();
+    let up = project(proj.path(), false);
+    let (code, v) = run_json(
+        home.path(),
+        proj.path(),
+        &["setup", "--prebuilt", "--dry-run"],
+    );
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["data"]["prebuilt"], true);
+    let paths: Vec<&str> = v["data"]["changes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["path"].as_str().unwrap())
+        .collect();
+    assert!(
+        paths
+            .iter()
+            .all(|p| !p.contains("/Source/") || p.contains("/Plugins/"))
+    );
+    assert!(paths.iter().any(|p| p.ends_with(".uproject")));
+    assert!(!proj.path().join("Source").exists());
+    let u: Value = serde_json::from_str(&std::fs::read_to_string(&up).unwrap()).unwrap();
+    assert!(u.get("Modules").is_none());
+}
+
+#[test]
 fn doctor_reports_checks_without_failing() {
     let home = tempfile::tempdir().unwrap();
     let proj = tempfile::tempdir().unwrap();

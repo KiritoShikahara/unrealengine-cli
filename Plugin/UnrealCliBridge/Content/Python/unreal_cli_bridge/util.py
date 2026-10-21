@@ -127,9 +127,13 @@ def from_json(value, current):
     if (current is None or isinstance(current, unreal.Object)) and (value is None or isinstance(value, str)):
         if value in (None, "", "None"):
             return None
-        obj = unreal.load_object(None, value) or unreal.load_asset(value)
+        obj = unreal.load_object(None, value) or unreal.load_asset(value) if value.startswith("/") else None
+        if obj is None and not value.startswith("/"):
+            # A level actor by label or name, as the path argument accepts.
+            obj = next((a for a in actors() if a.get_actor_label() == value or a.get_name() == value), None)
         if obj is None:
-            raise ToolError("prop.bad_value", "no object at '%s'" % value)
+            raise ToolError("prop.bad_value", "no object at '%s'" % value,
+                            "pass an object path, an asset path or the label of a level actor")
         return obj
     return value
 

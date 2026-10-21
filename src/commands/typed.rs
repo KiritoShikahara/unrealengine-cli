@@ -699,11 +699,15 @@ pub fn fab(ctx: &mut Ctx, cmd: FabCmd) -> Result<Value, CliError> {
                     "succeeded" => return Ok(j["result"].clone()),
                     "failed" => {
                         let e = &j["error"];
-                        return Err(CliError::editor(
+                        let mut err = CliError::editor(
                             e["code"].as_str().unwrap_or("fab.import_failed"),
                             e["message"].as_str().unwrap_or("the Fab import failed"),
                         )
-                        .with_details(e["details"].clone()));
+                        .with_details(e["details"].clone());
+                        if let Some(h) = e["hint"].as_str().filter(|h| !h.is_empty()) {
+                            err = err.with_hint(h);
+                        }
+                        return Err(err);
                     }
                     "timeout" | "cancelled" => {
                         return Err(CliError::timeout(

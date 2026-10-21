@@ -729,7 +729,7 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 			Call->Succeed(O);
 		});
 
-	R.Add(TEXT("pie_call"), TEXT("runtime"), TEXT("Call a function or custom event on a play-world actor with space-separated arguments, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\"."),
+	R.Add(TEXT("pie_call"), TEXT("runtime"), TEXT("Call a function or custom event on a play-world actor with space-separated arguments in parameter order, e.g. actor=player command=\"SetActorHiddenInGame true\" or command=\"TakeHit 25\". Structs use Unreal text form without spaces: K2_SetActorLocation (X=-140,Y=300,Z=100) false () false passes NewLocation, bSweep, SweepHitResult (out, any value), bTeleport. A bad argument fails with the parameter list."),
 		TEXT(R"({"type":"object","properties":{"world":{"type":"string","description":"server, client:1, ... (see pie_worlds); default: the primary play world"},"actor":{"type":"string"},"command":{"type":"string"}},"required":["actor","command"]})"), EToolFlags::None,
 		[](const FToolCallRef& Call)
 		{
@@ -744,10 +744,23 @@ void UCli::RegisterPlayTools(FToolRegistry& R)
 				Call->Fail(TEXT("pie.function_not_found"), FString::Printf(TEXT("%s has no function '%s'"), *A->GetClass()->GetName(), *FunctionName));
 				return;
 			}
-			FOutputDeviceNull Ar;
-			if (!A->CallFunctionByNameWithArguments(*Command, Ar, nullptr, true))
+			// The engine reports bad arguments only through the output device and still returns true.
+			struct FCollect : FOutputDevice
 			{
-				Call->Fail(TEXT("pie.call_failed"), FString::Printf(TEXT("could not call '%s' (check the argument count and types)"), *Command));
+				TArray<FString> Lines;
+				virtual void Serialize(const TCHAR* V, ELogVerbosity::Type, const FName&) override { Lines.Add(V); }
+			} Ar;
+			const UFunction* Fn = A->FindFunction(FName(*FunctionName));
+			TArray<FString> Params;
+			for (TFieldIterator<FProperty> It(Fn); It && (It->PropertyFlags & (CPF_Parm | CPF_ReturnParm)) == CPF_Parm; ++It)
+			{
+				Params.Add(FString::Printf(TEXT("%s %s%s"), *It->GetCPPType(), *It->GetName(), It->HasAnyPropertyFlags(CPF_OutParm) && !It->HasAnyPropertyFlags(CPF_ReferenceParm) ? TEXT(" (out)") : TEXT("")));
+			}
+			const FString Signature = FString::Printf(TEXT("%s(%s)"), *FunctionName, *FString::Join(Params, TEXT(", ")));
+			if (!A->CallFunctionByNameWithArguments(*Command, Ar, nullptr, true) || Ar.Lines.Num() > 0)
+			{
+				Call->Fail(TEXT("pie.call_failed"), Ar.Lines.Num() > 0 ? Ar.Lines[0] : FString::Printf(TEXT("could not call '%s'"), *Command),
+					FString::Printf(TEXT("pass one space-separated value per parameter, structs without spaces like (X=1,Y=2,Z=3): %s"), *Signature));
 				return;
 			}
 			Call->Succeed(PlayActorJson(A));

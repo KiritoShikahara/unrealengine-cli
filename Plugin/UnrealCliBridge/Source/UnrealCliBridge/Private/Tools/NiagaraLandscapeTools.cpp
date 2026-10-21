@@ -11,6 +11,7 @@
 #include "NiagaraScriptSource.h"
 #include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #include "NiagaraEmitter.h"
+#include "NiagaraRendererProperties.h"
 #include "NiagaraSystem.h"
 #include "Server/JsonUtil.h"
 #include "Server/ToolRegistry.h"
@@ -64,6 +65,131 @@ namespace
 		return S->GetEmitterHandles().FindByPredicate([&Name](const FNiagaraEmitterHandle& H) { return H.GetName().ToString() == Name; });
 	}
 
+	bool IsParameterMapPin(const UEdGraphPin* P);
+
+	FString Squash(const FString& S)
+	{
+		return S.Replace(TEXT(" "), TEXT("")).Replace(TEXT("_"), TEXT("")).ToLower();
+	}
+
+	// An enum entry from its name, display name or number ("Cylinder", "ENiagara::Cylinder", 2).
+	bool EnumValue(const UEnum* En, const TSharedPtr<FJsonValue>& V, int32& Out)
+	{
+		if (V->Type == EJson::Number) { Out = static_cast<int32>(V->AsNumber()); return true; }
+		FString Wanted = V->AsString();
+		Wanted.Split(TEXT("::"), nullptr, &Wanted, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		const FString Key = Squash(Wanted.IsEmpty() ? V->AsString() : Wanted);
+		for (int32 I = 0; I < En->NumEnums() - 1; ++I)
+		{
+			if (Squash(En->GetNameStringByIndex(I)) == Key || Squash(En->GetDisplayNameTextByIndex(I).ToString()) == Key)
+			{
+				Out = static_cast<int32>(En->GetValueByIndex(I));
+				return true;
+			}
+		}
+		return false;
+	}
+
+	TArray<FString> EnumNames(const UEnum* En)
+	{
+		TArray<FString> Names;
+		for (int32 I = 0; En && I < En->NumEnums() - 1; ++I) Names.Add(En->GetDisplayNameTextByIndex(I).ToString());
+		return Names;
+	}
+
+	// A Niagara value as JSON (null when the type is not decoded).
+	TSharedPtr<FJsonValue> DecodeValue(const FNiagaraTypeDefinition& Type, const uint8* D)
+	{
+		if (!D) return MakeShared<FJsonValueNull>();
+		auto Nums = [](std::initializer_list<float> L) { TArray<TSharedPtr<FJsonValue>> A; for (float F : L) A.Add(MakeShared<FJsonValueNumber>(F)); return MakeShared<FJsonValueArray>(A); };
+		if (Type == FNiagaraTypeDefinition::GetFloatDef()) return MakeShared<FJsonValueNumber>(*reinterpret_cast<const float*>(D));
+		if (Type == FNiagaraTypeDefinition::GetIntDef()) return MakeShared<FJsonValueNumber>(*reinterpret_cast<const int32*>(D));
+		if (Type == FNiagaraTypeDefinition::GetBoolDef()) return MakeShared<FJsonValueBoolean>(reinterpret_cast<const FNiagaraBool*>(D)->GetValue());
+		if (Type.IsEnum() && Type.GetEnum()) return MakeShared<FJsonValueString>(Type.GetEnum()->GetDisplayNameTextByValue(*reinterpret_cast<const int32*>(D)).ToString());
+		if (Type == FNiagaraTypeDefinition::GetVec2Def()) { const FVector2f& X = *reinterpret_cast<const FVector2f*>(D); return Nums({X.X, X.Y}); }
+		if (Type == FNiagaraTypeDefinition::GetVec3Def() || Type == FNiagaraTypeDefinition::GetPositionDef()) { const FVector3f& X = *reinterpret_cast<const FVector3f*>(D); return Nums({X.X, X.Y, X.Z}); }
+		if (Type == FNiagaraTypeDefinition::GetVec4Def()) { const FVector4f& X = *reinterpret_cast<const FVector4f*>(D); return Nums({X.X, X.Y, X.Z, X.W}); }
+		if (Type == FNiagaraTypeDefinition::GetColorDef()) { const FLinearColor& X = *reinterpret_cast<const FLinearColor*>(D); return Nums({X.R, X.G, X.B, X.A}); }
+		return MakeShared<FJsonValueNull>();
+	}
+
+	// Module nodes of one stage in stack order, found by walking the parameter-map chain back from the stage output.
+	TArray<UNiagaraNodeFunctionCall*> StageModules(UNiagaraNodeOutput* Output)
+	{
+		TArray<UNiagaraNodeFunctionCall*> Out;
+		UEdGraphNode* Node = Output;
+		TSet<UEdGraphNode*> Seen;
+		while (Node && !Seen.Contains(Node))
+		{
+			Seen.Add(Node);
+			UEdGraphNode* Next = nullptr;
+			for (UEdGraphPin* P : Node->Pins)
+			{
+				if (P->Direction == EGPD_Input && IsParameterMapPin(P) && P->LinkedTo.Num() > 0)
+				{
+					Next = P->LinkedTo[0]->GetOwningNode();
+					break;
+				}
+			}
+			if (UNiagaraNodeFunctionCall* Fn = Cast<UNiagaraNodeFunctionCall>(Next))
+			{
+				Out.Insert(Fn, 0);
+			}
+			Node = Next;
+		}
+		return Out;
+	}
+
+	struct FEmitterRef
+	{
+		UNiagaraSystem* System = nullptr;
+		FNiagaraEmitterHandle* Handle = nullptr;
+		FVersionedNiagaraEmitterData* Data = nullptr;
+		UNiagaraScriptSource* Source = nullptr;
+	};
+
+	bool RequireEmitter(const FToolCallRef& Call, FEmitterRef& R)
+	{
+		R.System = RequireSystem(Call);
+		if (!R.System) return false;
+		const FString Name = Call->GetString(TEXT("emitter"));
+		R.Handle = R.System->GetEmitterHandles().FindByPredicate([&Name](const FNiagaraEmitterHandle& H) { return H.GetName().ToString() == Name; });
+		R.Data = R.Handle ? R.Handle->GetEmitterData() : nullptr;
+		R.Source = R.Data ? Cast<UNiagaraScriptSource>(R.Data->GraphSource) : nullptr;
+		if (!R.Source || !R.Source->NodeGraph)
+		{
+			Call->Fail(TEXT("niagara.emitter_not_found"), FString::Printf(TEXT("system has no emitter '%s'"), *Name), TEXT("list: niagara_emitters_list"));
+			return false;
+		}
+		return true;
+	}
+
+	TArray<UNiagaraScript*> StageScripts(UNiagaraSystem* S, FVersionedNiagaraEmitterData* Data, ENiagaraScriptUsage Usage)
+	{
+		TArray<UNiagaraScript*> Scripts;
+		if (Usage == ENiagaraScriptUsage::EmitterSpawnScript || Usage == ENiagaraScriptUsage::EmitterUpdateScript)
+		{
+			Scripts.Add(Usage == ENiagaraScriptUsage::EmitterSpawnScript ? S->GetSystemSpawnScript() : S->GetSystemUpdateScript());
+			return Scripts;
+		}
+		TArray<UNiagaraScript*> All;
+		Data->GetScripts(All, false);
+		for (UNiagaraScript* Script : All)
+		{
+			if (Script && UNiagaraScript::IsEquivalentUsage(Script->GetUsage(), Usage)) Scripts.Add(Script);
+		}
+		return Scripts;
+	}
+
+	TArray<UEdGraphPin*> StaticSwitchPins(UNiagaraNodeFunctionCall& Fn)
+	{
+		TArray<UEdGraphPin*> Pins;
+		TSet<UEdGraphPin*> Hidden;
+		FCompileConstantResolver Resolver;
+		FNiagaraStackGraphUtilities::GetStackFunctionStaticSwitchPins(Fn, Pins, Hidden, Resolver);
+		return Pins;
+	}
+
 	// Encodes a JSON value as the bytes of a Niagara type; false when the type is not supported.
 	bool EncodeValue(const FNiagaraTypeDefinition& Type, const TSharedPtr<FJsonValue>& V, TArray<uint8>& Out, FString& TypeName)
 	{
@@ -77,6 +203,14 @@ namespace
 		if (Type == FNiagaraTypeDefinition::GetFloatDef()) { const float F = static_cast<float>(V->AsNumber()); Put(&F, sizeof F); TypeName = TEXT("float"); return true; }
 		if (Type == FNiagaraTypeDefinition::GetIntDef()) { const int32 I = static_cast<int32>(V->AsNumber()); Put(&I, sizeof I); TypeName = TEXT("int"); return true; }
 		if (Type == FNiagaraTypeDefinition::GetBoolDef()) { FNiagaraBool B; B.SetValue(V->AsBool()); Put(&B, sizeof B); TypeName = TEXT("bool"); return true; }
+		if (Type.IsEnum() && Type.GetEnum())
+		{
+			int32 I = 0;
+			if (!EnumValue(Type.GetEnum(), V, I)) return false;
+			Put(&I, sizeof I);
+			TypeName = Type.GetEnum()->GetName();
+			return true;
+		}
 		if (V->Type != EJson::Array) return false;
 		if (Type == FNiagaraTypeDefinition::GetVec2Def()) { const FVector2f X(At(0), At(1)); Put(&X, sizeof X); TypeName = TEXT("vec2"); return true; }
 		if (Type == FNiagaraTypeDefinition::GetVec3Def() || Type == FNiagaraTypeDefinition::GetPositionDef()) { const FVector3f X(At(0), At(1), At(2)); Put(&X, sizeof X); TypeName = TEXT("vec3"); return true; }
@@ -252,13 +386,74 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 			}
 			TArray<FNiagaraVariable> Inputs;
 			FNiagaraStackGraphUtilities::GetStackFunctionInputs(*Fn, Inputs, FCompileConstantResolver(), FNiagaraStackGraphUtilities::ENiagaraGetStackFunctionInputPinsOptions::ModuleInputsOnly);
-			const FString Wanted = TEXT("Module.") + Call->GetString(TEXT("input"));
+			FString Wanted = TEXT("Module.") + Call->GetString(TEXT("input"));
 			const FNiagaraVariable* Input = Inputs.FindByPredicate([&Wanted](const FNiagaraVariable& V) { return V.GetName().ToString() == Wanted; });
 			if (!Input)
 			{
+				Input = Inputs.FindByPredicate([&Wanted](const FNiagaraVariable& V) { return Squash(V.GetName().ToString()) == Squash(Wanted); });
+				if (Input) Wanted = Input->GetName().ToString();
+			}
+			const TArray<UEdGraphPin*> Switches = StaticSwitchPins(*Fn);
+			if (!Input)
+			{
+				const FString Key = Squash(Call->GetString(TEXT("input")));
+				if (UEdGraphPin* const* Found = Switches.FindByPredicate([&Key](const UEdGraphPin* P) { return Squash(P->PinName.ToString()) == Key; }))
+				{
+					// A static switch: its value is the default of the pin on the module node; changing it recompiles the stage.
+					UEdGraphPin* Pin = *Found;
+					const FNiagaraTypeDefinition Type = UEdGraphSchema_Niagara::PinToTypeDefinition(Pin);
+					const TSharedPtr<FJsonValue> V = Call->Args->TryGetField(TEXT("value"));
+					if (!V.IsValid())
+					{
+						Call->Fail(TEXT("niagara.no_value"), TEXT("a static switch input takes value"));
+						return;
+					}
+					int32 I = 0;
+					if (Type.IsEnum() && Type.GetEnum())
+					{
+						if (!EnumValue(Type.GetEnum(), V, I))
+						{
+							Call->Fail(TEXT("niagara.bad_value"), FString::Printf(TEXT("'%s' is not a %s value"), *V->AsString(), *Type.GetEnum()->GetName()), FString::Printf(TEXT("values: %s"), *FString::Join(EnumNames(Type.GetEnum()), TEXT(", "))));
+							return;
+						}
+					}
+					else if (Type.GetStruct() == FNiagaraTypeDefinition::GetBoolStruct())
+					{
+						FNiagaraBool B;
+						B.SetValue(V->AsBool());
+						FMemory::Memcpy(&I, &B, sizeof I);
+					}
+					else
+					{
+						I = static_cast<int32>(V->AsNumber());
+					}
+					// The pin text form differs per type (enum entry names, not numbers): let the Niagara schema write it.
+					FNiagaraVariable Var(Type, NAME_None);
+					Var.SetData(reinterpret_cast<const uint8*>(&I));
+					FString PinValue;
+					if (!GetDefault<UEdGraphSchema_Niagara>()->TryGetPinDefaultValueFromNiagaraVariable(Var, PinValue))
+					{
+						Call->Fail(TEXT("niagara.unsupported_input_type"), FString::Printf(TEXT("static switch '%s' has type %s, which this tool cannot set"), *Pin->PinName.ToString(), *Type.GetName()));
+						return;
+					}
+					S->Modify();
+					Source->NodeGraph->Modify();
+					Pin->Modify();
+					Pin->DefaultValue = PinValue;
+					Fn->MarkNodeRequiresSynchronization(TEXT("unrealengine-cli static switch"), true);
+					S->RequestCompile(false);
+					S->MarkPackageDirty();
+					TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+					O->SetStringField(TEXT("mode"), TEXT("staticSwitch"));
+					O->SetStringField(TEXT("input"), Pin->PinName.ToString());
+					O->SetStringField(TEXT("value"), PinValue);
+					Call->Succeed(O);
+					return;
+				}
 				TArray<FString> Names;
 				for (const FNiagaraVariable& V : Inputs) Names.Add(V.GetName().ToString().RightChop(7));
-				Call->Fail(TEXT("niagara.input_not_found"), FString::Printf(TEXT("module '%s' has no input '%s'"), *ModuleName, *Call->GetString(TEXT("input"))), FString::Printf(TEXT("inputs: %s"), *FString::Join(Names, TEXT(", "))));
+				for (const UEdGraphPin* P : Switches) Names.Add(P->PinName.ToString());
+				Call->Fail(TEXT("niagara.input_not_found"), FString::Printf(TEXT("module '%s' has no input '%s'"), *ModuleName, *Call->GetString(TEXT("input"))), FString::Printf(TEXT("inputs: %s (all with types and values: niagara_modules_list)"), *FString::Join(Names, TEXT(", "))));
 				return;
 			}
 			const FNiagaraParameterHandle Aliased = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(FNiagaraParameterHandle(Input->GetName()), Fn);
@@ -360,6 +555,216 @@ void UCli::RegisterNiagaraLandscapeTools(FToolRegistry& R)
 			UNiagaraSystem* S = RequireSystem(Call);
 			if (!S) return;
 			Call->Succeed(EmittersJson(S));
+		});
+
+	R.Add(TEXT("niagara_modules_list"), TEXT("niagara"), TEXT("Modules of an emitter per stage in stack order, each with enabled and its inputs (name, type, kind input|staticSwitch, current local value, enum options), plus the emitter's renderers. Use the names with niagara_input_set, niagara_module_enable and niagara_renderer_set."),
+		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"stage":{"type":"string","enum":["EmitterSpawn","EmitterUpdate","ParticleSpawn","ParticleUpdate"]}},"required":["system","emitter"]})"), EToolFlags::None,
+		[](const FToolCallRef& Call)
+		{
+			FEmitterRef E;
+			if (!RequireEmitter(Call, E)) return;
+			TArray<FString> Stages = {TEXT("EmitterSpawn"), TEXT("EmitterUpdate"), TEXT("ParticleSpawn"), TEXT("ParticleUpdate")};
+			if (Call->Has(TEXT("stage"))) Stages = {Call->GetString(TEXT("stage"))};
+			TArray<TSharedPtr<FJsonValue>> StageItems;
+			for (const FString& Stage : Stages)
+			{
+				const ENiagaraScriptUsage Usage = StageUsage(Stage);
+				UNiagaraNodeOutput* Output = E.Source->NodeGraph->FindEquivalentOutputNode(Usage);
+				if (!Output) continue;
+				const TArray<UNiagaraScript*> Scripts = StageScripts(E.System, E.Data, Usage);
+				TArray<TSharedPtr<FJsonValue>> Modules;
+				for (UNiagaraNodeFunctionCall* Fn : StageModules(Output))
+				{
+					TSharedPtr<FJsonObject> M = MakeShared<FJsonObject>();
+					M->SetStringField(TEXT("name"), Fn->GetFunctionName());
+					M->SetBoolField(TEXT("enabled"), Fn->IsNodeEnabled());
+					if (Fn->FunctionScript) M->SetStringField(TEXT("script"), Fn->FunctionScript->GetPathName());
+					TArray<TSharedPtr<FJsonValue>> InputItems;
+					TArray<FNiagaraVariable> Inputs;
+					FNiagaraStackGraphUtilities::GetStackFunctionInputs(*Fn, Inputs, FCompileConstantResolver(), FNiagaraStackGraphUtilities::ENiagaraGetStackFunctionInputPinsOptions::ModuleInputsOnly);
+					for (const FNiagaraVariable& V : Inputs)
+					{
+						TSharedPtr<FJsonObject> I = MakeShared<FJsonObject>();
+						I->SetStringField(TEXT("name"), V.GetName().ToString().RightChop(7));
+						I->SetStringField(TEXT("type"), V.GetType().GetName());
+						I->SetStringField(TEXT("kind"), TEXT("input"));
+						const FNiagaraParameterHandle Aliased = FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(FNiagaraParameterHandle(V.GetName()), Fn);
+						UEdGraphPin* Override = FindOverridePin(*Fn, Aliased.GetParameterHandleString());
+						if (Override && Override->LinkedTo.Num() > 0)
+						{
+							I->SetStringField(TEXT("mode"), TEXT("linkedOrDynamic"));
+						}
+						else if (Scripts.Num() > 0 && Scripts[0])
+						{
+							const FNiagaraVariable Rapid(V.GetType(), FName(*FNiagaraUtilities::CreateRapidIterationConstantName(Aliased.GetParameterHandleString(), *E.Handle->GetUniqueInstanceName(), Usage)));
+							I->SetField(TEXT("value"), DecodeValue(V.GetType(), Scripts[0]->RapidIterationParameters.GetParameterData(Rapid)));
+						}
+						if (V.GetType().IsEnum()) I->SetArrayField(TEXT("options"), StrArray(EnumNames(V.GetType().GetEnum())));
+						InputItems.Add(Obj(I));
+					}
+					for (UEdGraphPin* P : StaticSwitchPins(*Fn))
+					{
+						const FNiagaraTypeDefinition Type = UEdGraphSchema_Niagara::PinToTypeDefinition(P);
+						TSharedPtr<FJsonObject> I = MakeShared<FJsonObject>();
+						I->SetStringField(TEXT("name"), P->PinName.ToString());
+						I->SetStringField(TEXT("type"), Type.GetName());
+						I->SetStringField(TEXT("kind"), TEXT("staticSwitch"));
+						if (Type.IsEnum() && Type.GetEnum())
+						{
+							const UEnum* En = Type.GetEnum();
+							int64 Value = En->GetValueByNameString(P->DefaultValue);
+							if (Value == INDEX_NONE) Value = FCString::Atoi(*P->DefaultValue);
+							I->SetStringField(TEXT("value"), En->GetDisplayNameTextByValue(Value).ToString());
+							I->SetArrayField(TEXT("options"), StrArray(EnumNames(Type.GetEnum())));
+						}
+						else
+						{
+							I->SetStringField(TEXT("value"), P->DefaultValue);
+						}
+						InputItems.Add(Obj(I));
+					}
+					M->SetArrayField(TEXT("inputs"), InputItems);
+					Modules.Add(Obj(M));
+				}
+				TSharedPtr<FJsonObject> SO = MakeShared<FJsonObject>();
+				SO->SetStringField(TEXT("stage"), Stage);
+				SO->SetArrayField(TEXT("modules"), Modules);
+				StageItems.Add(Obj(SO));
+			}
+			TArray<TSharedPtr<FJsonValue>> Renderers;
+			const TArray<UNiagaraRendererProperties*>& List = E.Data->GetRenderers();
+			for (int32 Index = 0; Index < List.Num(); ++Index)
+			{
+				if (!List[Index]) continue;
+				TSharedPtr<FJsonObject> RO = MakeShared<FJsonObject>();
+				RO->SetNumberField(TEXT("index"), Index);
+				RO->SetStringField(TEXT("class"), List[Index]->GetClass()->GetName());
+				RO->SetBoolField(TEXT("enabled"), List[Index]->GetIsEnabled());
+				if (const FObjectPropertyBase* Mat = CastField<FObjectPropertyBase>(List[Index]->GetClass()->FindPropertyByName(TEXT("Material"))))
+				{
+					const UObject* M = Mat->GetObjectPropertyValue_InContainer(List[Index]);
+					RO->SetStringField(TEXT("material"), M ? M->GetPathName() : FString());
+				}
+				Renderers.Add(Obj(RO));
+			}
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("emitter"), Call->GetString(TEXT("emitter")));
+			O->SetArrayField(TEXT("stages"), StageItems);
+			O->SetArrayField(TEXT("renderers"), Renderers);
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("niagara_module_enable"), TEXT("niagara"), TEXT("Enable or disable a module in an emitter stage, as the checkbox in the Niagara stack does."),
+		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"stage":{"type":"string","enum":["EmitterSpawn","EmitterUpdate","ParticleSpawn","ParticleUpdate"]},"module":{"type":"string"},"enabled":{"type":"boolean"}},"required":["system","emitter","stage","module","enabled"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			FEmitterRef E;
+			if (!RequireEmitter(Call, E)) return;
+			const FString Stage = Call->GetString(TEXT("stage"));
+			UNiagaraNodeOutput* Output = E.Source->NodeGraph->FindEquivalentOutputNode(StageUsage(Stage));
+			const FString ModuleName = Call->GetString(TEXT("module"));
+			TArray<UNiagaraNodeFunctionCall*> Modules = Output ? StageModules(Output) : TArray<UNiagaraNodeFunctionCall*>();
+			UNiagaraNodeFunctionCall* const* Fn = Modules.FindByPredicate([&ModuleName](const UNiagaraNodeFunctionCall* M) { return M->GetFunctionName() == ModuleName; });
+			if (!Fn)
+			{
+				TArray<FString> Names;
+				for (const UNiagaraNodeFunctionCall* M : Modules) Names.Add(M->GetFunctionName());
+				Call->Fail(TEXT("niagara.module_not_found"), FString::Printf(TEXT("no module '%s' in stage %s"), *ModuleName, *Stage), FString::Printf(TEXT("modules: %s"), *FString::Join(Names, TEXT(", "))));
+				return;
+			}
+			E.System->Modify();
+			E.Source->NodeGraph->Modify();
+			FNiagaraStackGraphUtilities::SetModuleIsEnabled(**Fn, Call->GetBool(TEXT("enabled")));
+			E.Source->NodeGraph->NotifyGraphChanged();
+			E.System->RequestCompile(false);
+			E.System->MarkPackageDirty();
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("module"), ModuleName);
+			O->SetBoolField(TEXT("enabled"), (*Fn)->IsNodeEnabled());
+			Call->Succeed(O);
+		});
+
+	R.Add(TEXT("niagara_renderer_set"), TEXT("niagara"), TEXT("Set a property of an emitter's renderer (index or class, e.g. SpriteRenderer; see niagara_modules_list), e.g. property=Material value=/Game/M_Glow, or bIsEnabled, SubImageSize, Alignment."),
+		TEXT(R"({"type":"object","properties":{"system":{"type":"string"},"emitter":{"type":"string"},"renderer":{"description":"index or class name: SpriteRenderer, MeshRenderer, RibbonRenderer..."},"property":{"type":"string"},"value":{}},"required":["system","emitter","property","value"]})"),
+		EToolFlags::Mutating,
+		[](const FToolCallRef& Call)
+		{
+			FEmitterRef E;
+			if (!RequireEmitter(Call, E)) return;
+			const TArray<UNiagaraRendererProperties*>& List = E.Data->GetRenderers();
+			UNiagaraRendererProperties* Target = nullptr;
+			const TSharedPtr<FJsonValue> Sel = Call->Args->TryGetField(TEXT("renderer"));
+			if (!Sel.IsValid())
+			{
+				Target = List.Num() > 0 ? List[0] : nullptr;
+			}
+			else if (Sel->Type == EJson::Number)
+			{
+				const int32 Index = static_cast<int32>(Sel->AsNumber());
+				Target = List.IsValidIndex(Index) ? List[Index] : nullptr;
+			}
+			else
+			{
+				const FString Key = Squash(Sel->AsString());
+				for (UNiagaraRendererProperties* P : List)
+				{
+					if (P && Squash(P->GetClass()->GetName()).Contains(Key)) { Target = P; break; }
+				}
+			}
+			if (!Target)
+			{
+				TArray<FString> Names;
+				for (int32 I = 0; I < List.Num(); ++I) if (List[I]) Names.Add(FString::Printf(TEXT("%d %s"), I, *List[I]->GetClass()->GetName()));
+				Call->Fail(TEXT("niagara.renderer_not_found"), TEXT("no such renderer on the emitter"), FString::Printf(TEXT("renderers: %s"), *FString::Join(Names, TEXT(", "))));
+				return;
+			}
+			const FString PropName = Call->GetString(TEXT("property"));
+			FProperty* Prop = nullptr;
+			for (TFieldIterator<FProperty> It(Target->GetClass()); It; ++It)
+			{
+				if (It->GetName().Equals(PropName, ESearchCase::IgnoreCase) || Squash(It->GetDisplayNameText().ToString()) == Squash(PropName)) { Prop = *It; break; }
+			}
+			if (!Prop || !Prop->HasAnyPropertyFlags(CPF_Edit))
+			{
+				Call->Fail(TEXT("niagara.property_not_found"), FString::Printf(TEXT("%s has no editable property '%s'"), *Target->GetClass()->GetName(), *PropName), TEXT("examples: Material, bIsEnabled, Alignment, FacingMode, SubImageSize, SortMode"));
+				return;
+			}
+			const TSharedPtr<FJsonValue> V = Call->Args->TryGetField(TEXT("value"));
+			Target->Modify();
+			Target->PreEditChange(Prop);
+			bool bSet = false;
+			if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(Prop))
+			{
+				const FString Path = V->AsString();
+				UObject* Value = Path.IsEmpty() || Path == TEXT("None") ? nullptr : LoadObject<UObject>(nullptr, *BP::ObjectPath(Path), nullptr, LOAD_NoWarn | LOAD_Quiet);
+				if ((Value && Value->IsA(ObjProp->PropertyClass)) || (!Value && (Path.IsEmpty() || Path == TEXT("None"))))
+				{
+					ObjProp->SetObjectPropertyValue_InContainer(Target, Value);
+					bSet = true;
+				}
+			}
+			else
+			{
+				const FString Text = V->Type == EJson::String ? V->AsString() : V->Type == EJson::Boolean ? (V->AsBool() ? TEXT("true") : TEXT("false")) : V->Type == EJson::Number ? FString::SanitizeFloat(V->AsNumber()) : FString();
+				bSet = Prop->ImportText_InContainer(*Text, Target, Target, PPF_None) != nullptr;
+			}
+			if (!bSet)
+			{
+				Call->Fail(TEXT("niagara.bad_value"), FString::Printf(TEXT("cannot set %s to %s"), *Prop->GetName(), *V->AsString()), CastField<FObjectPropertyBase>(Prop) ? FString::Printf(TEXT("pass the path of a %s asset"), *CastField<FObjectPropertyBase>(Prop)->PropertyClass->GetName()) : TEXT("pass the value as the Details panel shows it"));
+				return;
+			}
+			FPropertyChangedEvent Changed(Prop);
+			Target->PostEditChangeProperty(Changed);
+			E.System->RequestCompile(false);
+			E.System->MarkPackageDirty();
+			TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+			O->SetStringField(TEXT("renderer"), Target->GetClass()->GetName());
+			O->SetStringField(TEXT("property"), Prop->GetName());
+			FString Now;
+			Prop->ExportTextItem_InContainer(Now, Target, nullptr, Target, PPF_None);
+			O->SetStringField(TEXT("value"), Now);
+			Call->Succeed(O);
 		});
 
 	R.Add(TEXT("landscape_create"), TEXT("landscape"), TEXT("Create a flat landscape: components x components, each 63 quads, at location with scale."),

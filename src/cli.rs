@@ -102,6 +102,17 @@ pub enum Command {
         /// File path, or - for stdin
         file: String,
     },
+    /// Create a new, empty Blueprint project
+    New {
+        /// Project name (letters, digits, _; at most 20)
+        name: String,
+        /// Parent folder; default: the working directory
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// Engine version or id (see `doctor`); default: the newest installed
+        #[arg(long)]
+        engine: Option<String>,
+    },
     /// Install the UnrealCliBridge plugin into the project
     Setup {
         /// Build the editor target afterwards
@@ -493,6 +504,7 @@ fn dispatch(
             ),
         },
         Command::Batch { file } => ("batch", basic::batch(ctx, &file)),
+        Command::New { name, dir, engine } => ("new", project::new_cmd(ctx, &name, dir, engine)),
         Command::Setup {
             build,
             add_code_module,

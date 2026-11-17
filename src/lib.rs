@@ -8,6 +8,7 @@ pub mod hook;
 pub mod instances;
 pub mod mcp;
 pub mod reference;
+pub mod scaffold;
 pub mod servers;
 pub mod setup;
 pub mod skills;

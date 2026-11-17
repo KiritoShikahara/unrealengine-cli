@@ -16,6 +16,30 @@ impl Ctx {
     }
 }
 
+pub fn new_cmd(
+    ctx: &Ctx,
+    name: &str,
+    dir: Option<PathBuf>,
+    engine: Option<String>,
+) -> Result<Value, CliError> {
+    let engines = locate::list_engines();
+    let wanted = engine.unwrap_or_default();
+    let found = locate::resolve_association(&wanted, &engines).ok_or_else(|| {
+        CliError::usage(
+            "engine.not_found",
+            format!("engine '{wanted}' is not installed"),
+        )
+        .with_hint("install it from the Epic Games Launcher, or pass --engine <version>")
+    })?;
+    let parent = dir.unwrap_or_else(|| ctx.cwd.clone());
+    let mut data = crate::scaffold::create(&parent, name, &found.id, ctx.global.dry_run)?;
+    data["next"] = json!(format!(
+        "cd {} && unrealengine-cli setup --add-code-module --build",
+        parent.join(name).display()
+    ));
+    Ok(data)
+}
+
 pub fn setup_cmd(
     ctx: &mut Ctx,
     build_after: bool,

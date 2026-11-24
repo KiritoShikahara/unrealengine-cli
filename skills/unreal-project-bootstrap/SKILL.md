@@ -16,7 +16,7 @@ Use when a project has no UnrealCliBridge plugin yet, or the editor must be buil
 1. `unrealengine-cli doctor` to see engine, build tools and plugin state.
 2. `unrealengine-cli setup --dry-run` to show the files it will add, then tell the user.
 3. `unrealengine-cli setup --build` (Blueprint-only project: add `--add-code-module`).
-4. `unrealengine-cli editor open --headless` and wait for it.
+4. `unrealengine-cli editor open` (window shown so the user can follow progress) and wait for it.
 
 ## Verify
 

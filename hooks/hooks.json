@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "unrealengine-cli hook session-start 2>/dev/null || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

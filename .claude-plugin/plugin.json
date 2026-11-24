@@ -1,0 +1,11 @@
+{
+  "name": "unrealengine-cli",
+  "version": "0.6.5",
+  "description": "Workflow skills that let AI agents drive Unreal Editor through unrealengine-cli. The CLI and the UnrealCliBridge plugin are installed on demand.",
+  "author": {
+    "name": "KiritoShikahara",
+    "url": "https://github.com/KiritoShikahara"
+  },
+  "repository": "https://github.com/KiritoShikahara/unrealengine-cli",
+  "license": "MIT"
+}

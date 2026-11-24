@@ -7,6 +7,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "FileHelpers.h"
 #include "K2Node_CallFunction.h"
+#include "K2Node_CallArrayFunction.h"
 #include "K2Node_CallParentFunction.h"
 #include "Engine/UserDefinedEnum.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -449,6 +450,41 @@ using namespace UCli::BP;
 
 namespace
 {
+	/** "[a,b,c]" or "(K0=a,K1=b,K2=c)" (any key order) to the pin default form "a,b,c"; other input is returned unchanged. */
+	FString NormalizeTriple(const FString& In, const TArray<FString>& Keys)
+	{
+		FString S = In.TrimStartAndEnd();
+		const bool bArray = S.StartsWith(TEXT("[")) && S.EndsWith(TEXT("]"));
+		const bool bNamed = S.StartsWith(TEXT("(")) && S.EndsWith(TEXT(")"));
+		if (!bArray && !bNamed)
+			return In;
+		S = S.Mid(1, S.Len() - 2);
+		TArray<FString> Parts;
+		S.ParseIntoArray(Parts, TEXT(","));
+		if (Parts.Num() != Keys.Num())
+			return In;
+		TArray<FString> Out;
+		Out.SetNum(Keys.Num());
+		for (int32 I = 0; I < Parts.Num(); ++I)
+		{
+			FString Key, Num = Parts[I].TrimStartAndEnd();
+			if (bNamed)
+			{
+				if (!Num.Split(TEXT("="), &Key, &Num))
+					return In;
+				const int32 At = Keys.IndexOfByPredicate([&](const FString& K) { return K.Equals(Key.TrimStartAndEnd(), ESearchCase::IgnoreCase); });
+				if (At == INDEX_NONE)
+					return In;
+				Out[At] = Num.TrimStartAndEnd();
+			}
+			else
+			{
+				Out[I] = Num;
+			}
+		}
+		return FString::Join(Out, TEXT(","));
+	}
+
 	/** Loads args.path as a Blueprint or fails the call; returns nullptr on failure. */
 	UBlueprint* RequireBP(const FToolCallRef& Call)
 	{
@@ -872,6 +908,9 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 				// Interface functions are called as messages so any object can be the target.
 				if (F->GetOwnerClass() && F->GetOwnerClass()->HasAnyClassFlags(CLASS_Interface))
 					Node = Place<UK2Node_Message>(G, Call, [F](UK2Node_Message* N) { N->SetFromFunction(F); });
+				// Array library functions need the array node so their wildcard pins take the connected array's type.
+				else if (F->HasMetaData(FBlueprintMetadata::MD_ArrayParam))
+					Node = Place<UK2Node_CallArrayFunction>(G, Call, [F](UK2Node_CallArrayFunction* N) { N->SetFromFunction(F); });
 				else
 					Node = Place<UK2Node_CallFunction>(G, Call, [F](UK2Node_CallFunction* N) { N->SetFromFunction(F); });
 			}
@@ -1186,7 +1225,7 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 			B->Modify();
 			P->GetOwningNode()->Modify();
 			const UEdGraphSchema_K2* K2 = Cast<UEdGraphSchema_K2>(G->GetSchema());
-			const FString Value = Call->GetString(TEXT("value"));
+			FString Value = Call->GetString(TEXT("value"));
 			const FName Category = P->PinType.PinCategory;
 			const bool bObjectPin = Category == UEdGraphSchema_K2::PC_Object || Category == UEdGraphSchema_K2::PC_Class
 				|| Category == UEdGraphSchema_K2::PC_SoftObject || Category == UEdGraphSchema_K2::PC_SoftClass || Category == UEdGraphSchema_K2::PC_Interface;
@@ -1216,12 +1255,40 @@ void UCli::RegisterBlueprintTools(FToolRegistry& R)
 				Call->Succeed(O);
 				return;
 			}
+			FString Expected;
+			if (const UEnum* Enum = Cast<UEnum>(P->PinType.PinSubCategoryObject.Get()))
+			{
+				// User Defined Enums store NewEnumeratorN; accept the display name too.
+				TArray<FString> Valid;
+				const bool bKnown = Enum->GetIndexByNameString(Value) != INDEX_NONE;
+				FString Matched;
+				for (int32 I = 0; I < Enum->NumEnums() - 1; ++I)
+				{
+					const FString Display = Enum->GetDisplayNameTextByIndex(I).ToString();
+					const FString Internal = Enum->GetNameStringByIndex(I);
+					if (!bKnown && Matched.IsEmpty() && Display.Equals(Value, ESearchCase::IgnoreCase))
+						Matched = Internal;
+					Valid.Add(FString::Printf(TEXT("%s (%s)"), *Display, *Internal));
+				}
+				if (!Matched.IsEmpty())
+					Value = Matched;
+				Expected = TEXT("valid values: ") + FString::Join(Valid, TEXT(", "));
+			}
+			else if (Category == UEdGraphSchema_K2::PC_Struct
+				&& (P->PinType.PinSubCategoryObject == TBaseStructure<FRotator>::Get() || P->PinType.PinSubCategoryObject == TBaseStructure<FVector>::Get()))
+			{
+				const bool bRotator = P->PinType.PinSubCategoryObject == TBaseStructure<FRotator>::Get();
+				const TArray<FString> Keys = bRotator ? TArray<FString>{TEXT("Pitch"), TEXT("Yaw"), TEXT("Roll")} : TArray<FString>{TEXT("X"), TEXT("Y"), TEXT("Z")};
+				Value = NormalizeTriple(Value, Keys);
+				const FString Plain = FString::Join(Keys, TEXT(","));
+				Expected = FString::Printf(TEXT("expected \"%s\", [%s] or (%s=0)"), *Plain, *Plain, *FString::Join(Keys, TEXT("=0,")));
+			}
 			if (K2)
 			{
 				const FString Invalid = K2->IsPinDefaultValid(P, Value, nullptr, FText::GetEmpty());
 				if (!Invalid.IsEmpty())
 				{
-					Call->Fail(TEXT("blueprint.bad_value"), Invalid);
+					Call->Fail(TEXT("blueprint.bad_value"), Expected.IsEmpty() ? Invalid : Invalid + TEXT("; ") + Expected);
 					return;
 				}
 			}

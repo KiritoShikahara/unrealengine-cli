@@ -1,7 +1,7 @@
 ---
 name: unrealengine-cli-usage
 description: Use when an agent needs to drive Unreal Editor through unrealengine-cli: connecting, finding tools, calling them, reading errors.
-version: 1.2.0
+version: 1.3.0
 tools: []
 ---
 
@@ -13,6 +13,7 @@ Use when an agent needs to drive Unreal Editor through unrealengine-cli: connect
 
 ## Steps
 
+0. If `unrealengine-cli --version` fails, install it: Windows `irm https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.ps1 | iex`, macOS/Linux `curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.sh | sh` (both verify SHA256SUMS). Then, in the project folder, ask the user before running `unrealengine-cli setup --build` (it copies the UnrealCliBridge plugin into the project and builds it).
 1. Check the editor: `unrealengine-cli ping` (exit 3 = no editor: `unrealengine-cli editor open`; use `--headless` for no window, `--null-rhi` only for asset/graph work without PIE or meshes).
 2. Find a tool: `unrealengine-cli tool find <words>`, then `unrealengine-cli tool describe <name>` for its schema.
 3. Call it: `unrealengine-cli tool call <name> --args '{"key":"value"}'`, or use a typed command (`blueprint`, `level`, `asset`, `prop`, `pie`, `fab`, `test`, `code`).

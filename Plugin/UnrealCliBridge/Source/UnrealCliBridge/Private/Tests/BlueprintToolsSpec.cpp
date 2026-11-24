@@ -210,4 +210,53 @@ bool FUCliBlueprintSearch::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintArrayFunction, "UnrealCliBridge.Blueprint.ArrayFunction", UCli::Test::TestFlags)
+bool FUCliBlueprintArrayFunction::RunTest(const FString&)
+{
+	const FString Path = UniquePath(TEXT("BP_Array"));
+	Call(TEXT("bp_create"), P(Path, TEXT(",\"parent\":\"Actor\"")));
+	TestTrue(TEXT("array var"), Ok(Call(TEXT("bp_add_variable"), P(Path, TEXT(",\"name\":\"Scores\",\"type\":\"int[]\"")))));
+	const FString EvId = Data(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"Event\",\"memberName\":\"BeginPlay\""))))->GetStringField(TEXT("guid"));
+	const FString GetId = Data(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"VariableGet\",\"memberName\":\"Scores\""))))->GetStringField(TEXT("guid"));
+	const TSharedPtr<FJsonObject> Add = Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"Array_Add\"")));
+	TestTrue(TEXT("Array_Add"), Ok(Add));
+	const FString AddId = Data(Add)->GetStringField(TEXT("guid"));
+	TestTrue(TEXT("exec"), Ok(Call(TEXT("bp_connect"), P(Path, FString::Printf(TEXT(",\"from\":\"%s.then\",\"to\":\"%s.execute\""), *EvId, *AddId)))));
+	TestTrue(TEXT("connect"), Ok(Call(TEXT("bp_connect"), P(Path, FString::Printf(TEXT(",\"from\":\"%s.Scores\",\"to\":\"%s.TargetArray\""), *GetId, *AddId)))));
+	const TSharedPtr<FJsonObject> C = Data(Call(TEXT("bp_compile"), P(Path)));
+	TestEqual(TEXT("wildcard resolved, no errors"), static_cast<int32>(C->GetNumberField(TEXT("errors"))), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintPinFormats, "UnrealCliBridge.Blueprint.PinFormats", UCli::Test::TestFlags)
+bool FUCliBlueprintPinFormats::RunTest(const FString&)
+{
+	const FString En = UniquePath(TEXT("EN_Cause"));
+	Call(TEXT("enum_create"), FString::Printf(TEXT("{\"path\":\"%s\",\"values\":[\"Fall\",\"Pit\"]}"), *En));
+	const FString Path = UniquePath(TEXT("BP_Pins"));
+	Call(TEXT("bp_create"), P(Path, TEXT(",\"parent\":\"Actor\"")));
+	Call(TEXT("bp_add_variable"), P(Path, FString::Printf(TEXT(",\"name\":\"Cause\",\"type\":\"%s\""), *FPackageName::GetShortName(En))));
+	const FString SetId = Data(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"VariableSet\",\"memberName\":\"Cause\""))))->GetStringField(TEXT("guid"));
+	auto SetPin = [&](const FString& Node, const FString& Pin, const FString& Value)
+	{
+		return Call(TEXT("bp_set_pin"), P(Path, FString::Printf(TEXT(",\"node\":\"%s\",\"pin\":\"%s\",\"value\":\"%s\""), *Node, *Pin, *Value)));
+	};
+	const TSharedPtr<FJsonObject> ByDisplay = SetPin(SetId, TEXT("Cause"), TEXT("Pit"));
+	TestTrue(TEXT("enum display name"), Ok(ByDisplay));
+	TestEqual(TEXT("stored as internal name"), Data(ByDisplay)->GetStringField(TEXT("value")), FString(TEXT("NewEnumerator1")));
+	const TSharedPtr<FJsonObject> BadEnum = SetPin(SetId, TEXT("Cause"), TEXT("Lava"));
+	TestTrue(TEXT("enum error lists values"), BadEnum->GetObjectField(TEXT("error"))->GetStringField(TEXT("message")).Contains(TEXT("Pit (NewEnumerator1)")));
+
+	const FString RotId = Data(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"K2_SetActorRotation\""))))->GetStringField(TEXT("guid"));
+	const TSharedPtr<FJsonObject> Arr = SetPin(RotId, TEXT("NewRotation"), TEXT("[0,0,80]"));
+	TestTrue(TEXT("rotator array"), Ok(Arr));
+	TestEqual(TEXT("rotator array value"), Data(Arr)->GetStringField(TEXT("value")), FString(TEXT("0,0,80")));
+	const TSharedPtr<FJsonObject> Named = SetPin(RotId, TEXT("NewRotation"), TEXT("(Pitch=10,Yaw=20,Roll=30)"));
+	TestTrue(TEXT("rotator named"), Ok(Named));
+	TestEqual(TEXT("rotator named value"), Data(Named)->GetStringField(TEXT("value")), FString(TEXT("10,20,30")));
+	const TSharedPtr<FJsonObject> BadRot = SetPin(RotId, TEXT("NewRotation"), TEXT("sideways"));
+	TestTrue(TEXT("rotator error shows format"), BadRot->GetObjectField(TEXT("error"))->GetStringField(TEXT("message")).Contains(TEXT("Pitch,Yaw,Roll")));
+	return true;
+}
+
 #endif

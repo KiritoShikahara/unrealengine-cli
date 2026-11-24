@@ -78,8 +78,8 @@ cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 cargo test --all-targets
 cargo run -- skills lint --severity error
-bash scripts/e2e.sh 5.7     # プラグインのビルド + Automation テスト + エディタ E2E(Windows)
-UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.8   # PIE、マルチプレイ、GAS、ライティング、画像比較、ゲームの E2E も実行
+bash scripts/e2e.sh 5.7     # プラグインのビルド + Automation テスト + エディタ E2E(PIE、ゲームの E2E を含む。エディタのウィンドウを表示。Windows)
+UNREALENGINE_CLI_E2E_NULL_RHI=1 bash scripts/e2e.sh 5.8   # ウィンドウなし(-nullrhi)。PIE と描画が必要な E2E は飛ばす
 UNREALENGINE_CLI_E2E_FAB=1 cargo test --test e2e_fab   # Fab のダウンロード(サインイン済みのエディタ。ライブラリのアイテムのみ)
 ```
 

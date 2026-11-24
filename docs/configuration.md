@@ -11,6 +11,6 @@
 | `UNREALENGINE_CLI_NO_MODIFY_PATH` | `install.ps1` | Do not add the install directory to the user `Path`. |
 | `UNREALENGINE_CLI_VERSION` | install scripts | Release tag to install (default: latest). |
 | `UNREALENGINE_CLI_KEEP_ARGS` | CLI | Disable the Git Bash path fix (arguments are passed through unchanged). |
-| `UNREALENGINE_CLI_E2E`, `UNREALENGINE_CLI_E2E_RENDER` | tests | Enable editor E2E tests; also run PIE (needs a rendering editor). |
+| `UNREALENGINE_CLI_E2E`, `UNREALENGINE_CLI_E2E_RENDER` | tests | Enable editor E2E tests; also run PIE (needs a rendering editor). `scripts/e2e.sh` sets `_RENDER=1` unless `UNREALENGINE_CLI_E2E_NULL_RHI=1`. |
 
 Editor command-line switch: `-NoUnrealCliBridge` starts the editor without the bridge server.

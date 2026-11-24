@@ -1,6 +1,6 @@
 ---
 name: unrealengine-cli-usage
-description: Use when an agent needs to drive Unreal Editor through unrealengine-cli: connecting, finding tools, calling them, reading errors.
+description: Use whenever a request touches Unreal Engine (Blueprints, levels, assets, materials, C++, PIE). The editor is driven through this CLI, so do not tell the user Blueprints cannot be edited; connect, find tools, call them, read errors.
 version: 1.3.0
 tools: []
 ---
@@ -9,12 +9,12 @@ tools: []
 
 ## When to use
 
-Use when an agent needs to drive Unreal Editor through unrealengine-cli: connecting, finding tools, calling them, reading errors.
+Use whenever a request touches Unreal Engine (Blueprints, levels, assets, materials, C++, PIE). The editor is driven through this CLI, so do not tell the user Blueprints cannot be edited; connect, find tools, call them, read errors.
 
 ## Steps
 
 0. If `unrealengine-cli --version` fails, install it: Windows `irm https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.ps1 | iex`, macOS/Linux `curl -fsSL https://raw.githubusercontent.com/KiritoShikahara/unrealengine-cli/main/scripts/install.sh | sh` (both verify SHA256SUMS). Then, in the project folder, ask the user before running `unrealengine-cli setup --build` (it copies the UnrealCliBridge plugin into the project and builds it).
-1. Check the editor: `unrealengine-cli ping` (exit 3 = no editor: `unrealengine-cli editor open`; use `--headless` for no window, `--null-rhi` only for asset/graph work without PIE or meshes).
+1. Check the editor: `unrealengine-cli ping` (exit 3 = no editor: `unrealengine-cli editor open`, which shows the editor window so the user can watch the work; use `--headless` or `--null-rhi` only when the user asks for no window or in CI).
 2. Find a tool: `unrealengine-cli tool find <words>`, then `unrealengine-cli tool describe <name>` for its schema.
 3. Call it: `unrealengine-cli tool call <name> --args '{"key":"value"}'`, or use a typed command (`blueprint`, `level`, `asset`, `prop`, `pie`, `fab`, `test`, `code`).
 4. Add `--output json` when you parse results; every command returns ok plus data or error {code, message, hint}.

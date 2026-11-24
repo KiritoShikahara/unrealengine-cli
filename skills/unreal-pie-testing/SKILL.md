@@ -13,7 +13,7 @@ Use when verifying behaviour by playing the game in the editor (input, screensho
 
 ## Steps
 
-1. Play-test needs a rendering editor: `unrealengine-cli editor open` (or `--headless`), not `--null-rhi`.
+1. Play-test needs a rendering editor: `unrealengine-cli editor open` (window shown; `--headless` only when the user asks), not `--null-rhi`.
 2. Quick check: `unrealengine-cli pie run --seconds 15 --stop-on-log <expected log text>`.
 3. Interactive play-test:
    1. `unrealengine-cli pie start`.

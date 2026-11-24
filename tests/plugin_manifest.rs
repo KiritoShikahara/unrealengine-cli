@@ -19,6 +19,15 @@ fn plugin_manifests_match_the_crate_version() {
 }
 
 #[test]
+fn plugin_adds_the_session_start_hook() {
+    let hooks = json("hooks/hooks.json");
+    let command = hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        .as_str()
+        .unwrap();
+    assert!(command.starts_with(unrealengine_cli::hook::SESSION_START_COMMAND));
+}
+
+#[test]
 fn usage_skill_bootstraps_a_missing_cli() {
     let text = std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("skills/unrealengine-cli-usage/SKILL.md"),

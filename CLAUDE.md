@@ -33,4 +33,4 @@ bash scripts/e2e.sh 5.7   # Windows + UE 5.7
 - 新しい Python ツールと C++ ツールの登録は起動時だけ。追加したらエディタを再起動する(Live Coding では反映されない)
 - C++ の raw 文字列 `TEXT(R"(...)")` の中に `)"` を書かない(JSON の説明に括弧つきの文字列を入れると文字列が途中で閉じる)
 - E2E の副産物(`TestProject/Content/Localization`、`Config/Localization`、`__ExternalActors__`、Fab の取り込み先)はコミットしない
-- `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。PIE の E2E は `UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.7`(描画あり)で回す
+- `editor open --null-rhi` ではメッシュを持つアクターの生成と PIE がエンジン側でクラッシュする。`scripts/e2e.sh` は既定でエディタのウィンドウを開き、PIE を含めて回す(ウィンドウなしは `UNREALENGINE_CLI_E2E_NULL_RHI=1`)

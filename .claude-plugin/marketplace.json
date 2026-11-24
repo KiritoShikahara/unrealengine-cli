@@ -1,0 +1,16 @@
+{
+  "name": "unrealengine-cli",
+  "owner": {
+    "name": "KiritoShikahara",
+    "url": "https://github.com/KiritoShikahara"
+  },
+  "plugins": [
+    {
+      "name": "unrealengine-cli",
+      "description": "Workflow skills for driving Unreal Editor with unrealengine-cli.",
+      "version": "0.6.5",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

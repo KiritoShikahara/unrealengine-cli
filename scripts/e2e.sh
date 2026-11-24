@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Acceptance E2E: builds the plugin for an engine, runs its Automation tests, opens the editor
-# headless and runs tests/e2e_editor.rs against it.
+# window (so progress is visible) and runs tests/e2e_editor.rs against it.
 # Usage: scripts/e2e.sh [5.7|5.8]
 set -uo pipefail
 VER="${1:-5.7}"
@@ -13,9 +13,10 @@ $U editor close --force >/dev/null 2>&1 || true
 rm -rf TestProject/Content/E2E TestProject/Content/CoinGame
 bash scripts/dev-build.sh "$VER" || { echo "plugin build failed for $VER"; exit 1; }
 bash scripts/run-automation.sh "$VER" || { echo "automation tests failed for $VER"; exit 1; }
-# UNREALENGINE_CLI_E2E_RENDER=1 opens a rendering editor and also runs PIE and Blueprint actor spawning.
-MODE=--null-rhi
-[ "${UNREALENGINE_CLI_E2E_RENDER:-}" = 1 ] && MODE=""
+# The editor window opens by default and PIE / actor-spawning E2Es run too.
+# UNREALENGINE_CLI_E2E_NULL_RHI=1 opens it with -nullrhi (no window) and skips them.
+MODE=""
+if [ "${UNREALENGINE_CLI_E2E_NULL_RHI:-}" = 1 ]; then MODE=--null-rhi; else export UNREALENGINE_CLI_E2E_RENDER=1; fi
 $U editor open $MODE --wait 2400 --output json >/dev/null || { echo "editor did not start"; exit 1; }
 UNREALENGINE_CLI_E2E=1 cargo test -q --test e2e_editor --test e2e_mcp_editor -- --test-threads=1 2>&1 | tail -n 30
 CODE=${PIPESTATUS[0]}

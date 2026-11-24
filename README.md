@@ -83,8 +83,8 @@ cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 cargo test --all-targets
 cargo run -- skills lint --severity error
-bash scripts/e2e.sh 5.7     # plugin build + Automation tests + editor E2E (Windows)
-UNREALENGINE_CLI_E2E_RENDER=1 bash scripts/e2e.sh 5.8   # also PIE, multiplayer, GAS, lighting, visual and game E2Es
+bash scripts/e2e.sh 5.7     # plugin build + Automation tests + editor E2E incl. PIE and game E2Es, editor window shown (Windows)
+UNREALENGINE_CLI_E2E_NULL_RHI=1 bash scripts/e2e.sh 5.8   # no window (-nullrhi); skips PIE and rendering E2Es
 UNREALENGINE_CLI_E2E_FAB=1 cargo test --test e2e_fab   # Fab downloads (signed-in editor; library items only)
 bash scripts/gen-catalog.sh # refresh tools/catalog.json from a running editor
 ```

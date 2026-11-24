@@ -228,6 +228,42 @@ bool FUCliBlueprintArrayFunction::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintNoOverlap, "UnrealCliBridge.Blueprint.NoOverlap", UCli::Test::TestFlags)
+bool FUCliBlueprintNoOverlap::RunTest(const FString&)
+{
+	const FString Path = UniquePath(TEXT("BP_Layout"));
+	Call(TEXT("bp_create"), P(Path, TEXT(",\"parent\":\"Actor\"")));
+	auto Pos = [&](const TSharedPtr<FJsonObject>& Reply)
+	{
+		if (!TestTrue(TEXT("node added"), Ok(Reply)))
+		{
+			AddError(Code(Reply));
+			return FIntPoint(MIN_int32, MIN_int32);
+		}
+		const FString Guid = Data(Reply)->GetStringField(TEXT("guid"));
+		const TSharedPtr<FJsonObject> Graph = Data(Call(TEXT("bp_graph_get"), P(Path)));
+		for (const TSharedPtr<FJsonValue>& N : Graph->GetArrayField(TEXT("nodes")))
+		{
+			if (N->AsObject()->GetStringField(TEXT("guid")) == Guid)
+			{
+				const TArray<TSharedPtr<FJsonValue>>& XY = N->AsObject()->GetArrayField(TEXT("position"));
+				return FIntPoint(static_cast<int32>(XY[0]->AsNumber()), static_cast<int32>(XY[1]->AsNumber()));
+			}
+		}
+		return FIntPoint(MIN_int32, MIN_int32);
+	};
+	const FIntPoint Tall = Pos(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"K2_SetActorLocationAndRotation\",\"position\":[1000,1000]"))));
+	TestEqual(TEXT("free spot kept"), Tall, FIntPoint(1000, 1000));
+	const FIntPoint Print = Pos(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"PrintString\",\"position\":[1000,1100]"))));
+	TestTrue(TEXT("moved below the tall node"), Print.X != 1000 || Print.Y >= 1200);
+	const FIntPoint Again = Pos(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"PrintString\",\"position\":[1000,1100]"))));
+	TestTrue(TEXT("same requested spot gets another place"), Again != Print);
+	const FIntPoint A = Pos(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"PrintString\""))));
+	const FIntPoint B = Pos(Call(TEXT("bp_add_node"), P(Path, TEXT(",\"type\":\"CallFunction\",\"memberName\":\"PrintString\""))));
+	TestTrue(TEXT("auto placed apart"), A.X != B.X || FMath::Abs(A.Y - B.Y) >= 100);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUCliBlueprintPinFormats, "UnrealCliBridge.Blueprint.PinFormats", UCli::Test::TestFlags)
 bool FUCliBlueprintPinFormats::RunTest(const FString&)
 {

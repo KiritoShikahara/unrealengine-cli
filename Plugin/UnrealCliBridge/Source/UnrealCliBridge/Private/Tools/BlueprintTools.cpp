@@ -8,6 +8,7 @@
 #include "FileHelpers.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_CallArrayFunction.h"
+#include "EdGraphNode_Comment.h"
 #include "K2Node_CallParentFunction.h"
 #include "Engine/UserDefinedEnum.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -554,28 +555,60 @@ namespace
 		return O;
 	}
 
+	/** Approximate on-screen size of a node, from its title and visible pins (graph nodes have no size until drawn). */
+	FIntPoint NodeSize(const UEdGraphNode* N)
+	{
+		if (N->NodeWidth > 0 && N->NodeHeight > 0)
+			return FIntPoint(N->NodeWidth, N->NodeHeight);
+		int32 In = 0, Out = 0, InLabel = 0, OutLabel = 0;
+		for (const UEdGraphPin* Pin : N->Pins)
+		{
+			if (!Pin || Pin->bHidden || (Pin->bAdvancedView && N->AdvancedPinDisplay != ENodeAdvancedPins::Shown))
+				continue;
+			const int32 Len = N->GetPinDisplayName(Pin).ToString().Len();
+			if (Pin->Direction == EGPD_Input) { ++In; InLabel = FMath::Max(InLabel, Len); }
+			else { ++Out; OutLabel = FMath::Max(OutLabel, Len); }
+		}
+		const int32 Title = N->GetNodeTitle(ENodeTitleType::FullTitle).ToString().Len();
+		const int32 W = FMath::Max3(160, 60 + 8 * Title, 80 + 7 * (InLabel + OutLabel));
+		return FIntPoint(W, 48 + 26 * FMath::Max(In, Out));
+	}
+
+	/** Puts the node at args.position (or the graph origin), moved down until it overlaps no other node except comments. */
+	void PositionNode(UEdGraph* G, UEdGraphNode* Node, const FToolCallRef& Call)
+	{
+		const TArray<TSharedPtr<FJsonValue>> Pos = Call->GetArray(TEXT("position"));
+		const int32 X = Pos.Num() == 2 ? static_cast<int32>(Pos[0]->AsNumber()) : 0;
+		int32 Y = Pos.Num() == 2 ? static_cast<int32>(Pos[1]->AsNumber()) : 0;
+		const FIntPoint Size = NodeSize(Node);
+		constexpr int32 Gap = 32;
+		for (bool bHit = true; bHit;)
+		{
+			bHit = false;
+			for (const UEdGraphNode* N : G->Nodes)
+			{
+				if (!N || N == Node || N->IsA<UEdGraphNode_Comment>())
+					continue;
+				const FIntPoint S = NodeSize(N);
+				if (X < N->NodePosX + S.X + Gap && N->NodePosX < X + Size.X + Gap && Y < N->NodePosY + S.Y + Gap && N->NodePosY < Y + Size.Y + Gap)
+				{
+					Y = N->NodePosY + S.Y + Gap;
+					bHit = true;
+				}
+			}
+		}
+		Node->NodePosX = X;
+		Node->NodePosY = Y;
+	}
+
 	template <typename T>
 	T* Place(UEdGraph* G, const FToolCallRef& Call, TFunctionRef<void(T*)> Setup)
 	{
 		FGraphNodeCreator<T> Creator(*G);
 		T* Node = Creator.CreateNode(false);
 		Setup(Node);
-		const TArray<TSharedPtr<FJsonValue>> Pos = Call->GetArray(TEXT("position"));
-		if (Pos.Num() == 2)
-		{
-			Node->NodePosX = static_cast<int32>(Pos[0]->AsNumber());
-			Node->NodePosY = static_cast<int32>(Pos[1]->AsNumber());
-		}
-		else
-		{
-			int32 MaxY = 0;
-			for (UEdGraphNode* N : G->Nodes)
-			{
-				if (N && N != Node) MaxY = FMath::Max(MaxY, N->NodePosY + 200);
-			}
-			Node->NodePosY = MaxY;
-		}
 		Creator.Finalize();
+		PositionNode(G, Node, Call);
 		return Node;
 	}
 
@@ -612,21 +645,6 @@ namespace
 		G->AddNode(Node, false, false);
 		Node->CreateNewGuid();
 		Setup(Node);
-		const TArray<TSharedPtr<FJsonValue>> Pos = Call->GetArray(TEXT("position"));
-		if (Pos.Num() == 2)
-		{
-			Node->NodePosX = static_cast<int32>(Pos[0]->AsNumber());
-			Node->NodePosY = static_cast<int32>(Pos[1]->AsNumber());
-		}
-		else
-		{
-			int32 MaxY = 0;
-			for (UEdGraphNode* N : G->Nodes)
-			{
-				if (N && N != Node) MaxY = FMath::Max(MaxY, N->NodePosY + 200);
-			}
-			Node->NodePosY = MaxY;
-		}
 		if (bPinsFirst)
 		{
 			Node->AllocateDefaultPins();
@@ -637,6 +655,7 @@ namespace
 			Node->PostPlacedNewNode();
 			Node->AllocateDefaultPins();
 		}
+		PositionNode(G, Node, Call);
 		return Node;
 	}
 
